@@ -1,8 +1,8 @@
 #!/bin/bash -l
 
 # Standard output and error:
-#$ -o ./{LOG_FOLDER}/{JOB_NAME}.out.txt
-#$ -e ./{LOG_FOLDER}/{JOB_NAME}.err.txt
+#$ -o {LOG_FOLDER}/{JOB_NAME}.out.txt
+#$ -e {LOG_FOLDER}/{JOB_NAME}.err.txt
 # Execute from current working directory:
 #$ -cwd
 # Preserve environment variables:
@@ -19,4 +19,4 @@ echo $JOB_ID
 mkdir -p {OUTPUT_FOLDER}
 
 # Run the program
-python3 -m model {MODEL_FILE} --output {OUTPUT} --json {PARAMETERS}
+python3 -m model {MODEL_FILE} {JOB_ARGS}

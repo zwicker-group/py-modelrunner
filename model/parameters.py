@@ -10,18 +10,35 @@ One aim is to allow easy management of inheritance of parameters.
    DeprecatedParameter
    HideParameter
    Parameterized
-   get_all_parameters
-
+   
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
+import importlib
 import logging
 from collections import OrderedDict
 from typing import Any, Dict, Sequence, Union
 
 import numpy as np
-from pde.tools import output
-from pde.tools.misc import hybridmethod, import_class
+
+
+def import_class(identifier: str):
+    """import a class or module given an identifier
+
+    Args:
+        identifier (str):
+            The identifier can be a module or a class. For instance, calling the
+            function with the string `identifier == 'numpy.linalg.norm'` is
+            roughly equivalent to running `from numpy.linalg import norm` and
+            would return a reference to `norm`.
+    """
+    module_path, _, class_name = identifier.rpartition(".")
+    if module_path:
+        module = importlib.import_module(module_path)
+        return getattr(module, class_name)
+    else:
+        # this happens when identifier does not contain a dot
+        return importlib.import_module(class_name)
 
 
 class Parameter:
@@ -182,7 +199,6 @@ class Parameterized:
     """a mixin that manages the parameters of a class"""
 
     parameters_default: ParameterListType = []
-    _subclasses: Dict[str, "Parameterized"] = {}
 
     def __init__(self, parameters: Dict[str, Any] = None):
         """initialize the parameters of the object
@@ -214,10 +230,6 @@ class Parameterized:
             cls.parameters_default = [
                 Parameter(*args) for args in cls.parameters_default.items()
             ]
-
-        # register the subclasses
-        super().__init_subclass__(**kwargs)
-        cls._subclasses[cls.__name__] = cls
 
     @classmethod
     def get_parameters(
@@ -333,201 +345,3 @@ class Parameterized:
                         return p.default_value
 
         raise KeyError(f"Parameter `{name}` is not defined")
-
-    @classmethod
-    def _show_parameters(
-        cls,
-        description: bool = None,
-        sort: bool = False,
-        show_hidden: bool = False,
-        show_deprecated: bool = False,
-        parameter_values: Dict[str, Any] = None,
-    ):
-        """private method showing all parameters in human readable format
-
-        Args:
-            description (bool):
-                Flag determining whether the parameter description is shown. The
-                default is to show the description only when we are in a jupyter
-                notebook environment.
-            sort (bool):
-                Flag determining whether the parameters are sorted
-            show_hidden (bool):
-                Flag determining whether hidden parameters are shown
-            show_deprecated (bool):
-                Flag determining whether deprecated parameters are shown
-            parameter_values (dict):
-                A dictionary with values to show. Parameters not in this
-                dictionary are shown with their default value.
-
-        All flags default to `False`.
-        """
-        # determine whether we are in a jupyter notebook and can return HTML
-        in_notebook = output.in_jupyter_notebook()
-        if description is None:
-            description = in_notebook  # show only in notebook by default
-
-        # set the templates for displaying the data
-        if in_notebook:
-            writer: output.OutputBase = output.JupyterOutput(
-                '<style type="text/css">dl.py-pde_params dd {padding-left:2em}</style>'
-                '<dl class="py-pde_params">',
-                "</dl>",
-            )
-            # templates for HTML output
-            template = "<dt>{name} = {value!r}</dt>"
-            if description:
-                template += "<dd>{description}</dd>"
-            template_object = template
-
-        else:
-            # template for normal output
-            writer = output.BasicOutput()
-            template = "{name}: {type} = {value!r}"
-            template_object = "{name} = {value!r}"
-            if description:
-                template += " ({description})"
-                template_object += " ({description})"
-
-        # iterate over all parameters
-        params = cls.get_parameters(
-            include_hidden=show_hidden, include_deprecated=show_deprecated, sort=sort
-        )
-        for param in params.values():
-            # initialize the data to show
-            data = {
-                "name": param.name,
-                "type": param.cls.__name__,
-                "description": param.description,
-            }
-
-            # determine the value to show
-            if parameter_values is None:
-                data["value"] = param.default_value
-            else:
-                data["value"] = parameter_values[param.name]
-
-            # print the data to stdout
-            if param.cls is object:
-                writer(template_object.format(**data))
-            else:
-                writer(template.format(**data))
-
-        writer.show()
-
-    @hybridmethod
-    def show_parameters(  # @NoSelf
-        cls,
-        description: bool = None,  # @NoSelf
-        sort: bool = False,
-        show_hidden: bool = False,
-        show_deprecated: bool = False,
-    ):
-        """show all parameters in human readable format
-
-        Args:
-            description (bool):
-                Flag determining whether the parameter description is shown. The
-                default is to show the description only when we are in a jupyter
-                notebook environment.
-            sort (bool):
-                Flag determining whether the parameters are sorted
-            show_hidden (bool):
-                Flag determining whether hidden parameters are shown
-            show_deprecated (bool):
-                Flag determining whether deprecated parameters are shown
-
-        All flags default to `False`.
-        """
-        cls._show_parameters(description, sort, show_hidden, show_deprecated)
-
-    @show_parameters.instancemethod  # type: ignore
-    def show_parameters(
-        self,
-        description: bool = None,  # @NoSelf
-        sort: bool = False,
-        show_hidden: bool = False,
-        show_deprecated: bool = False,
-        default_value: bool = False,
-    ):
-        """show all parameters in human readable format
-
-        Args:
-            description (bool):
-                Flag determining whether the parameter description is shown. The
-                default is to show the description only when we are in a jupyter
-                notebook environment.
-            sort (bool):
-                Flag determining whether the parameters are sorted
-            show_hidden (bool):
-                Flag determining whether hidden parameters are shown
-            show_deprecated (bool):
-                Flag determining whether deprecated parameters are shown
-            default_value (bool):
-                Flag determining whether the default values or the current
-                values are shown
-
-        All flags default to `False`.
-        """
-        self._show_parameters(
-            description,
-            sort,
-            show_hidden,
-            show_deprecated,
-            parameter_values=None if default_value else self.parameters,
-        )
-
-
-def get_all_parameters(data: str = "name") -> Dict[str, Any]:
-    """get a dictionary with all parameters of all registered classes
-
-    Args:
-        data (str):
-            Determines what data is returned. Possible values are 'name',
-            'value', or 'description', to return the respective information
-            about the parameters.
-    """
-    result = {}
-    for cls_name, cls in Parameterized._subclasses.items():
-        if data == "name":
-            parameters = set(cls.get_parameters().keys())
-        elif data == "value":
-            parameters = {  # type: ignore
-                k: v.default_value for k, v in cls.get_parameters().items()
-            }
-        elif data == "description":
-            parameters = {  # type: ignore
-                k: v.description for k, v in cls.get_parameters().items()
-            }
-        else:
-            raise ValueError(f"Cannot interpret data `{data}`")
-
-        result[cls_name] = parameters
-    return result
-
-
-def sphinx_display_parameters(app, what, name, obj, options, lines):
-    """helper function to display parameters in sphinx documentation
-
-    Example:
-        This function should be connected to the 'autodoc-process-docstring'
-        event like so:
-
-            app.connect('autodoc-process-docstring', sphinx_display_parameters)
-    """
-    if what == "class" and issubclass(obj, Parameterized):
-        if any(":param parameters:" in line for line in lines):
-            # parse parameters
-            parameters = obj.get_parameters(sort=False)
-            if parameters:
-                lines.append(".. admonition::")
-                lines.append(f"   Parameters of {obj.__name__}:")
-                lines.append("   ")
-                for p in parameters.values():
-                    lines.append(f"   {p.name}")
-                    text = p.description.splitlines()
-                    text.append(f"(Default value: :code:`{p.default_value!r}`)")
-                    text = ["     " + t for t in text]
-                    lines.extend(text)
-                    lines.append("")
-                lines.append("")

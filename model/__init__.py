@@ -5,8 +5,8 @@
 from .model import (
     FunctionModelFactory,
     ModelBase,
-    run_function_with_cmd_args,
     get_function_model,
+    run_function_with_cmd_args,
 )
 from .parameters import Parameter
-from .results import Result
+from .results import Result, ResultCollection

@@ -15,7 +15,7 @@ if __name__ == "__main__":
     filename = os.path.basename(script_path)
     spec = importlib.util.spec_from_file_location("model_code", script_path)
     model_code = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(model_code)
+    spec.loader.exec_module(model_code)  # type: ignore
 
     # find all functions in the module
     funcs = inspect.getmembers(model_code, inspect.isfunction)
@@ -30,5 +30,4 @@ if __name__ == "__main__":
             raise RuntimeError("Found many function, but no 'main' function: ", names)
 
     # create the model from the function
-    result = run_function_with_cmd_args(func, args=sys.argv[2:], name=filename)
-    print(result.result)
+    run_function_with_cmd_args(func, args=sys.argv[2:], name=filename)

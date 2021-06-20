@@ -21,13 +21,9 @@ def main():
         help="Dictionary of parameters for the model",
     )
 
-    parser.add_argument("-o", "--output", required=True, help="Path to output file")
-
+    parser.add_argument("-o", "--output", help="Path to output file")
     parser.add_argument(
-        "-t",
-        "--template",
-        default="qsub",
-        help="Name of the template for job submission",
+        "-m", "--method", default="qsub", help="Method for job submission"
     )
 
     args = parser.parse_args()
@@ -37,7 +33,7 @@ def main():
         output=args.output,
         name=args.name,
         parameters=args.parameters,
-        template=args.template,
+        method=args.method,
     )
     print(stdout, stderr)
 

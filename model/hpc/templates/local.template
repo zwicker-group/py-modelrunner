@@ -1,0 +1,7 @@
+#!/bin/bash -l
+
+mkdir -p {OUTPUT_FOLDER}
+
+# Run the program
+nohup python3 -m model {MODEL_FILE} {JOB_ARGS} \
+	> {LOG_FOLDER}/{JOB_NAME}.out.txt 2>  {LOG_FOLDER}/{JOB_NAME}.err.txt &

@@ -6,7 +6,8 @@ import inspect
 import json
 import os.path
 import warnings
-from typing import Any, Dict
+from pathlib import Path
+from typing import Any, Dict, Type
 
 import numpy as np
 
@@ -83,16 +84,19 @@ class MockModel(ModelBase):
 class Result:
     """describes a model (with parameters) together with its result"""
 
-    def __init__(self, model: ModelBase, result=None):
+    def __init__(self, model: ModelBase, result=None, name: str = None):
         self.model = model
         self.result = result
+        self.name = name
 
     @classmethod
-    def from_data(cls, model_data, result, model: ModelBase = None) -> "Result":
+    def from_data(
+        cls, model_data, result, model: ModelBase = None, name: str = None
+    ) -> "Result":
         if model is None:
-            model_cls = MockModel
+            model_cls: Type[ModelBase] = MockModel
         else:
-            model_cls = model if inspect.isclass(model) else model.__class__
+            model_cls = model if inspect.isclass(model) else model.__class__  # type: ignore
 
         if not model_data:
             warnings.warn("Model data not found")
@@ -100,11 +104,21 @@ class Result:
         obj.name = model_data.get("name")
         obj.description = model_data.get("description")
 
-        return cls(obj, result)
+        return cls(obj, result, name)
 
     @property
     def parameters(self) -> Dict[str, Any]:
         return self.model.parameters
+
+    @classmethod
+    def from_file(cls, path, model: ModelBase = None):
+        ext = os.path.splitext(path)[1].lower()
+        if ext == ".json":
+            return cls.from_json(path, model)
+        elif ext in {".h", ".h4", ".h5", ".hdf", ".hdf4", ".hdf5"}:
+            return cls.from_hdf(path, model)
+        else:
+            raise ValueError(f"Unknown file format `{ext}`")
 
     def write_to_file(self, path):
         ext = os.path.splitext(path)[1].lower()
@@ -116,22 +130,26 @@ class Result:
             raise ValueError(f"Unknown file format `{ext}`")
 
     @classmethod
-    def from_json(cls, path, model: ModelBase = None):
+    def from_json(cls, path, model: ModelBase = None) -> "Result":
         """load result from a JSON file"""
+
         with open(path, "r") as fp:
             data = json.load(fp)
 
         return cls.from_data(
-            model_data=data.get("model", {}), result=data.get("result"), model=model
+            model_data=data.get("model", {}),
+            result=data.get("result"),
+            model=model,
+            name=Path(path).with_suffix("").stem,
         )
 
-    def write_to_json(self, path) -> "Result":
+    def write_to_json(self, path) -> None:
         """write result to JSON file"""
         with open(path, "w") as fp:
             json.dump({"model": self.model.attributes, "result": self.result}, fp)
 
     @classmethod
-    def from_hdf(cls, path, model: ModelBase = None):
+    def from_hdf(cls, path, model: ModelBase = None) -> "Result":
         """load result from HDF file"""
         import h5py
 
@@ -143,9 +161,14 @@ class Result:
                 result = model_data.pop("result")
             # check for other nodes, which might not be read
 
-        return cls.from_data(model_data=model_data, result=result, model=model)
+        return cls.from_data(
+            model_data=model_data,
+            result=result,
+            model=model,
+            name=Path(path).with_suffix("").stem,
+        )
 
-    def write_to_hdf(self, path) -> "Result":
+    def write_to_hdf(self, path) -> None:
         """write result to HDF file"""
         import h5py
 
@@ -156,3 +179,55 @@ class Result:
 
             # write the actual data
             write_hdf_dataset(fp, self.result, "result")
+
+
+class ResultCollection(list):
+    """represents a collection of results"""
+
+    @classmethod
+    def from_folder(cls, folder, pattern="*.*", model: ModelBase = None):
+        """create results collection from a folder"""
+        folder = Path(folder)
+        assert folder.is_dir()
+
+        results = [
+            Result.from_file(path, model)
+            for path in folder.glob(pattern)
+            if path.is_file()
+        ]
+        return cls(results)
+
+    @property
+    def homogeneous_model(self) -> bool:
+        """flag determining whether all results are from the same model"""
+        if len(self) < 2:
+            return True
+        name = self[0].model.name
+        keys = self[0].model.parameters.keys()
+        for result in self:
+            if result.model.name != name or result.model.parameters.keys() != keys:
+                return False
+        return True
+
+    @property
+    def dataframe(self):
+        """create a pandas Dataframe summarizing the data"""
+        import pandas as pd
+
+        assert self.homogeneous_model
+
+        def get_data(result):
+            """helper function to extract the data"""
+            data = {"name": result.name}
+            data.update(result.parameters)
+            if np.isscalar(result.result):
+                data["result"] = result.result
+            elif isinstance(result.result, dict):
+                for key, value in result.result:
+                    if np.isscalar(value):
+                        data[key] = value
+            else:
+                raise RuntimeError("Do not know how to interpret result")
+            return data
+
+        return pd.DataFrame([get_data(result) for result in self])

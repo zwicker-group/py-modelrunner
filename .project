@@ -3,7 +3,6 @@
 	<name>py-model</name>
 	<comment></comment>
 	<projects>
-		<project>py-pde</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

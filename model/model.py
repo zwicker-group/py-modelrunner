@@ -6,7 +6,7 @@ import argparse
 import inspect
 import json
 from abc import ABCMeta, abstractmethod
-from typing import Any, Callable, Dict, Type
+from typing import Any, Callable, Dict, Optional, Type
 
 from .parameters import Parameter, Parameterized
 
@@ -14,8 +14,8 @@ from .parameters import Parameter, Parameterized
 class ModelBase(Parameterized, metaclass=ABCMeta):
     """base class for describing models"""
 
-    name: str = None
-    description: str = None
+    name: Optional[str] = None
+    description: Optional[str] = None
 
     @abstractmethod
     def __call__(self):
