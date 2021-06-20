@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """

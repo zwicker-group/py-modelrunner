@@ -19,12 +19,14 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
 
     @abstractmethod
     def __call__(self):
+        """main method calculating the result"""
         pass
 
     def get_result(self):
-        from .results import ModelResult
+        """get the result as a :class:`~model.Result` object"""
+        from .results import Result
 
-        return ModelResult(self, self())
+        return Result(self, self())
 
     @classmethod
     def _prepare_argparser(cls, name=None):
@@ -33,22 +35,49 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
             description=cls.description,
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
+
+        # add all model parameters
         for p in cls.parameters_default:
             p._argparser_add(parser)
 
-        # parser.add_argument(
-        #     "-o",
-        #     "--output",
-        #     help="Output path",
-        # )
+        # add special parameters
+        parser.add_argument(
+            "-o",
+            "--output",
+            metavar="PATH",
+            help="Path to output file. If omitted, no output file is created.",
+        )
+        # add special parameters
+        parser.add_argument(
+            "--json",
+            metavar="JSON",
+            help="JSON-encoded parameter values. Overwrites other parameters.",
+        )
 
         return parser
 
     @classmethod
     def from_command_line(cls, args=None, name=None):
+        """create model from command line parameters"""
+        # read the command line arguments
         parser = cls._prepare_argparser(name)
-        args = parser.parse_args(args)
-        return cls(vars(args))
+        args = vars(parser.parse_args(args))
+        output = args.pop("output")
+        parameters_json = args.pop("json")
+
+        # build parameter list
+        parameters = args
+        if parameters_json:
+            parameters.update(json.loads(parameters_json))
+
+        # create the model and run it
+        mdl = cls(parameters)
+        result = mdl.get_result()
+
+        # store the result if requested
+        if output:
+            result.write_to_file(output)
+        return result
 
     @property
     def attributes(self) -> Dict[str, Any]:
@@ -59,69 +88,6 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
             "description": self.description,
             "parameters": self.parameters,
         }
-
-    def serialize_attribute(self, name: str, value) -> str:
-        """serialize an attribute into a string
-
-        Args:
-            name (str): Name of the attribute
-            value: The value of the attribute that needs to be serialized
-
-        Returns:
-            str: A string representation from which the `value` can be reconstructed
-        """
-        if name == "parameters":
-            # serialize the individual parameters
-            default_parameters = self.get_parameters(
-                include_hidden=True, include_deprecated=True, sort=False
-            )
-
-            parameters = {}
-            for key in self.parameters:
-                serializer = json.dumps
-                if key in default_parameters:
-                    def_param_extra = default_parameters[key].extra
-                    if "serializer" in def_param_extra:
-                        serializer = def_param_extra["serializer"]
-                parameters[key] = serializer(value[key])
-            value = parameters
-
-        # serialize the value using JSON
-        try:
-            return json.dumps(value)
-        except TypeError as e:
-            msg = f'Cannot serialize "{key}" of "{self.__class__.__name__}"'
-            raise TypeError(msg) from e
-
-    @classmethod
-    def unserialize_attribute(cls, name: str, value_str: str) -> Any:
-        """unserializes the given attribute
-
-        Args:
-            name (str): Name of the attribute
-            value_str (str): Serialized value of the attribute
-
-        Returns:
-            The unserialized value
-        """
-        # unserialize assuming it is JSON-encoded
-        value = json.loads(value_str)
-
-        if name == "parameters":
-            # unserialize the individual parameters
-            default_parameters = cls.get_parameters(
-                include_hidden=True, include_deprecated=True, sort=False
-            )
-
-            for key in value:
-                unserializer = json.loads
-                if key in default_parameters:
-                    def_param_extra = default_parameters[key].extra
-                    if "unserializer" in def_param_extra:
-                        unserializer = def_param_extra["unserializer"]
-                value[key] = unserializer(value[key])
-
-        return value
 
 
 def FunctionModelFactory(func: Callable) -> Type[ModelBase]:
@@ -152,13 +118,13 @@ def FunctionModelFactory(func: Callable) -> Type[ModelBase]:
     return newclass
 
 
-def function_model_init(func: Callable, parameters: Dict = None):
+def get_function_model(func: Callable, parameters: Dict = None):
     """create model from a function and a dictionary of parameters"""
     model_cls = FunctionModelFactory(func)
     return model_cls(parameters)
 
 
-def function_model_command_line(func: Callable, args=None, name=None):
+def run_function_with_cmd_args(func: Callable, args=None, name=None):
     """create model from a function and obtain parameters from command line"""
     model_cls = FunctionModelFactory(func)
     return model_cls.from_command_line(args, name=name)

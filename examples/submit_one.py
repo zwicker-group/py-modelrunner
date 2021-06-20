@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """
+The script expects the output file as the first argument
+
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-from model import run_function_with_cmd_args
+import sys
+
+from model.cluster import submit_job
 
 
 def multiply(a: float = 1, b: float = 2):
@@ -12,5 +16,4 @@ def multiply(a: float = 1, b: float = 2):
 
 
 if __name__ == "__main__":
-    result = run_function_with_cmd_args(multiply)
-    print(result.result)
+    submit_job(__file__, sys.argv[1])

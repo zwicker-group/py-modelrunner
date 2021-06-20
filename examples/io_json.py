@@ -3,7 +3,7 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-from model import ModelResult, function_model_command_line
+from model import Result, run_function_with_cmd_args
 
 
 def multiply(a: float = 1, b: float = 2):
@@ -12,8 +12,8 @@ def multiply(a: float = 1, b: float = 2):
 
 
 if __name__ == "__main__":
-    mdl = function_model_command_line(multiply)
-    mdl.get_result().write_to_json("test.json")
+    result = run_function_with_cmd_args(multiply)
+    result.write_to_json("test.json")
 
-    read = ModelResult.from_json("test.json")
-    print(read.parameters, "–– a * b =", read.results)
+    read = Result.from_json("test.json")
+    print(read.parameters, "–– a * b =", read.result)

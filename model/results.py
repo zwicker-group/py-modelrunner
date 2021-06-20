@@ -4,6 +4,7 @@
 
 import inspect
 import json
+import os.path
 import warnings
 from typing import Any, Dict
 
@@ -79,15 +80,15 @@ class MockModel(ModelBase):
         raise RuntimeError("MockModel cannot be called")
 
 
-class ModelResult:
+class Result:
     """describes a model (with parameters) together with its result"""
 
-    def __init__(self, model: ModelBase, results=None):
+    def __init__(self, model: ModelBase, result=None):
         self.model = model
-        self.results = results
+        self.result = result
 
     @classmethod
-    def from_data(cls, model_data, results, model: ModelBase = None) -> "ModelResult":
+    def from_data(cls, model_data, result, model: ModelBase = None) -> "Result":
         if model is None:
             model_cls = MockModel
         else:
@@ -99,11 +100,20 @@ class ModelResult:
         obj.name = model_data.get("name")
         obj.description = model_data.get("description")
 
-        return cls(obj, results)
+        return cls(obj, result)
 
     @property
     def parameters(self) -> Dict[str, Any]:
         return self.model.parameters
+
+    def write_to_file(self, path):
+        ext = os.path.splitext(path)[1].lower()
+        if ext == ".json":
+            self.write_to_json(path)
+        elif ext in {".h", ".h4", ".h5", ".hdf", ".hdf4", ".hdf5"}:
+            self.write_to_hdf(path)
+        else:
+            raise ValueError(f"Unknown file format `{ext}`")
 
     @classmethod
     def from_json(cls, path, model: ModelBase = None):
@@ -112,13 +122,13 @@ class ModelResult:
             data = json.load(fp)
 
         return cls.from_data(
-            model_data=data.get("model", {}), results=data.get("results"), model=model
+            model_data=data.get("model", {}), result=data.get("result"), model=model
         )
 
-    def write_to_json(self, path) -> "ModelResult":
+    def write_to_json(self, path) -> "Result":
         """write result to JSON file"""
         with open(path, "w") as fp:
-            json.dump({"model": self.model.attributes, "results": self.results}, fp)
+            json.dump({"model": self.model.attributes, "result": self.result}, fp)
 
     @classmethod
     def from_hdf(cls, path, model: ModelBase = None):
@@ -127,15 +137,15 @@ class ModelResult:
 
         with h5py.File(path, "r") as fp:
             model_data = {key: json.loads(value) for key, value in fp.attrs.items()}
-            if "results" in fp:
-                results = read_hdf_data(fp["results"])
+            if "result" in fp:
+                result = read_hdf_data(fp["result"])
             else:
-                results = model_data.pop("results")
+                result = model_data.pop("result")
             # check for other nodes, which might not be read
 
-        return cls.from_data(model_data=model_data, results=results, model=model)
+        return cls.from_data(model_data=model_data, result=result, model=model)
 
-    def write_to_hdf(self, path) -> "ModelResult":
+    def write_to_hdf(self, path) -> "Result":
         """write result to HDF file"""
         import h5py
 
@@ -145,4 +155,4 @@ class ModelResult:
                 fp.attrs[key] = json.dumps(value)
 
             # write the actual data
-            write_hdf_dataset(fp, self.results, "results")
+            write_hdf_dataset(fp, self.result, "result")

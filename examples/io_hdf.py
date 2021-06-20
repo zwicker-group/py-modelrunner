@@ -4,7 +4,7 @@
 """
 
 import numpy as np
-from model import ModelResult, function_model_command_line
+from model import Result, run_function_with_cmd_args
 
 
 def number_range(start: float = 1, length: int = 3):
@@ -13,8 +13,8 @@ def number_range(start: float = 1, length: int = 3):
 
 
 if __name__ == "__main__":
-    mdl = function_model_command_line(number_range)
-    mdl.get_result().write_to_hdf("test.hdf")
+    result = run_function_with_cmd_args(number_range)
+    result.write_to_hdf("test.hdf")
 
-    read = ModelResult.from_hdf("test.hdf")
-    print(read.parameters, "–– start + [0..length-1] =", read.results)
+    read = Result.from_hdf("test.hdf")
+    print(read.parameters, "–– start + [0..length-1] =", read.result)
