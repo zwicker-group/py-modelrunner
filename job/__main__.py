@@ -10,8 +10,14 @@ import sys
 from job import run_function_with_cmd_args
 
 if __name__ == "__main__":
+    # get the script name from the command line
+    try:
+        script_path = sys.argv[1]
+    except IndexError:
+        print("Require job script as first argument", file=sys.stderr)
+        sys.exit(1)
+    
     # load the script as a module
-    script_path = sys.argv[1]
     filename = os.path.basename(script_path)
     spec = importlib.util.spec_from_file_location("model_code", script_path)
     model_code = importlib.util.module_from_spec(spec)
