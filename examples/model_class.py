@@ -3,7 +3,7 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-from model import ModelBase
+from job import ModelBase
 
 
 class MyModel(ModelBase):

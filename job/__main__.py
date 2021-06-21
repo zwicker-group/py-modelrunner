@@ -7,7 +7,7 @@ import inspect
 import os.path
 import sys
 
-from model import run_function_with_cmd_args
+from job import run_function_with_cmd_args
 
 if __name__ == "__main__":
     # load the script as a module

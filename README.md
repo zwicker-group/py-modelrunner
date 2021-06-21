@@ -1,2 +1,2 @@
-# py-model
-Python classes for handling physical simulations
+# py-job
+Python classes for handling and running physical simulations

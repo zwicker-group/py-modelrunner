@@ -6,7 +6,7 @@ import subprocess as sp
 import sys
 from pathlib import Path
 
-PACKAGE = "model"  # name of the package that needs to be tested
+PACKAGE = "job"  # name of the package that needs to be tested
 PACKAGE_PATH = Path(__file__).resolve().parents[1]  # base path of the package
 
 

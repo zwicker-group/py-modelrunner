@@ -3,7 +3,7 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-from model import get_function_model
+from job import get_function_model
 
 
 def multiply(a, b=2):

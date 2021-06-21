@@ -4,7 +4,7 @@
 """
 
 import numpy as np
-from model import Result, run_function_with_cmd_args
+from job import Result, run_function_with_cmd_args
 
 
 def number_range(start: float = 1, length: int = 3):

@@ -3,7 +3,7 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-from model.hpc import submit_job
+from job.run import submit_job
 
 
 def multiply(a: float = 1, b: float = 2):
