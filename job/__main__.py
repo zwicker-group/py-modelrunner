@@ -20,6 +20,9 @@ if __name__ == "__main__":
     # load the script as a module
     filename = os.path.basename(script_path)
     spec = importlib.util.spec_from_file_location("model_code", script_path)
+    if spec is None:
+        print(f"Could not find job script `{script_path}`")
+        sys.exit(1)
     model_code = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(model_code)  # type: ignore
 

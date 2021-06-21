@@ -48,23 +48,23 @@ def submit_job(
         "MODEL_FILE": escape_string(script),
     }
 
-    if parameters is None:
-        job_args = ""
-    else:
+    job_args = []
+    if parameters is not None:
         if isinstance(parameters, dict):
             parameters = json.dumps(parameters)
         elif not isinstance(parameters, str):
             raise TypeError("Parameters need to be given as a string or a dict")
-        job_args = f"--json {escape_string(parameters)}"
+        job_args.append(f"--json {escape_string(parameters)}")
 
     if output:
         output = Path(output)
         script_args["OUTPUT_FOLDER"] = pipes.quote(str(output.parent))
-        job_args += f" --output {escape_string(output)}"
+        job_args.append(f"--output {escape_string(output)}")
     else:
         script_args["OUTPUT_FOLDER"] = "."
-    script_args["JOB_ARGS"] = job_args
+    script_args["JOB_ARGS"] = " ".join(job_args)
     script = script_template.format(**script_args)
+    print(script)
 
     # submit job to queue
     if method == "qsub":
