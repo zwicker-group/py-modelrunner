@@ -19,4 +19,4 @@ echo $JOB_ID
 mkdir -p {OUTPUT_FOLDER}
 
 # Run the program
-python3 -m model {MODEL_FILE} {JOB_ARGS}
+python3 -m job {MODEL_FILE} {JOB_ARGS}
