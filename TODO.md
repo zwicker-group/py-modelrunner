@@ -7,3 +7,4 @@
 * Remove files after example has been run
 * Store date and time in result file
 * Support YAML as an IO format
+* Support better output control (verbosity flag)
