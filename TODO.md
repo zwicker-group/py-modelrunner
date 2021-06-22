@@ -5,3 +5,5 @@
 * Use better template engine with conditions
 * Check whether data files already exist (shall they be overwritten?)
 * Remove files after example has been run
+* Store date and time in result file
+* Support YAML as an IO format

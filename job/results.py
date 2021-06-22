@@ -15,6 +15,7 @@ from .model import ModelBase
 
 
 def contains_array(data) -> bool:
+    """checks whether data contains a numpy array"""
     if isinstance(data, np.ndarray):
         return True
     elif isinstance(data, dict):
@@ -27,7 +28,14 @@ def contains_array(data) -> bool:
         return False
 
 
-def write_hdf_dataset(node, data, name):
+def write_hdf_dataset(node, data, name: str) -> None:
+    """writes data to an HDF node
+
+    Args:
+        node: the HDF node
+        data: the data to be written
+        name (str): name of the data in case a new dataset or group is created
+    """
     if data is None:
         return
 
@@ -55,6 +63,7 @@ def write_hdf_dataset(node, data, name):
 
 
 def read_hdf_data(node):
+    """read structured data written with :func:`write_hdf_dataset` from an HDF node"""
     import h5py
 
     if isinstance(node, h5py.Dataset):
@@ -84,15 +93,33 @@ class MockModel(ModelBase):
 class Result:
     """describes a model (with parameters) together with its result"""
 
-    def __init__(self, model: ModelBase, result=None, name: str = None):
+    def __init__(self, model: ModelBase, result, name: str = None):
+        """
+        Args:
+            model (:class:`ModelBase`): The model from which the result was obtained
+            result: The actual result
+            name: An identifier for this result
+        """
         self.model = model
         self.result = result
         self.name = name
 
     @classmethod
     def from_data(
-        cls, model_data, result, model: ModelBase = None, name: str = None
+        cls,
+        model_data: Dict[str, Any],
+        result,
+        model: ModelBase = None,
+        name: str = None,
     ) -> "Result":
+        """create result from data
+
+        Args:
+            model_data (dict): The data identifying the model
+            result: The actual result
+            model (:class:`ModelBase`): The model from which the result was obtained
+            name: An identifier for this result
+        """
         if model is None:
             model_cls: Type[ModelBase] = MockModel
         else:
@@ -112,6 +139,12 @@ class Result:
 
     @classmethod
     def from_file(cls, path, model: ModelBase = None):
+        """read result from file
+
+        Args:
+            path (str or :class:`~pathlib.Path`): The path to the file
+            model (:class:`ModelBase`): The model from which the result was obtained
+        """
         ext = os.path.splitext(path)[1].lower()
         if ext == ".json":
             return cls.from_json(path, model)
@@ -121,6 +154,11 @@ class Result:
             raise ValueError(f"Unknown file format `{ext}`")
 
     def write_to_file(self, path):
+        """write result to a file
+
+        Args:
+            path (str or :class:`~pathlib.Path`): The path to the file
+        """
         ext = os.path.splitext(path)[1].lower()
         if ext == ".json":
             self.write_to_json(path)
@@ -131,8 +169,12 @@ class Result:
 
     @classmethod
     def from_json(cls, path, model: ModelBase = None) -> "Result":
-        """load result from a JSON file"""
+        """read result from a JSON file
 
+        Args:
+            path (str or :class:`~pathlib.Path`): The path to the file
+            model (:class:`ModelBase`): The model from which the result was obtained
+        """
         with open(path, "r") as fp:
             data = json.load(fp)
 
@@ -144,13 +186,22 @@ class Result:
         )
 
     def write_to_json(self, path) -> None:
-        """write result to JSON file"""
+        """write result to JSON file
+
+        Args:
+            path (str or :class:`~pathlib.Path`): The path to the file
+        """
         with open(path, "w") as fp:
             json.dump({"model": self.model.attributes, "result": self.result}, fp)
 
     @classmethod
     def from_hdf(cls, path, model: ModelBase = None) -> "Result":
-        """load result from HDF file"""
+        """read result from a HDf file
+
+        Args:
+            path (str or :class:`~pathlib.Path`): The path to the file
+            model (:class:`ModelBase`): The model from which the result was obtained
+        """
         import h5py
 
         with h5py.File(path, "r") as fp:
@@ -169,7 +220,11 @@ class Result:
         )
 
     def write_to_hdf(self, path) -> None:
-        """write result to HDF file"""
+        """write result to HDF file
+
+        Args:
+            path (str or :class:`~pathlib.Path`): The path to the file
+        """
         import h5py
 
         with h5py.File(path, "w") as fp:

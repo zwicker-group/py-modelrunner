@@ -12,6 +12,7 @@ from typing import Any, Dict, Union
 
 
 def escape_string(obj) -> str:
+    """escape a string for the command line"""
     return pipes.quote(str(obj))
 
 
@@ -29,12 +30,21 @@ def ensure_directory_exists(folder):
 def submit_job(
     script,
     output,
-    name="job",
+    name: str = "job",
     parameters: Union[str, Dict[str, Any]] = None,
     logfolder="logs",
     method="qsub",
 ):
-    """submit a script to the cluster queue"""
+    """submit a script to the cluster queue
+
+    Args:
+        script (str of :class:`~pathlib.Path`): Path to the script file
+        output (str of :class:`~pathlib.Path`): Path to the output file
+        name (str): Name of the job
+        parameters: Parameters for the script
+        logfolder (str of :class:`~pathlib.Path`): Path to the logging folder
+        method (str): Submission method. Currently `qsub` and `local` are supported
+    """
     template_path = Path(__file__).parent / "templates" / (method + ".template")
     with open(template_path, "r") as fp:
         script_template = fp.read()

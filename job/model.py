@@ -6,7 +6,7 @@ import argparse
 import inspect
 import json
 from abc import ABCMeta, abstractmethod
-from typing import Any, Callable, Dict, Optional, Type
+from typing import Any, Callable, Dict, Optional, Type, Sequence
 
 from .parameters import Parameter, Parameterized
 
@@ -29,7 +29,12 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         return Result(self, self())
 
     @classmethod
-    def _prepare_argparser(cls, name=None):
+    def _prepare_argparser(cls, name: str = None) -> argparse.ArgumentParser:
+        """create argument parser for setting parameters of this model
+
+        Returns:
+            :class:`~argparse.ArgumentParser`
+        """
         parser = argparse.ArgumentParser(
             prog=name,
             description=cls.description,
@@ -57,7 +62,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         return parser
 
     @classmethod
-    def from_command_line(cls, args=None, name=None):
+    def from_command_line(cls, args: Sequence[str] = None, name: str = None):
         """create model from command line parameters"""
         # read the command line arguments
         parser = cls._prepare_argparser(name)
@@ -118,13 +123,15 @@ def FunctionModelFactory(func: Callable) -> Type[ModelBase]:
     return newclass
 
 
-def get_function_model(func: Callable, parameters: Dict = None):
+def get_function_model(func: Callable, parameters: Dict[str, Any] = None):
     """create model from a function and a dictionary of parameters"""
     model_cls = FunctionModelFactory(func)
     return model_cls(parameters)
 
 
-def run_function_with_cmd_args(func: Callable, args=None, name=None):
+def run_function_with_cmd_args(
+    func: Callable, args: Sequence[str] = None, name: str = None
+):
     """create model from a function and obtain parameters from command line"""
     model_cls = FunctionModelFactory(func)
     return model_cls.from_command_line(args, name=name)

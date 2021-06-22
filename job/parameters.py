@@ -22,6 +22,24 @@ from typing import Any, Dict, Sequence, Union
 import numpy as np
 
 
+def auto_type(value):
+    """convert value to float or int if reasonable"""
+    try:
+        float_val = float(value)
+    except ValueError:
+        return value
+
+    try:
+        int_val = int(value)
+    except ValueError:
+        return float_val
+
+    if int_val == float_val:
+        return int_val
+    else:
+        return float_val
+
+
 def import_class(identifier: str):
     """import a class or module given an identifier
 
@@ -137,10 +155,7 @@ class Parameter:
             value = self.default_value
 
         if self.cls is object:
-            try:
-                return float(value)
-            except ValueError:
-                return value
+            return auto_type(value)
         else:
             try:
                 return self.cls(value)
