@@ -13,6 +13,6 @@ def multiply(a, b=2):
 
 
 # create an instance of the model defined by the function
-mdl = get_function_model(multiply, {"a": 3})
+model = get_function_model(multiply, {"a": 3})
 # run the instance
-print(mdl())
+print(model())

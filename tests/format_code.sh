@@ -8,7 +8,7 @@ echo "Formating import statements..."
 isort ..
 
 # format rest of the code
-for dir in model examples ; do
+for dir in job examples ; do
     echo "Formating files in ${dir}..."
     black -t py37 ../${dir}
 done

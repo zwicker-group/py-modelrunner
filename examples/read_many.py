@@ -5,8 +5,24 @@ This example shows how a collection of results can be read.
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-from job import ResultCollection
+import os
+
+from job import ResultCollection, make_model
+
+
+@make_model
+def multiply(a: float = 1, b: float = 2):
+    """Multiply two numbers"""
+    return a * b
+
 
 if __name__ == "__main__":
+    # write data
+    os.makedirs("data")
+    for n, a in enumerate(range(5, 10)):
+        result = multiply({"a": a}).get_result()
+        result.write_to_json(f"data/test_{n}.json")
+
+    # read data
     rc = ResultCollection.from_folder("data")
     print(rc.dataframe)

@@ -17,6 +17,6 @@ class MyModel(ModelBase):
 
 
 # create an instance of the model
-mdl = MyModel({"a": 3})
+model = MyModel({"a": 3})
 # run the instance
-print(mdl())
+print(model())

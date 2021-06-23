@@ -9,8 +9,7 @@ argument by something more suitable; see the documentation.
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-from job import make_model
-from job.run import submit_job
+from job import make_model, submit_job
 
 
 @make_model

@@ -10,11 +10,10 @@ argument by something more suitable; see the documentation.
 """
 
 
-import job
-from job.run import submit_job
+from job import make_model, submit_job
 
 
-@job.make_model
+@make_model
 def main(a: float = 1, b: float = 2):
     """Multiply two numbers"""
     return a * b

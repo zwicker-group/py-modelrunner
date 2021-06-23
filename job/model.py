@@ -42,8 +42,9 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         )
 
         # add all model parameters
+        group = parser.add_argument_group()
         for p in cls.parameters_default:
-            p._argparser_add(parser)
+            p._argparser_add(group)
 
         # add special parameters
         parser.add_argument(
@@ -122,7 +123,7 @@ def make_model(func: Callable) -> Type[ModelBase]:
     return newclass
 
 
-def get_function_model(func: Callable, parameters: Dict[str, Any] = None):
+def get_function_model(func: Callable, parameters: Dict[str, Any] = None) -> ModelBase:
     """create model from a function and a dictionary of parameters"""
     return make_model(func)(parameters)
 

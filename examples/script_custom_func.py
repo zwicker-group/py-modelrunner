@@ -15,5 +15,5 @@ def do_not_calculate(a=1, b=2):
 
 @job.make_model
 def calculate(a=1, b=2):
-    """Multiply two numbers"""
+    """This function has been marked as a model"""
     print(a * b)
