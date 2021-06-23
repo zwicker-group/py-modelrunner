@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """
+This example shows how a collection of results can be read.
+
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 

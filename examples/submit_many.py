@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
 """
-The example `submit_many.py` must be ran to generate the data for this example.
+This example shows how to submit the same model for multiple parameters.
+
+Note that the method `local` just runs the script locally, thus not really queuing. To
+actually queue a job on a high performance computing cluster, replace the `method`
+argument by something more suitable; see the documentation. 
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
+
+import job
 from job.run import submit_job
 
 
+@job.make_model
 def main(a: float = 1, b: float = 2):
     """Multiply two numbers"""
     return a * b

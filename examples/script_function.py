@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """
+This example shows how a function is turned into a model explicitly.
+
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 

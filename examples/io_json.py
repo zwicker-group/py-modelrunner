@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """
+This example shows reading and writing data using JSON files.
+
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 

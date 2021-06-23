@@ -6,7 +6,7 @@ import argparse
 import inspect
 import json
 from abc import ABCMeta, abstractmethod
-from typing import Any, Callable, Dict, Optional, Type, Sequence
+from typing import Any, Callable, Dict, Optional, Sequence, Type
 
 from .parameters import Parameter, Parameterized
 
@@ -66,12 +66,11 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         """create model from command line parameters"""
         # read the command line arguments
         parser = cls._prepare_argparser(name)
-        args = vars(parser.parse_args(args))
-        output = args.pop("output")
-        parameters_json = args.pop("json")
+        parameters = vars(parser.parse_args(args))
+        output = parameters.pop("output")
+        parameters_json = parameters.pop("json")
 
         # build parameter list
-        parameters = args
         if parameters_json:
             parameters.update(json.loads(parameters_json))
 
@@ -95,7 +94,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         }
 
 
-def FunctionModelFactory(func: Callable) -> Type[ModelBase]:
+def make_model(func: Callable) -> Type[ModelBase]:
     """create a model from a function by interpreting its signature"""
     # determine the parameters of the function
     parameters = []
@@ -125,13 +124,11 @@ def FunctionModelFactory(func: Callable) -> Type[ModelBase]:
 
 def get_function_model(func: Callable, parameters: Dict[str, Any] = None):
     """create model from a function and a dictionary of parameters"""
-    model_cls = FunctionModelFactory(func)
-    return model_cls(parameters)
+    return make_model(func)(parameters)
 
 
 def run_function_with_cmd_args(
     func: Callable, args: Sequence[str] = None, name: str = None
 ):
     """create model from a function and obtain parameters from command line"""
-    model_cls = FunctionModelFactory(func)
-    return model_cls.from_command_line(args, name=name)
+    return make_model(func).from_command_line(args, name=name)

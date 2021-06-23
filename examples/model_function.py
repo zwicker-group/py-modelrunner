@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """
+This example shows defining a custom model class using a function.
+
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
@@ -10,5 +12,7 @@ def multiply(a, b=2):
     return a * b
 
 
+# create an instance of the model defined by the function
 mdl = get_function_model(multiply, {"a": 3})
+# run the instance
 print(mdl())

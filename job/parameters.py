@@ -166,6 +166,7 @@ class Parameter:
                 )
 
     def _argparser_add(self, parser):
+        """add a command line option for this parameter to a parser"""
         if not self.hidden:
 
             if self.description:
@@ -205,6 +206,9 @@ class HideParameter:
                 The name of the parameter
         """
         self.name = name
+
+    def _argparser_add(self, parser):
+        pass
 
 
 ParameterListType = Sequence[Union[Parameter, HideParameter]]
