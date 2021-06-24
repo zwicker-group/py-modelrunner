@@ -8,7 +8,7 @@ import os
 import pipes
 import subprocess as sp
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Any, Dict, Tuple, Union
 
 
 def escape_string(obj) -> str:
@@ -28,13 +28,15 @@ def ensure_directory_exists(folder):
 
 
 def submit_job(
-    script,
-    output,
+    script: Union[str, Path],
+    output: Union[str, Path],
     name: str = "job",
     parameters: Union[str, Dict[str, Any]] = None,
-    logfolder="logs",
-    method="qsub",
-):
+    logfolder: Union[str, Path] = "logs",
+    method: str = "qsub",
+    template: Union[str, Path] = None,
+    overwrite_files: bool = False,
+) -> Tuple[str, str]:
     """submit a script to the cluster queue
 
     Args:
@@ -44,8 +46,16 @@ def submit_job(
         parameters: Parameters for the script
         logfolder (str of :class:`~pathlib.Path`): Path to the logging folder
         method (str): Submission method. Currently `qsub` and `local` are supported
+        template (str of :class:`~pathlib.Path`): Template file for submission script
+        overwrite_files (bool): Determines whether output files are overwritten\
+        
+    Returns:
+        tuple: The result `(stdout, stderr)` of the submission call
     """
-    template_path = Path(__file__).parent / "templates" / (method + ".template")
+    if template is None:
+        template_path = Path(__file__).parent / "templates" / (method + ".template")
+    else:
+        template_path = Path(template)
     with open(template_path, "r") as fp:
         script_template = fp.read()
 
@@ -68,6 +78,8 @@ def submit_job(
 
     if output:
         output = Path(output)
+        if output.is_file() and not overwrite_files:
+            raise RuntimeError(f"Output file `{output}` already exists")
         script_args["OUTPUT_FOLDER"] = pipes.quote(str(output.parent))
         job_args.append(f"--output {escape_string(output)}")
     else:

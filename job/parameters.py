@@ -174,20 +174,23 @@ class Parameter:
             else:
                 description = f"Parameter `{self.name}`"
 
-            if self.cls is object:
+            arg_name = "--" + self.name
+            kwargs = {
+                "default": self.default_value,
+                "help": description,
+                "metavar": "VALUE",
+            }
+
+            if self.cls is bool and self.default_value == False:
                 parser.add_argument(
-                    "--" + self.name,
-                    default=self.default_value,
-                    help=description,
+                    arg_name, default=False, action="store_true", **kwargs
                 )
 
+            elif self.cls is object or self.cls is auto_type:
+                parser.add_argument(arg_name, **kwargs)
+
             else:
-                parser.add_argument(
-                    "--" + self.name,
-                    default=self.default_value,
-                    type=self.cls,
-                    help=description,
-                )
+                parser.add_argument(arg_name, type=self.cls, **kwargs)
 
 
 class DeprecatedParameter(Parameter):

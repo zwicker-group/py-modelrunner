@@ -42,4 +42,5 @@ def test_examples(path, tmp_path):
         msg = "%s\nSTDOUT:\n%s" % (msg, outs)
     if errs:
         msg = "%s\nSTDERR:\n%s" % (msg, errs)
+
     assert proc.returncode <= 0, msg

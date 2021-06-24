@@ -8,7 +8,7 @@ from .job import submit_job
 
 def main():
     """submit a script using command line arguments"""
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Submit a script to a queue.")
 
     parser.add_argument("script", help="The script that should be run")
 
@@ -21,9 +21,18 @@ def main():
         help="Dictionary of parameters for the model",
     )
 
-    parser.add_argument("-o", "--output", help="Path to output file")
+    parser.add_argument("-o", "--output", help="Path to output file", metavar="PATH")
+    parser.add_argument(
+        "-f", "--force", action="store_true", default=False, help="Overwrite data"
+    )
     parser.add_argument(
         "-m", "--method", default="qsub", help="Method for job submission"
+    )
+    parser.add_argument(
+        "-t",
+        "--template",
+        help="Path to template file for submission script",
+        metavar="PATH",
     )
 
     args = parser.parse_args()
@@ -34,6 +43,8 @@ def main():
         name=args.name,
         parameters=args.parameters,
         method=args.method,
+        template=args.template,
+        overwrite_files=args.force,
     )
     print(stdout, stderr)
 
