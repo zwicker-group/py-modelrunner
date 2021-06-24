@@ -40,18 +40,30 @@ def submit_job(
     """submit a script to the cluster queue
 
     Args:
-        script (str of :class:`~pathlib.Path`): Path to the script file
-        output (str of :class:`~pathlib.Path`): Path to the output file
-        name (str): Name of the job
-        parameters: Parameters for the script
-        logfolder (str of :class:`~pathlib.Path`): Path to the logging folder
-        method (str): Submission method. Currently `qsub` and `local` are supported
-        template (str of :class:`~pathlib.Path`): Template file for submission script
-        overwrite_files (bool): Determines whether output files are overwritten\
+        script (str of :class:`~pathlib.Path`):
+            Path to the script file, which contains the model
+        output (str of :class:`~pathlib.Path`):
+            Path to the output file, where all the results are saved
+        name (str):
+            Name of the job
+        parameters (str or dict):
+            Parameters for the script, either as a python dictionary or a string
+            containing a JSON-encoded dictionary.
+        logfolder (str of :class:`~pathlib.Path`):
+            Path to the logging folder
+        method (str):
+            Specifies the submission method. Currently `qsub` and `local` are supported.
+        template (str of :class:`~pathlib.Path`):
+            Jinja template file for submission script. If omitted, a standard template
+            is chosen based on the submission method.
+        overwrite_files (bool):
+            Determines whether output files are overwritten\
         
     Returns:
         tuple: The result `(stdout, stderr)` of the submission call
     """
+    from jinja2 import Template
+
     if template is None:
         template_path = Path(__file__).parent / "templates" / (method + ".template")
     else:
@@ -85,7 +97,9 @@ def submit_job(
     else:
         script_args["OUTPUT_FOLDER"] = "."
     script_args["JOB_ARGS"] = " ".join(job_args)
-    script = script_template.format(**script_args)
+
+    script = Template(script_template).render(script_args)
+    # script = script_template.format(**script_args)
 
     # submit job to queue
     if method == "qsub":

@@ -1,22 +1,26 @@
 #!/bin/bash -l
 
+{% if LOG_FOLDER is defined %}
 # Standard output and error:
-#$ -o {LOG_FOLDER}/{JOB_NAME}.out.txt
-#$ -e {LOG_FOLDER}/{JOB_NAME}.err.txt
+#$ -o {{ LOG_FOLDER }}/{{ JOB_NAME }}.out.txt
+#$ -e {{ LOG_FOLDER }}/{{ JOB_NAME }}.err.txt
+{% endif %}
 # Execute from current working directory:
 #$ -cwd
 # Preserve environment variables:
 #$ -V
-# Job Name:
-#$ -N {JOB_NAME}
+#$ -N {{ JOB_NAME }}
+{% if PARTITION is defined %}
 # Queue (Partition):
-#$ -q teutates.q
-#TODO: can we skip specifying the queue?
+#$ -q {{ PARTITION }}
+{% endif %}
 
 hostname
 echo $JOB_ID
 
-mkdir -p {OUTPUT_FOLDER}
+{% if OUTPUT_FOLDER is defined and OUTPUT_FOLDER %}
+mkdir -p {{ OUTPUT_FOLDER }}
+{% endif %}
 
 # Run the program
-python3 -m job {MODEL_FILE} {JOB_ARGS}
+python3 -m job {{ MODEL_FILE }} {{ JOB_ARGS }}

@@ -6,6 +6,7 @@ import argparse
 import inspect
 import json
 from abc import ABCMeta, abstractmethod
+from datetime import datetime
 from typing import Any, Callable, Dict, Optional, Sequence, Type
 
 from .parameters import Parameter, Parameterized
@@ -26,7 +27,8 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         """get the result as a :class:`~model.Result` object"""
         from .results import Result
 
-        return Result(self, self())
+        info = {"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+        return Result(self, self(), info=info)
 
     @classmethod
     def _prepare_argparser(cls, name: str = None) -> argparse.ArgumentParser:

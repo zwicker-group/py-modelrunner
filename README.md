@@ -4,13 +4,16 @@ Python classes for handling and running physical simulations
 
 Installation
 ============
-The package can simply be cloned from github.
+The package can simply be cloned from github. The only compulsory package is `numpy`, but
+additionally packages might be necessary for the full functionality (e.g., `jinja2` and
+`pandas`).
 
 
 Usage
 =====
 
-This package has multiple purposes that are described in more detail below
+This package has multiple purposes that are described in more detail below. Additional
+examples can be found in the `examples` folder.
 
 Creating models
 ---------------

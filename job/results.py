@@ -2,12 +2,13 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
+import collections
 import inspect
 import json
 import os.path
 import warnings
 from pathlib import Path
-from typing import Any, Dict, Type
+from typing import Any, Dict, List, Set, Type
 
 import numpy as np
 
@@ -93,16 +94,16 @@ class MockModel(ModelBase):
 class Result:
     """describes a model (with parameters) together with its result"""
 
-    def __init__(self, model: ModelBase, result, name: str = None):
+    def __init__(self, model: ModelBase, result, info: Dict[str, Any] = None):
         """
         Args:
             model (:class:`ModelBase`): The model from which the result was obtained
             result: The actual result
-            name: An identifier for this result
+            info (dict): Additional information for this result
         """
         self.model = model
         self.result = result
-        self.name = name
+        self.info = info
 
     @classmethod
     def from_data(
@@ -110,7 +111,7 @@ class Result:
         model_data: Dict[str, Any],
         result,
         model: ModelBase = None,
-        name: str = None,
+        info: Dict[str, Any] = None,
     ) -> "Result":
         """create result from data
 
@@ -118,7 +119,7 @@ class Result:
             model_data (dict): The data identifying the model
             result: The actual result
             model (:class:`ModelBase`): The model from which the result was obtained
-            name: An identifier for this result
+            info (dict): Additional information for this result
         """
         if model is None:
             model_cls: Type[ModelBase] = MockModel
@@ -131,7 +132,7 @@ class Result:
         obj.name = model_data.get("name")
         obj.description = model_data.get("description")
 
-        return cls(obj, result, name)
+        return cls(obj, result, info)
 
     @property
     def parameters(self) -> Dict[str, Any]:
@@ -148,7 +149,9 @@ class Result:
         ext = os.path.splitext(path)[1].lower()
         if ext == ".json":
             return cls.from_json(path, model)
-        elif ext in {".h", ".h4", ".h5", ".hdf", ".hdf4", ".hdf5"}:
+        elif ext in {".yml", ".yaml"}:
+            return cls.from_yaml(path, model)
+        elif ext in {".h5", ".hdf", ".hdf5"}:
             return cls.from_hdf(path, model)
         else:
             raise ValueError(f"Unknown file format `{ext}`")
@@ -162,7 +165,9 @@ class Result:
         ext = os.path.splitext(path)[1].lower()
         if ext == ".json":
             self.write_to_json(path)
-        elif ext in {".h", ".h4", ".h5", ".hdf", ".hdf4", ".hdf5"}:
+        elif ext in {".yml", ".yaml"}:
+            self.write_to_yaml(path)
+        elif ext in {".h5", ".hdf", ".hdf5"}:
             self.write_to_hdf(path)
         else:
             raise ValueError(f"Unknown file format `{ext}`")
@@ -178,11 +183,14 @@ class Result:
         with open(path, "r") as fp:
             data = json.load(fp)
 
+        info = data.get("info", {})
+        info.setdefault("name", Path(path).with_suffix("").stem)
+
         return cls.from_data(
             model_data=data.get("model", {}),
             result=data.get("result"),
             model=model,
-            name=Path(path).with_suffix("").stem,
+            info=info,
         )
 
     def write_to_json(self, path) -> None:
@@ -191,8 +199,50 @@ class Result:
         Args:
             path (str or :class:`~pathlib.Path`): The path to the file
         """
+        data = {"model": self.model.attributes, "result": self.result}
+        if self.info:
+            data["info"] = self.info
+
         with open(path, "w") as fp:
-            json.dump({"model": self.model.attributes, "result": self.result}, fp)
+            json.dump(data, fp)
+
+    @classmethod
+    def from_yaml(cls, path, model: ModelBase = None) -> "Result":
+        """read result from a YAML file
+
+        Args:
+            path (str or :class:`~pathlib.Path`): The path to the file
+            model (:class:`ModelBase`): The model from which the result was obtained
+        """
+        import yaml
+
+        with open(path, "r") as fp:
+            data = yaml.safe_load(fp)
+
+        info = data.get("info", {})
+        info.setdefault("name", Path(path).with_suffix("").stem)
+
+        return cls.from_data(
+            model_data=data.get("model", {}),
+            result=data.get("result"),
+            model=model,
+            info=info,
+        )
+
+    def write_to_yaml(self, path) -> None:
+        """write result to YAML file
+
+        Args:
+            path (str or :class:`~pathlib.Path`): The path to the file
+        """
+        import yaml
+
+        data = {"model": self.model.attributes, "result": self.result}
+        if self.info:
+            data["info"] = self.info
+
+        with open(path, "w") as fp:
+            yaml.dump(data, fp)
 
     @classmethod
     def from_hdf(cls, path, model: ModelBase = None) -> "Result":
@@ -212,11 +262,11 @@ class Result:
                 result = model_data.pop("result")
             # check for other nodes, which might not be read
 
+        info = model_data.pop("__info__") if "__info__" in model_data else {}
+        info.setdefault("name", Path(path).with_suffix("").stem)
+
         return cls.from_data(
-            model_data=model_data,
-            result=result,
-            model=model,
-            name=Path(path).with_suffix("").stem,
+            model_data=model_data, result=result, model=model, info=info
         )
 
     def write_to_hdf(self, path) -> None:
@@ -231,6 +281,9 @@ class Result:
             # write attributes
             for key, value in self.model.attributes.items():
                 fp.attrs[key] = json.dumps(value)
+
+            if self.info:
+                fp.attrs["__info__"] = json.dumps(self.info)
 
             # write the actual data
             write_hdf_dataset(fp, self.result, "result")
@@ -253,28 +306,53 @@ class ResultCollection(list):
         return cls(results)
 
     @property
-    def homogeneous_model(self) -> bool:
-        """flag determining whether all results are from the same model"""
+    def same_model(self) -> bool:
+        """bool: flag determining whether all results are from the same model"""
         if len(self) < 2:
             return True
-        name = self[0].model.name
+        model_cls = self[0].model.__class__
         keys = self[0].model.parameters.keys()
+
+        return all(
+            res.model.__class__ == model_cls and res.model.parameters.keys() == keys
+            for res in self
+        )
+
+    @property
+    def parameters(self) -> Dict[str, Set[Any]]:
+        """dict: the parameter values in this result collection"""
+        params = collections.defaultdict(set)
         for result in self:
-            if result.model.name != name or result.model.parameters.keys() != keys:
-                return False
-        return True
+            for k, v in result.model.parameters.items():
+                params[k].add(v)
+        return dict(params)
+
+    @property
+    def constant_parameters(self) -> Dict[str, Any]:
+        """dict: the parameters that are constant in this result collection"""
+        return {
+            k: next(iter(v))  # get the single item from the set
+            for k, v in self.parameters.items()
+            if len(v) == 1
+        }
+
+    @property
+    def varying_parameters(self) -> Dict[str, List[Any]]:
+        """dict: the parameters that vary in this result collection"""
+        return {k: sorted(v) for k, v in self.parameters.items() if len(v) > 1}
 
     @property
     def dataframe(self):
         """create a pandas Dataframe summarizing the data"""
         import pandas as pd
 
-        assert self.homogeneous_model
+        assert self.same_model
 
         def get_data(result):
             """helper function to extract the data"""
-            data = {"name": result.name}
-            data.update(result.parameters)
+            data = result.parameters.copy()
+            if result.info.get("name"):
+                data.setdefault("name", result.info["name"])
             if np.isscalar(result.result):
                 data["result"] = result.result
             elif isinstance(result.result, dict):
