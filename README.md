@@ -81,11 +81,30 @@ def multiply(a=1, b=2):
     return a * b
 
 if __name__ == "__main__":
-    submit_job(__file__, output="data.hdf5", method="local")
+    submit_job(__file__, parameters={'a': 2}, output="data.hdf5", method="local")
 ```
 Here, the `output` argument specifies a file to which the results are written, while
 `method` chooses how the script is submitted.
 
+In particular, this method allows submitting the same script with multiple different
+parameters to conduct a parameter study:
+
+```python
+from job import make_model, submit_job
+
+@make_model
+def multiply(a=1, b=2):
+    return a * b
+
+if __name__ == "__main__":
+    for a in range(5):
+        submit_job(__file__, parameters={'a': a}, output=f"data_{a}.hdf5", method="local")
+```
+
+Note that the safe-guard `if __name__ == "__main__"` is absolutely crucial to ensure that
+jobs are only submitted during the initial run and not when the file is imported again
+when the actual jobs start. It is also important to choose unique file names for the
+`output` flag since otherwise different jobs overwrite each others data.
 
 
 Collating results
@@ -93,6 +112,17 @@ Collating results
 Finally, the package also provides some rudimentary support for collection results from
 many different simulations that have been run in parallel. In particular, the class
 `ResultCollection` provides a class method `from_folder` to scan a folder for result files.
+For instance, the data from the multiple jobs ran above can be collected using
+
+```python
+from job import ResultCollection
+
+results = ResultCollection.from_folder(".", pattern="data_*.hdf5")
+print(results.dataframe)
+```
+
+This example should print all results using a pandas Dataframe, where each row
+corresponds to a separate simulation.
 
 
 Development
