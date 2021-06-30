@@ -43,12 +43,13 @@ The last line actually creates an instance of the model with custom parameters.
 Alternatively, a model can also be defined from a simple function:
 
 ```python
-from job import get_function_model
+from job import make_model
 
+@make_model
 def multiply(a=1, b=2):
     return a * b
 
-model = get_function_model(multiply, {"a": 3})
+model = multiply({"a": 3})
 ```
 
 The main aim of defining models like this is to provide a unified interface for
@@ -67,7 +68,20 @@ parameters. The packages facilitates this by providing a special interface to se
 arguments from the command line. To show this, either one of the model definitions
 given above can be saved as a python file `model.py`. Using the special call
 `python -m job model.py` provides a command line interface for adjusting model parameters.
-In particular, calling `python -m job model.py -h` displays all possible settings.
+In particular, calling `python -m job model.py -h` displays all possible settings:
+
+```
+usage: model.py [-h] [--a VALUE] [--b VALUE] [-o PATH] [--json JSON]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o PATH, --output PATH
+                        Path to output file. If omitted, no output file is created. (default: None)
+  --json JSON           JSON-encoded parameter values. Overwrites other parameters. (default: None)
+
+  --a VALUE             Parameter `a` (default: 1)
+  --b VALUE             Parameter `b` (default: 2)
+```
 
 
 Submit models to an HPC queue

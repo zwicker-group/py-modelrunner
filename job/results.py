@@ -356,7 +356,7 @@ class ResultCollection(list):
             if np.isscalar(result.result):
                 data["result"] = result.result
             elif isinstance(result.result, dict):
-                for key, value in result.result:
+                for key, value in result.result.items():
                     if np.isscalar(value):
                         data[key] = value
             else:
