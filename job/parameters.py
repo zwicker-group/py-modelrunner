@@ -26,7 +26,7 @@ def auto_type(value):
     """convert value to float or int if reasonable"""
     try:
         float_val = float(value)
-    except ValueError:
+    except TypeError:
         return value
 
     try:
@@ -98,7 +98,7 @@ class Parameter:
         self.hidden = hidden
         self.extra = {} if extra is None else extra
 
-        if cls is not object:
+        if cls is not object and default_value is not None:
             # check whether the default value is of the correct type
             converted_value = cls(default_value)
             if isinstance(converted_value, np.ndarray):
