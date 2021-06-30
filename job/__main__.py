@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
     if len(candidate_classes) == 1:
         # use this one class
-        model = candidate_classes[0].from_command_line(model_args, name=filename)
+        candidate_classes[0].from_command_line(model_args, name=filename)
 
     elif len(candidate_classes) > 1:
         # there are multiple model classes in this script

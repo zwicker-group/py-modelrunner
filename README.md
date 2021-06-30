@@ -83,6 +83,22 @@ optional arguments:
   --b VALUE             Parameter `b` (default: 2)
 ```
 
+This can be helpful to call a model automatically and save the result. For instance, by
+calling `python -m job model.py -h --a 3 -o result.yaml`, we obtain a file `result.yaml` that
+looks something like this:
+
+```yaml
+model:
+  class: multiply
+  name: multiply
+  parameters:
+    a: 3
+    b: 2
+result: 6
+```
+
+Other supported output formats include JSON (extension `.json`) and HDF (extension `.hdf`).
+
 
 Submit models to an HPC queue
 -----------------------------
