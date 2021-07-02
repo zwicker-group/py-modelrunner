@@ -8,22 +8,28 @@ from .job import submit_job
 
 def main():
     """submit a script using command line arguments"""
-    parser = argparse.ArgumentParser(description="Submit a script to a queue.")
+    parser = argparse.ArgumentParser(
+        prog="python -m job.run", description="Run a script as a job"
+    )
 
     parser.add_argument("script", help="The script that should be run")
 
-    parser.add_argument("-n", "--name", default="job", help="Name of model run")
+    parser.add_argument("-n", "--name", default="job", help="Name of job")
 
     parser.add_argument(
         "-p",
         "--parameters",
         metavar="JSON",
-        help="Dictionary of parameters for the model",
+        help="JSON-encoded dictionary of parameters for the model",
     )
 
     parser.add_argument("-o", "--output", help="Path to output file", metavar="PATH")
     parser.add_argument(
-        "-f", "--force", action="store_true", default=False, help="Overwrite data"
+        "-f",
+        "--force",
+        action="store_true",
+        default=False,
+        help="Overwrite data if it already exists",
     )
     parser.add_argument(
         "-m", "--method", default="qsub", help="Method for job submission"

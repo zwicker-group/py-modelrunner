@@ -139,6 +139,31 @@ jobs are only submitted during the initial run and not when the file is imported
 when the actual jobs start. It is also important to choose unique file names for the
 `output` flag since otherwise different jobs overwrite each others data.
 
+Finally, the packages also offers a method to submit a model script to the cluster using
+a simple command: `python3 -m job.run script.py`. This command also offers multiple options
+that can be adjusted using command line arguments:
+
+```
+usage: python -m job.run [-h] [-n NAME] [-p JSON] [-o PATH] [-f] [-m METHOD] [-t PATH] script
+
+Run a script as a job
+
+positional arguments:
+  script                The script that should be run
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -n NAME, --name NAME  Name of job
+  -p JSON, --parameters JSON
+                        JSON-encoded dictionary of parameters for the model
+  -o PATH, --output PATH
+                        Path to output file
+  -f, --force           Overwrite data if it already exists
+  -m METHOD, --method METHOD
+                        Method for job submission
+  -t PATH, --template PATH
+                        Path to template file for submission script
+```
 
 Collating results
 -----------------
