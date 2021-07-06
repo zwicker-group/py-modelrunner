@@ -11,6 +11,8 @@ from typing import Any, Callable, Dict, Optional, Sequence, Type
 
 from .parameters import Parameter, Parameterized
 
+NoValue = inspect.Parameter.empty
+
 
 class ModelBase(Parameterized, metaclass=ABCMeta):
     """base class for describing models"""
@@ -97,23 +99,30 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         }
 
 
-def make_model(func: Callable) -> Type[ModelBase]:
+def make_model_class(func: Callable) -> Type[ModelBase]:
     """create a model from a function by interpreting its signature"""
     # determine the parameters of the function
     parameters = []
     for name, param in inspect.signature(func).parameters.items():
-        if param.default is inspect.Parameter.empty:
-            default_value = None
-        else:
-            default_value = param.default
+        default_value = param.default
         if param.annotation is inspect.Parameter.empty:
             cls = object
         else:
             cls = param.annotation
         parameters.append(Parameter(name, default_value=default_value, cls=cls))
 
-    def __call__(self):
-        return func(**self.parameters)
+    def __call__(self, *args, **kwargs):
+        """call the function preserving the original signature"""
+        parameters = {}
+        for i, (name, value) in enumerate(self.parameters.items()):
+            if len(args) > i:
+                value = args[i]
+            elif name in kwargs:
+                value = kwargs[name]
+            if value is inspect.Parameter.empty:
+                raise TypeError(f"Model missing required argument: '{name}'")
+            parameters[name] = value
+        return func(**parameters)
 
     args = {
         "name": func.__name__,
@@ -125,13 +134,13 @@ def make_model(func: Callable) -> Type[ModelBase]:
     return newclass
 
 
-def get_function_model(func: Callable, parameters: Dict[str, Any] = None) -> ModelBase:
+def make_model(func: Callable, parameters: Dict[str, Any] = None) -> ModelBase:
     """create model from a function and a dictionary of parameters"""
-    return make_model(func)(parameters)
+    return make_model_class(func)(parameters)
 
 
 def run_function_with_cmd_args(
     func: Callable, args: Sequence[str] = None, name: str = None
 ):
     """create model from a function and obtain parameters from command line"""
-    return make_model(func).from_command_line(args, name=name)
+    return make_model_class(func).from_command_line(args, name=name)

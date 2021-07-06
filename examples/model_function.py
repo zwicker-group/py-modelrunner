@@ -5,7 +5,7 @@ This example shows defining a custom model class using a function.
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-from job import get_function_model
+from job import make_model
 
 
 def multiply(a, b=2):
@@ -13,6 +13,6 @@ def multiply(a, b=2):
 
 
 # create an instance of the model defined by the function
-model = get_function_model(multiply, {"a": 3})
+model = make_model(multiply, {"a": 3})
 # run the instance
 print(model())

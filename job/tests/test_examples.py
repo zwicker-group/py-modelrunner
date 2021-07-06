@@ -5,7 +5,6 @@
 
 import glob
 import os
-import shutil
 import subprocess as sp
 import sys
 from pathlib import Path
@@ -27,15 +26,10 @@ def test_examples(path, tmp_path):
     env["PYTHONPATH"] = str(PACKAGEPATH) + ":" + env.get("PYTHONPATH", "")
 
     # run example in temporary folder since it might create data files
-    shutil.copyfile(path, tmp_path / "script.py")
     proc = sp.Popen(
         [sys.executable, path], cwd=tmp_path, env=env, stdout=sp.PIPE, stderr=sp.PIPE
     )
-    try:
-        outs, errs = proc.communicate(timeout=30)
-    except sp.TimeoutExpired:
-        proc.kill()
-        outs, errs = proc.communicate()
+    outs, errs = proc.communicate(timeout=30)
 
     msg = "Script `%s` failed with following output:" % path
     if outs:

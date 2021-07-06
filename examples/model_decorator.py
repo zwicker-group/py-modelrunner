@@ -13,7 +13,6 @@ def multiply(a, b=2):
     return a * b
 
 
-# instantiate the model
-model = multiply({"a": 3})
-# run the instance
-print(model())
+# use the model instance
+print(multiply.parameters)
+print(multiply(a=3))

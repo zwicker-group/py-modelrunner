@@ -29,33 +29,48 @@ if __name__ == "__main__":
     spec.loader.exec_module(model_code)  # type: ignore
 
     # find all functions in the module
-    candidate_funcs, candidate_classes = {}, []
+    candidate_instance, candidate_classes, candidate_funcs = {}, {}, {}
     for name, member in inspect.getmembers(model_code):
-        if inspect.isclass(member):
+        if isinstance(member, ModelBase):
+            candidate_instance[name] = member
+        elif inspect.isclass(member):
             if issubclass(member, ModelBase) and member is not ModelBase:
-                candidate_classes.append(member)
+                candidate_classes[name] = member
         elif inspect.isfunction(member):
             candidate_funcs[name] = member
 
-    if len(candidate_classes) == 1:
-        # use this one class
-        candidate_classes[0].from_command_line(model_args, name=filename)
+    if len(candidate_instance) == 1:
+        # there is a single instance of a model => use this
+        _, obj = candidate_instance.popitem()
+        obj.from_command_line(model_args, name=filename)
+
+    elif len(candidate_instance) > 1:
+        # there are multiple instance => we do not know which one do use
+        names = ", ".join(sorted(candidate_instance.keys()))
+        raise RuntimeError(f"Found multiple model instances: {names}")
+
+    elif len(candidate_classes) == 1:
+        # there is a single class of a model => use this
+        _, cls = candidate_classes.popitem()
+        cls.from_command_line(model_args, name=filename)
 
     elif len(candidate_classes) > 1:
-        # there are multiple model classes in this script
-        names = [cls.__name__ for cls in candidate_classes]
-        raise RuntimeError("Found multiple model classes: ", names)
+        # there are multiple instance => we do not know which one do use
+        names = ", ".join(sorted(candidate_classes.keys()))
+        raise RuntimeError(f"Found multiple model classes: {names}")
 
-    else:  # len(candidate_classes) == 0
-        # there are no model classes => look for functions
-        if len(candidate_funcs) == 0:
-            raise RuntimeError("Found neither a model class nor a suitable function")
-        elif len(candidate_funcs) == 1:
-            # create the model from the function
-            _, func = candidate_funcs.popitem()
-        elif "main" in candidate_funcs:
+    elif len(candidate_funcs) == 1 or "main" in candidate_funcs:
+        # there is a single function of a model => use this
+        if "main" in candidate_funcs:
             func = candidate_funcs["main"]
         else:
-            funcs = ", ".join(candidate_funcs.keys())
-            raise RuntimeError(f"Found many function, but no 'main' function: {funcs}")
+            _, func = candidate_funcs.popitem()
         run_function_with_cmd_args(func, args=sys.argv[2:], name=filename)
+
+    elif len(candidate_funcs) > 1:
+        names = ", ".join(sorted(candidate_funcs.keys()))
+        raise RuntimeError(f"Found many function, but no 'main' function: {name}")
+
+    else:
+        # we could not find any useful objects
+        raise RuntimeError("Found neither a model class, instance, or function")

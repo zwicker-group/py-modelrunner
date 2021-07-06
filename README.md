@@ -49,7 +49,7 @@ from job import make_model
 def multiply(a=1, b=2):
     return a * b
 
-model = multiply({"a": 3})
+model = multiply(a=3)
 ```
 
 The main aim of defining models like this is to provide a unified interface for
