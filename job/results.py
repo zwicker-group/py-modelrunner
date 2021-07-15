@@ -94,7 +94,10 @@ class MockModel(ModelBase):
         self.parameters = self._parse_parameters(parameters, check_validity=False)
 
     def __call__(self):
-        raise RuntimeError("MockModel cannot be called")
+        raise RuntimeError(f"{self.__class__.__name__} cannot be called")
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.parameters})"
 
 
 class Result:
