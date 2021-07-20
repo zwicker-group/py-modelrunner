@@ -160,6 +160,8 @@ class Parameter:
         if value is None:
             value = self.default_value
 
+        if value is inspect.Parameter.empty:
+            raise ValueError(f"Value for parameter {self.name} is required")
         if self.cls is object:
             return auto_type(value)
         else:
