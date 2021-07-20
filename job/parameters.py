@@ -100,7 +100,12 @@ class Parameter:
 
         if cls is not object and default_value is not None:
             # check whether the default value is of the correct type
-            converted_value = cls(default_value)
+            try:
+                converted_value = cls(default_value)
+            except TypeError as err:
+                raise TypeError(
+                    f"Parameter {self.name} has invalid default value: {default_value}"
+                ) from err
             if isinstance(converted_value, np.ndarray):
                 valid_default = np.allclose(converted_value, default_value)
             else:
