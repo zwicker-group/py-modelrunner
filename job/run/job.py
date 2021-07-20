@@ -196,5 +196,5 @@ def submit_jobs(
     for p_job in tqdm(p_vary_list):
         params.update(p_job)
         name = get_job_name(name_base, p_job)
-        output = Path(output_folder) / name + ".hdf5"
+        output = Path(output_folder) / f"{name}.hdf5"
         submit_job(script, output=output, name=name, parameters=params, **kwargs)
