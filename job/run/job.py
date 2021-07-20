@@ -156,7 +156,7 @@ def submit_jobs(
     name_base: str = "job",
     parameters: Union[str, Dict[str, Any]] = None,
     **kwargs,
-) -> Tuple[str, str]:
+) -> None:
     """submit many jobs of the same script with different parameters to the cluster
 
     Args:
@@ -174,13 +174,15 @@ def submit_jobs(
             All additional parameters are forwarded to :func:`submit_job`.
     """
     if parameters is None:
-        parameters = {}
+        parameter_dict = {}
     elif isinstance(parameters, str):
-        parameters = json.loads(parameters)
+        parameter_dict = json.loads(parameters)
+    else:
+        parameter_dict = parameters
 
     # detect varying parameters
     params, p_vary = {}, {}
-    for name, value in parameters.items():
+    for name, value in parameter_dict.items():
         if hasattr(value, "__iter__") and not isinstance(value, str):
             p_vary[name] = value
         else:

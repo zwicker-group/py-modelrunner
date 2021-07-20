@@ -350,6 +350,37 @@ class ResultCollection(list):
         """dict: the parameters that vary in this result collection"""
         return {k: sorted(v) for k, v in self.parameters.items() if len(v) > 1}
 
+    def filtered(self, **kwargs) -> "ResultCollection":
+        r"""return a subset of the results
+
+        Args:
+            **kwargs: Specify parameter values of results that are retained
+
+        Returns:
+            :class:`ResultColelction`: The filtered collection
+        """
+        return self.__class__(
+            item
+            for item in self
+            if all(item.parameters[k] == v for k, v in kwargs.items())
+        )
+
+    def sorted(self, *args) -> "ResultCollection":
+        r"""return a sorted version of the results
+
+        Args:
+            *args: Specify parameters according to which the results are sorted
+
+        Returns:
+            :class:`ResultColelction`: The filtered collection
+        """
+
+        def sort_func(item):
+            """helper function for ordering the results"""
+            return [item.parameters[name] for name in args]
+
+        return self.__class__(sorted(self, key=sort_func))
+
     @property
     def dataframe(self):
         """create a pandas Dataframe summarizing the data"""
