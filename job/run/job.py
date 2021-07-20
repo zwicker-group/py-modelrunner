@@ -187,10 +187,10 @@ def submit_jobs(
             params[name] = value
 
     # build the list of all varying arguments
-    p_vary_list = (
+    p_vary_list = [
         dict(zip(p_vary.keys(), values))
         for values in itertools.product(*p_vary.values())
-    )
+    ]
 
     # submit jobs with all parameter variations
     for p_job in tqdm(p_vary_list):
