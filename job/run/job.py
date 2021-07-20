@@ -56,7 +56,7 @@ def submit_job(
     name: str = "job",
     parameters: Union[str, Dict[str, Any]] = None,
     *,
-    logfolder: Union[str, Path] = "logs",
+    log_folder: Union[str, Path] = "logs",
     method: str = "qsub",
     template: Union[str, Path] = None,
     overwrite_files: bool = False,
@@ -73,7 +73,7 @@ def submit_job(
         parameters (str or dict):
             Parameters for the script, either as a python dictionary or a string
             containing a JSON-encoded dictionary.
-        logfolder (str of :class:`~pathlib.Path`):
+        log_folder (str of :class:`~pathlib.Path`):
             Path to the logging folder
         method (str):
             Specifies the submission method. Currently `qsub` and `local` are supported.
@@ -96,10 +96,10 @@ def submit_job(
         script_template = fp.read()
 
     # prepare submission script
-    ensure_directory_exists(logfolder)
+    ensure_directory_exists(log_folder)
 
     script_args = {
-        "LOG_FOLDER": logfolder,
+        "LOG_FOLDER": log_folder,
         "JOB_NAME": name,
         "MODEL_FILE": escape_string(script),
     }
@@ -152,7 +152,7 @@ def submit_job(
 
 def submit_jobs(
     script: Union[str, Path],
-    output: Union[str, Path],
+    output_folder: Union[str, Path],
     name_base: str = "job",
     parameters: Union[str, Dict[str, Any]] = None,
     **kwargs,
@@ -162,8 +162,8 @@ def submit_jobs(
     Args:
         script (str of :class:`~pathlib.Path`):
             Path to the script file, which contains the model
-        output (str of :class:`~pathlib.Path`):
-            Path to the output file, where all the results are saved
+        output_folder (str of :class:`~pathlib.Path`):
+            Path to the output folder, where all the results are saved
         name_base (str):
             Base name of the job. An automatic name is generated on this basis.
         parameters (str or dict):
@@ -196,4 +196,5 @@ def submit_jobs(
     for p_job in tqdm(p_vary_list):
         params.update(p_job)
         name = get_job_name(name_base, p_job)
-        submit_job(script, output, name=name, parameters=params, **kwargs)
+        output = Path(output_folder) / name + ".hdf5"
+        submit_job(script, output=output, name=name, parameters=params, **kwargs)
