@@ -3,12 +3,15 @@
 """
 
 import errno
+import itertools
 import json
 import os
 import pipes
 import subprocess as sp
 from pathlib import Path
 from typing import Any, Dict, Tuple, Union
+
+from tqdm.auto import tqdm
 
 
 def escape_string(obj) -> str:
@@ -27,11 +30,32 @@ def ensure_directory_exists(folder):
             raise
 
 
+def get_job_name(base: str, args: Dict[str, Any] = None, length: int = 5) -> str:
+    """create a suitable job name
+
+    Args:
+        base (str): The stem of the job name
+        args (dict): Parameters to include in the job name
+        length (int)": Length of the abbreviated parameter name
+
+    Returns:
+        str: A suitable job name
+    """
+    if args is None:
+        args = {}
+
+    res = base[:-1] if base.endswith("_") else base
+    for name, value in args.items():
+        res += f"_{name.replace('_', '')[:length].upper()}_{value:g}"
+    return res
+
+
 def submit_job(
     script: Union[str, Path],
     output: Union[str, Path],
     name: str = "job",
     parameters: Union[str, Dict[str, Any]] = None,
+    *,
     logfolder: Union[str, Path] = "logs",
     method: str = "qsub",
     template: Union[str, Path] = None,
@@ -124,3 +148,52 @@ def submit_job(
         raise ValueError(f"Unknown submit method `{method}`")
 
     return proc.communicate(script)
+
+
+def submit_jobs(
+    script: Union[str, Path],
+    output: Union[str, Path],
+    name_base: str = "job",
+    parameters: Union[str, Dict[str, Any]] = None,
+    **kwargs,
+) -> Tuple[str, str]:
+    """submit many jobs of the same script with different parameters to the cluster
+
+    Args:
+        script (str of :class:`~pathlib.Path`):
+            Path to the script file, which contains the model
+        output (str of :class:`~pathlib.Path`):
+            Path to the output file, where all the results are saved
+        name_base (str):
+            Base name of the job. An automatic name is generated on this basis.
+        parameters (str or dict):
+            Parameters for the script, either as a python dictionary or a string
+            containing a JSON-encoded dictionary. All combinations of parameter values
+            that are iterable and not strings are submitted as separate jobs.
+        **kwargs:
+            All additional parameters are forwarded to :func:`submit_job`.
+    """
+    if parameters is None:
+        parameters = {}
+    elif isinstance(parameters, str):
+        parameters = json.loads(parameters)
+
+    # detect varying parameters
+    params, p_vary = {}, {}
+    for name, value in parameters.items():
+        if hasattr(value, "__iter__") and not isinstance(value, str):
+            p_vary[name] = value
+        else:
+            params[name] = value
+
+    # build the list of all varying arguments
+    p_vary_list = (
+        dict(zip(p_vary.keys(), values))
+        for values in itertools.product(*p_vary.values())
+    )
+
+    # submit jobs with all parameter variations
+    for p_job in tqdm(p_vary_list):
+        params.update(p_job)
+        name = get_job_name(name_base, p_job)
+        submit_job(script, output, name=name, parameters=params, **kwargs)
