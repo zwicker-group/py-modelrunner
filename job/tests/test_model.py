@@ -10,7 +10,8 @@ from typing import List  # @UnusedImport
 
 import pytest
 
-from ..model import NoValue, make_model, make_model_class
+from ..model import make_model, make_model_class
+from ..parameters import NoValue
 
 PACKAGEPATH = Path(__file__).parents[2].resolve()
 SCRIPT_PATH = Path(__file__).parent / "scripts"

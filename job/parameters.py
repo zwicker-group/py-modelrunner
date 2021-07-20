@@ -15,12 +15,21 @@ One aim is to allow easy management of inheritance of parameters.
 """
 
 import importlib
-import inspect
 import logging
 from collections import OrderedDict
 from typing import Any, Dict, Sequence, Union
 
 import numpy as np
+
+
+class NoValueType:
+    """special value to indicate no value for a parameter"""
+
+    def __repr__(self):
+        return "NoValue"
+
+
+NoValue = NoValueType()
 
 
 def auto_type(value):
@@ -69,7 +78,8 @@ class Parameter:
         default_value=None,
         cls=object,
         description: str = "",
-        allow: Sequence = None,
+        *,
+        required: bool = False,
         hidden: bool = False,
         extra: Dict[str, Any] = None,
     ):
@@ -85,8 +95,8 @@ class Parameter:
             description (str):
                 A string describing the impact of this parameter. This
                 description appears in the parameter help
-            allow (sequence):
-                Allowed values of this parameter
+            required (bool):
+                Flag determining whether this parameter needs to be given
             hidden (bool):
                 Whether the parameter is hidden in the description summary
             extra (dict):
@@ -96,10 +106,11 @@ class Parameter:
         self.default_value = default_value
         self.cls = cls
         self.description = description
+        self.required = required
         self.hidden = hidden
         self.extra = {} if extra is None else extra
 
-        if cls is not object and default_value not in {None, inspect.Parameter.empty}:
+        if cls is not object and default_value not in {None, NoValue}:
             # check whether the default value is of the correct type
             try:
                 converted_value = cls(default_value)
@@ -113,16 +124,14 @@ class Parameter:
                 valid_default = converted_value == default_value
             if not valid_default:
                 logging.warning(
-                    "Default value `%s` does not seem to be of type `%s`",
-                    name,
-                    cls.__name__,
+                    f"Default value `{name}` is not of type `{cls.__name__}`"
                 )
 
     def __repr__(self):
         return (
             f'{self.__class__.__name__}(name="{self.name}", default_value='
             f"{self.default_value}, cls={self.cls.__name__}, description="
-            f'"{self.description}", hidden={self.hidden})'
+            f'"{self.description}", required={self.required}, hidden={self.hidden})'
         )
 
     __str__ = __repr__
@@ -134,6 +143,7 @@ class Parameter:
             "default_value": self.convert(),
             "cls": object.__module__ + "." + self.cls.__name__,
             "description": self.description,
+            "required": self.required,
             "hidden": self.hidden,
             "extra": self.extra,
         }
@@ -144,7 +154,7 @@ class Parameter:
         # restore the state
         self.__dict__.update(state)
 
-    def convert(self, value=None):
+    def convert(self, value=NoValue):
         """converts a `value` into the correct type for this parameter. If
         `value` is not given, the default value is converted.
 
@@ -157,21 +167,27 @@ class Parameter:
         Returns:
             The converted value, which is of type `self.cls`
         """
-        if value is None:
+        if value is NoValue:
             value = self.default_value
 
-        if value is inspect.Parameter.empty:
-            raise ValueError(f"Value for parameter {self.name} is required")
-        if self.cls is object:
-            return auto_type(value)
+        if value is NoValue:
+            # value is not specified
+            if self.required:
+                raise ValueError(f"Value for parameter `{self.name}` is required")
+
         else:
-            try:
-                return self.cls(value)
-            except ValueError:
-                raise ValueError(
-                    f"Could not convert {value!r} to {self.cls.__name__} for parameter "
-                    f"'{self.name}'"
-                )
+            # value is specified
+            if self.cls is object:
+                value = auto_type(value)
+            else:
+                try:
+                    value = self.cls(value)
+                except ValueError:
+                    raise ValueError(
+                        f"Could not convert {value!r} to {self.cls.__name__} for "
+                        f"parameter '{self.name}'"
+                    )
+        return value
 
     def _argparser_add(self, parser):
         """add a command line option for this parameter to a parser"""
@@ -187,6 +203,7 @@ class Parameter:
                 "default": self.default_value,
                 "help": description,
                 "metavar": "VALUE",
+                "required": self.required,
             }
 
             if self.cls is bool and self.default_value == False:
@@ -349,7 +366,7 @@ class Parameterized:
             if not allow_hidden and param_obj.hidden:
                 continue  # skip hidden parameters
             # take value from parameters or set default value
-            result[name] = param_obj.convert(parameters.pop(name, None))
+            result[name] = param_obj.convert(parameters.pop(name, NoValue))
 
         # update parameters with the supplied ones
         if check_validity and parameters:

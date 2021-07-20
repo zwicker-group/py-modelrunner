@@ -9,9 +9,7 @@ from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from typing import Any, Callable, Dict, Optional, Sequence, Type
 
-from .parameters import Parameter, Parameterized
-
-NoValue = inspect.Parameter.empty
+from .parameters import NoValue, Parameter, Parameterized
 
 
 class ModelBase(Parameterized, metaclass=ABCMeta):
@@ -102,14 +100,18 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
 def make_model_class(func: Callable) -> Type[ModelBase]:
     """create a model from a function by interpreting its signature"""
     # determine the parameters of the function
-    parameters = []
+    parameters_default = []
     for name, param in inspect.signature(func).parameters.items():
-        default_value = param.default
-        if param.annotation is inspect.Parameter.empty:
+        if param.annotation is param.empty:
             cls = object
         else:
             cls = param.annotation
-        parameters.append(Parameter(name, default_value=default_value, cls=cls))
+        if param.default is param.empty:
+            default_value = NoValue
+        else:
+            default_value = param.default
+
+        parameters_default.append(Parameter(name, default_value=default_value, cls=cls))
 
     def __call__(self, *args, **kwargs):
         """call the function preserving the original signature"""
@@ -119,7 +121,7 @@ def make_model_class(func: Callable) -> Type[ModelBase]:
                 value = args[i]
             elif name in kwargs:
                 value = kwargs[name]
-            if value is inspect.Parameter.empty:
+            if value is NoValue:
                 raise TypeError(f"Model missing required argument: '{name}'")
             parameters[name] = value
         return func(**parameters)
@@ -127,7 +129,7 @@ def make_model_class(func: Callable) -> Type[ModelBase]:
     args = {
         "name": func.__name__,
         "description": func.__doc__,
-        "parameters_default": parameters,
+        "parameters_default": parameters_default,
         "__call__": __call__,
     }
     newclass = type(func.__name__, (ModelBase,), args)
