@@ -15,6 +15,7 @@ One aim is to allow easy management of inheritance of parameters.
 """
 
 import importlib
+import inspect
 import logging
 from collections import OrderedDict
 from typing import Any, Dict, Sequence, Union
@@ -98,7 +99,7 @@ class Parameter:
         self.hidden = hidden
         self.extra = {} if extra is None else extra
 
-        if cls is not object and default_value is not None:
+        if cls is not object and default_value not in {None, inspect.Parameter.empty}:
             # check whether the default value is of the correct type
             try:
                 converted_value = cls(default_value)

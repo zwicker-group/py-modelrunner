@@ -30,7 +30,7 @@ def ensure_directory_exists(folder):
             raise
 
 
-def get_job_name(base: str, args: Dict[str, Any] = None, length: int = 5) -> str:
+def get_job_name(base: str, args: Dict[str, Any] = None, length: int = 7) -> str:
     """create a suitable job name
 
     Args:
