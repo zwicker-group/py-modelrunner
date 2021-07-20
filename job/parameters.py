@@ -194,7 +194,6 @@ class Parameter:
                 "default": self.default_value,
                 "help": description,
                 "metavar": "VALUE",
-                "required": self.default_value is NoValue,
             }
 
             if self.cls is bool and self.default_value == False:
