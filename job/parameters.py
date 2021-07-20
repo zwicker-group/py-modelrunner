@@ -79,7 +79,6 @@ class Parameter:
         cls=object,
         description: str = "",
         *,
-        required: bool = False,
         hidden: bool = False,
         extra: Dict[str, Any] = None,
     ):
@@ -95,8 +94,6 @@ class Parameter:
             description (str):
                 A string describing the impact of this parameter. This
                 description appears in the parameter help
-            required (bool):
-                Flag determining whether this parameter needs to be given
             hidden (bool):
                 Whether the parameter is hidden in the description summary
             extra (dict):
@@ -106,7 +103,6 @@ class Parameter:
         self.default_value = default_value
         self.cls = cls
         self.description = description
-        self.required = required
         self.hidden = hidden
         self.extra = {} if extra is None else extra
 
@@ -171,22 +167,17 @@ class Parameter:
             value = self.default_value
 
         if value is NoValue:
-            # value is not specified
-            if self.required:
-                raise ValueError(f"Value for parameter `{self.name}` is required")
-
+            pass
+        elif self.cls is object:
+            value = auto_type(value)
         else:
-            # value is specified
-            if self.cls is object:
-                value = auto_type(value)
-            else:
-                try:
-                    value = self.cls(value)
-                except ValueError:
-                    raise ValueError(
-                        f"Could not convert {value!r} to {self.cls.__name__} for "
-                        f"parameter '{self.name}'"
-                    )
+            try:
+                value = self.cls(value)
+            except ValueError:
+                raise ValueError(
+                    f"Could not convert {value!r} to {self.cls.__name__} for parameter "
+                    f"'{self.name}'"
+                )
         return value
 
     def _argparser_add(self, parser):
@@ -203,7 +194,7 @@ class Parameter:
                 "default": self.default_value,
                 "help": description,
                 "metavar": "VALUE",
-                "required": self.required,
+                "required": self.default_value is NoValue,
             }
 
             if self.cls is bool and self.default_value == False:

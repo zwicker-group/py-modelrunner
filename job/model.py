@@ -138,7 +138,8 @@ def make_model_class(func: Callable) -> Type[ModelBase]:
 
 def make_model(func: Callable, parameters: Dict[str, Any] = None) -> ModelBase:
     """create model from a function and a dictionary of parameters"""
-    return make_model_class(func)(parameters)
+    model_class = make_model_class(func)
+    return model_class(parameters)
 
 
 def run_function_with_cmd_args(
