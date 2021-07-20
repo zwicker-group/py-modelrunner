@@ -139,6 +139,19 @@ jobs are only submitted during the initial run and not when the file is imported
 when the actual jobs start. It is also important to choose unique file names for the
 `output` flag since otherwise different jobs overwrite each others data.
 
+We also support submitting multiple jobs of a parameter study:
+
+```python
+from job import make_model, submit_jobs
+
+@make_model
+def multiply(a=1, b=2):
+    return a * b
+
+if __name__ == "__main__":
+    submit_jobs(__file__, parameters={'a': range(5)}, output_folder="data", method="local")
+```
+
 Finally, the packages also offers a method to submit a model script to the cluster using
 a simple command: `python3 -m job.run script.py`. This command also offers multiple options
 that can be adjusted using command line arguments:
