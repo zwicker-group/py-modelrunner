@@ -64,6 +64,58 @@ def test_make_model_class_script():
     assert run_script("make_model_class.py", "--a", "3", "--b", "4") == b"12"
 
 
+def test_required_arguments_model():
+    """test required arguments"""
+
+    @make_model
+    def f1(a=1):
+        return a
+
+    assert f1.parameters == {"a": 1}
+    assert f1() == 1
+
+    @make_model
+    def f2(a):
+        return a
+
+    assert f2.parameters == {"a": NoValue}
+    with pytest.raises(TypeError):
+        f2()
+
+    @make_model
+    def f3(a=None):
+        return a
+
+    assert f3.parameters == {"a": None}
+    assert f3() is None
+
+
+def test_required_arguments_model_class():
+    """test required arguments"""
+
+    @make_model_class
+    def f1(a=1):
+        return a
+
+    assert f1().parameters == {"a": 1}
+    assert f1()() == 1
+
+    @make_model_class
+    def f2(a):
+        return a
+
+    assert f2().parameters == {"a": NoValue}
+    with pytest.raises(TypeError):
+        f2()()
+
+    @make_model_class
+    def f3(a=None):
+        return a
+
+    assert f3().parameters == {"a": None}
+    assert f3()() is None
+
+
 def test_make_model():
     """test the make_model decorator"""
 
