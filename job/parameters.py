@@ -229,6 +229,34 @@ class HideParameter:
         pass
 
 
+class hybridmethod:
+    """
+    descriptor that can be used as a decorator to allow calling a method both
+    as a classmethod and an instance method
+
+    Adapted from https://stackoverflow.com/a/28238047
+    """
+
+    def __init__(self, fclass, finstance=None, doc=None):
+        self.fclass = fclass
+        self.finstance = finstance
+        self.__doc__ = doc or fclass.__doc__
+        # support use on abstract base classes
+        self.__isabstractmethod__ = bool(getattr(fclass, "__isabstractmethod__", False))
+
+    def classmethod(self, fclass):
+        return type(self)(fclass, self.finstance, None)
+
+    def instancemethod(self, finstance):
+        return type(self)(self.fclass, finstance, self.__doc__)
+
+    def __get__(self, instance, cls):
+        if instance is None or self.finstance is None:
+            # either bound to the class, or no instance method available
+            return self.fclass.__get__(cls, None)
+        return self.finstance.__get__(instance, cls)
+
+
 ParameterListType = Sequence[Union[Parameter, HideParameter]]
 
 
@@ -382,3 +410,124 @@ class Parameterized:
                         return p.default_value
 
         raise KeyError(f"Parameter `{name}` is not defined")
+
+    @classmethod
+    def _show_parameters(
+        cls,
+        description: bool = None,
+        sort: bool = False,
+        show_hidden: bool = False,
+        show_deprecated: bool = False,
+        parameter_values: Dict[str, Any] = None,
+    ):
+        """private method showing all parameters in human readable format
+
+        Args:
+            description (bool):
+                Flag determining whether the parameter description is shown. The
+                default is to show the description only when we are in a jupyter
+                notebook environment.
+            sort (bool):
+                Flag determining whether the parameters are sorted
+            show_hidden (bool):
+                Flag determining whether hidden parameters are shown
+            show_deprecated (bool):
+                Flag determining whether deprecated parameters are shown
+            parameter_values (dict):
+                A dictionary with values to show. Parameters not in this
+                dictionary are shown with their default value.
+
+        All flags default to `False`.
+        """
+        # set the templates for displaying the data
+        template = "{name}: {type} = {value!r}"
+        template_object = "{name} = {value!r}"
+        if description:
+            template += " ({description})"
+            template_object += " ({description})"
+
+        # iterate over all parameters
+        params = cls.get_parameters(
+            include_hidden=show_hidden, include_deprecated=show_deprecated, sort=sort
+        )
+        for param in params.values():
+            # initialize the data to show
+            data = {
+                "name": param.name,
+                "type": param.cls.__name__,
+                "description": param.description,
+            }
+
+            # determine the value to show
+            if parameter_values is None:
+                data["value"] = param.default_value
+            else:
+                data["value"] = parameter_values[param.name]
+
+            # print the data to stdout
+            if param.cls is object:
+                print(template_object.format(**data))
+            else:
+                print(template.format(**data))
+
+    @hybridmethod
+    def show_parameters(  # @NoSelf
+        cls,
+        description: bool = None,  # @NoSelf
+        sort: bool = False,
+        show_hidden: bool = False,
+        show_deprecated: bool = False,
+    ):
+        """show all parameters in human readable format
+
+        Args:
+            description (bool):
+                Flag determining whether the parameter description is shown. The
+                default is to show the description only when we are in a jupyter
+                notebook environment.
+            sort (bool):
+                Flag determining whether the parameters are sorted
+            show_hidden (bool):
+                Flag determining whether hidden parameters are shown
+            show_deprecated (bool):
+                Flag determining whether deprecated parameters are shown
+
+        All flags default to `False`.
+        """
+        cls._show_parameters(description, sort, show_hidden, show_deprecated)
+
+    @show_parameters.instancemethod  # type: ignore
+    def show_parameters(
+        self,
+        description: bool = None,  # @NoSelf
+        sort: bool = False,
+        show_hidden: bool = False,
+        show_deprecated: bool = False,
+        default_value: bool = False,
+    ):
+        """show all parameters in human readable format
+
+        Args:
+            description (bool):
+                Flag determining whether the parameter description is shown. The
+                default is to show the description only when we are in a jupyter
+                notebook environment.
+            sort (bool):
+                Flag determining whether the parameters are sorted
+            show_hidden (bool):
+                Flag determining whether hidden parameters are shown
+            show_deprecated (bool):
+                Flag determining whether deprecated parameters are shown
+            default_value (bool):
+                Flag determining whether the default values or the current
+                values are shown
+
+        All flags default to `False`.
+        """
+        self._show_parameters(
+            description,
+            sort,
+            show_hidden,
+            show_deprecated,
+            parameter_values=None if default_value else self.parameters,
+        )
