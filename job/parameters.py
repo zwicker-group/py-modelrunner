@@ -166,18 +166,18 @@ class Parameter:
         if value is NoValue:
             value = self.default_value
 
-        if value is NoValue:
-            pass
+        if value in {NoValue, None}:
+            pass  # treat these values special
         elif self.cls is object:
             value = auto_type(value)
         else:
             try:
                 value = self.cls(value)
-            except ValueError:
+            except (TypeError, ValueError) as err:
                 raise ValueError(
                     f"Could not convert {value!r} to {self.cls.__name__} for parameter "
                     f"'{self.name}'"
-                )
+                ) from err
         return value
 
     def _argparser_add(self, parser):
