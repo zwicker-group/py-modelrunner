@@ -365,11 +365,12 @@ class ResultCollection(list):
             if all(item.parameters[k] == v for k, v in kwargs.items())
         )
 
-    def sorted(self, *args) -> "ResultCollection":
+    def sorted(self, *args, reverse: bool = False) -> "ResultCollection":
         r"""return a sorted version of the results
 
         Args:
             *args: Specify parameters according to which the results are sorted
+            reverse (bool): If True, sort in descending order
 
         Returns:
             :class:`ResultColelction`: The filtered collection
@@ -379,7 +380,7 @@ class ResultCollection(list):
             """helper function for ordering the results"""
             return [item.parameters[name] for name in args]
 
-        return self.__class__(sorted(self, key=sort_func))
+        return self.__class__(sorted(self, key=sort_func, reverse=reverse))
 
     @property
     def dataframe(self):
