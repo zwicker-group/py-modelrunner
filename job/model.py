@@ -18,17 +18,49 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
     name: Optional[str] = None
     description: Optional[str] = None
 
+    def __init__(self, parameters: Dict[str, Any] = None, *, output: str = None):
+        """initialize the parameters of the object
+
+        Args:
+            parameters (dict):
+                A dictionary of parameters to change the defaults of this model. The
+                allowed parameters can be obtained from
+                :meth:`~Parameterized.get_parameters` or displayed by calling
+                :meth:`~Parameterized.show_parameters`.
+            output (str):
+                File where the output will be written to
+        """
+        super().__init__(parameters)
+        self.output = output
+
     @abstractmethod
     def __call__(self):
         """main method calculating the result"""
         pass
 
-    def get_result(self):
-        """get the result as a :class:`~model.Result` object"""
+    def get_result(self, result=None):
+        """get the result as a :class:`~model.Result` object
+
+        Args:
+            result: The result data. If omitted, the model is ran to obtain results
+        """
         from .results import Result
 
+        if result is None:
+            result = self()
+
         info = {"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-        return Result(self, self(), info=info)
+        return Result(self, result, info=info)
+
+    def write_result(self, result=None):
+        """write the result to the output file
+
+        Args:
+            result: The result data. If omitted, the model is ran to obtain results
+        """
+        if self.output:
+            result = self.get_result(result)
+            result.write_to_file(self.output)
 
     @classmethod
     def _prepare_argparser(cls, name: str = None) -> argparse.ArgumentParser:
@@ -77,13 +109,13 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         if parameters_json:
             parameters.update(json.loads(parameters_json))
 
-        # create the model and run it
-        mdl = cls(parameters)
+        # create the model
+        mdl = cls(parameters, output=output)
+        # run the model
         result = mdl.get_result()
+        # write the results (if output file was specified)
+        mdl.write_result(result=result)
 
-        # store the result if requested
-        if output:
-            result.write_to_file(output)
         return result
 
     @property

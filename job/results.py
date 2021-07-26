@@ -35,6 +35,28 @@ def json_encoder(data):
         return data.item()
 
 
+def prepare_yaml(data):
+    """prepare data for writing to yaml"""
+    if isinstance(data, dict):
+        data = data.copy()  # shallow copy of result
+        for key, value in data.items():
+            if isinstance(value, dict):
+                data[key] = prepare_yaml(value)
+            elif isinstance(value, tuple):
+                data[key] = list(value)
+            elif isinstance(value, list) and not np.isscalar(value[0]):
+                data[key] = [prepare_yaml(a) for a in value]
+            elif isinstance(value, np.ndarray) and value.size <= 100:
+                # for less than ~100 items a list is actually more efficient to store
+                data[key] = value.tolist()
+
+    elif isinstance(data, np.ndarray) and data.size <= 100:
+        # for less than ~100 items a list is actually more efficient to store
+        data = data.tolist()
+
+    return data
+
+
 def write_hdf_dataset(node, data, name: str) -> None:
     """writes data to an HDF node
 
@@ -111,8 +133,11 @@ class Result:
             info (dict): Additional information for this result
         """
         self.model = model
-        self.result = result
         self.info = info
+        if isinstance(result, Result):
+            self.result: Any = result.result
+        else:
+            self.result = result
 
     @classmethod
     def from_data(
@@ -246,7 +271,8 @@ class Result:
         """
         import yaml
 
-        data = {"model": self.model.attributes, "result": self.result}
+        # compile all data
+        data = {"model": self.model.attributes, "result": prepare_yaml(self.result)}
         if self.info:
             data["info"] = self.info
 
