@@ -340,6 +340,11 @@ class ResultCollection(list):
         ]
         return cls(results)
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}(<{len(self)} Results>)"
+
+    __str__ = __repr__
+
     @property
     def same_model(self) -> bool:
         """bool: flag determining whether all results are from the same model"""
