@@ -44,7 +44,7 @@ def prepare_yaml(data):
                 data[key] = prepare_yaml(value)
             elif isinstance(value, tuple):
                 data[key] = list(value)
-            elif isinstance(value, list) and not np.isscalar(value[0]):
+            elif isinstance(value, list) and value and not np.isscalar(value[0]):
                 data[key] = [prepare_yaml(a) for a in value]
             elif isinstance(value, np.ndarray) and value.size <= 100:
                 # for less than ~100 items a list is actually more efficient to store
