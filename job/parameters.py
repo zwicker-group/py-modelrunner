@@ -150,7 +150,7 @@ class Parameter:
         # restore the state
         self.__dict__.update(state)
 
-    def convert(self, value=NoValue):
+    def convert(self, value=NoValue, *, strict: bool = True):
         """converts a `value` into the correct type for this parameter. If
         `value` is not given, the default value is converted.
 
@@ -158,7 +158,12 @@ class Parameter:
         unexpected effects where the default value is changed by an instance.
 
         Args:
-            value: The value to convert
+            value:
+                The value to convert
+            strict (bool):
+                Flag indicating whether conversion to the type indicated by `cls` is
+                enforced. If `False`, the original value is returned when conversion
+                fails.
 
         Returns:
             The converted value, which is of type `self.cls`
@@ -174,10 +179,13 @@ class Parameter:
             try:
                 value = self.cls(value)
             except (TypeError, ValueError) as err:
-                raise ValueError(
-                    f"Could not convert {value!r} to {self.cls.__name__} for parameter "
-                    f"'{self.name}'"
-                ) from err
+                if strict:
+                    raise ValueError(
+                        f"Could not convert {value!r} to {self.cls.__name__} for "
+                        f"parameter '{self.name}'"
+                    ) from err
+                # else: just return the value unchanged
+
         return value
 
     def _argparser_add(self, parser):
@@ -265,7 +273,7 @@ class Parameterized:
 
     parameters_default: ParameterListType = []
 
-    def __init__(self, parameters: Dict[str, Any] = None):
+    def __init__(self, parameters: Dict[str, Any] = None, *, strict: bool = True):
         """initialize the parameters of the object
 
         Args:
@@ -274,6 +282,10 @@ class Parameterized:
                 parameters can be obtained from
                 :meth:`~Parameterized.get_parameters` or displayed by calling
                 :meth:`~Parameterized.show_parameters`.
+            strict (bool):
+                Flag indicating whether parameters are strictly interpreted. If `True`,
+                only parameters listed in `parameters_default` can be set and their type
+                will be enforced.
         """
         # set logger if this has not happened, yet
         if not hasattr(self, "_logger"):
@@ -282,7 +294,7 @@ class Parameterized:
         # set parameters if they have not been initialized, yet
         if not hasattr(self, "parameters"):
             self.parameters = self._parse_parameters(
-                parameters, include_deprecated=True
+                parameters, include_deprecated=True, check_validity=strict
             )
 
     def __init_subclass__(cls, **kwargs):  # @NoSelf
@@ -384,7 +396,9 @@ class Parameterized:
             if not allow_hidden and param_obj.hidden:
                 continue  # skip hidden parameters
             # take value from parameters or set default value
-            result[name] = param_obj.convert(parameters.pop(name, NoValue))
+            value = parameters.pop(name, NoValue)
+            # convert parameter to correct type
+            result[name] = param_obj.convert(value, strict=check_validity)
 
         # update parameters with the supplied ones
         if check_validity and parameters:
