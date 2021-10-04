@@ -8,9 +8,10 @@ import json
 import os.path
 import warnings
 from pathlib import Path
-from typing import Any, Dict, List, Set, Type
+from typing import Any, Dict, List, Set, Type, Union
 
 import numpy as np
+from tqdm.auto import tqdm
 
 from .model import ModelBase
 
@@ -328,14 +329,32 @@ class ResultCollection(list):
     """represents a collection of results"""
 
     @classmethod
-    def from_folder(cls, folder, pattern="*.*", model: ModelBase = None):
-        """create results collection from a folder"""
+    def from_folder(
+        cls,
+        folder: Union[str, Path],
+        pattern: str = "*.*",
+        model: ModelBase = None,
+        *,
+        progress: bool = False,
+    ):
+        """create results collection from a folder
+
+        args:
+            folder (str):
+                Path to the folder that is scanned
+            pattern (str):
+                Filename pattern that is used to detect result files
+            model (:class:`~job.model.ModelBase`):
+                Base class from which models are initialized
+            progress (bool):
+                Flag indiciating whether a progress bar is shown
+        """
         folder = Path(folder)
         assert folder.is_dir()
 
         results = [
             Result.from_file(path, model)
-            for path in folder.glob(pattern)
+            for path in tqdm(list(folder.glob(pattern)), disable=not progress)
             if path.is_file()
         ]
         return cls(results)
