@@ -122,8 +122,8 @@ def submit_job(
         script_args["OUTPUT_FOLDER"] = "."
     script_args["JOB_ARGS"] = " ".join(job_args)
 
+    # replace parameters in submission script template
     script = Template(script_template).render(script_args)
-    # script = script_template.format(**script_args)
 
     # submit job to queue
     if method == "qsub":
