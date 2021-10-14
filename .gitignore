@@ -1,4 +1,6 @@
 .DS_Store
+.pydevproject
+.project
 tests/coverage
 
 # Byte-compiled / optimized / DLL files

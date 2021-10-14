@@ -68,9 +68,11 @@ parameters. The packages facilitates this by providing a special interface to se
 arguments from the command line. To show this, either one of the model definitions
 given above can be saved as a python file `model.py`. Using the special call
 `python -m job model.py` provides a command line interface for adjusting model parameters.
-In particular, calling `python -m job model.py -h` displays all possible settings:
+The supported parameters can be obtained with the following command
 
-```
+```console
+$ python -m job model.py --help
+
 usage: model.py [-h] [--a VALUE] [--b VALUE] [-o PATH] [--json JSON]
 
 optional arguments:
