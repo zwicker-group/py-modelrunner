@@ -189,7 +189,7 @@ class Result:
         elif ext in {".h5", ".hdf", ".hdf5"}:
             return cls.from_hdf(path, model)
         else:
-            raise ValueError(f"Unknown file format `{ext}`")
+            raise ValueError(f"Unknown file format of `{path}`")
 
     def write_to_file(self, path):
         """write result to a file
