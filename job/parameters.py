@@ -16,7 +16,6 @@ One aim is to allow easy management of inheritance of parameters.
 
 import importlib
 import logging
-from collections import OrderedDict
 from typing import Any, Dict, Sequence, Union
 
 import numpy as np
@@ -355,7 +354,7 @@ class Parameterized:
         }
 
         if sort:
-            result = OrderedDict(sorted(result.items()))
+            result = dict(sorted(result.items()))
         return result
 
     @classmethod
