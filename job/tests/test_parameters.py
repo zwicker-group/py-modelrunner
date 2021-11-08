@@ -37,10 +37,12 @@ def test_parameters():
     t = Test1()
     assert t.parameters["a"] == 1
     assert t.get_parameter_default("a") == 1
+    assert Test1.get_parameter_default("a") == 1
 
     t = Test1(parameters={"a": 2})
     assert t.parameters["a"] == 2
     assert t.get_parameter_default("a") == 1
+    assert Test1.get_parameter_default("a") == 1
 
     with pytest.raises(ValueError):
         t = Test1(parameters={"b": 3})
@@ -62,6 +64,8 @@ def test_parameters():
     assert t.parameters["b"] == 20
     assert t.get_parameter_default("a") == 1
     assert t.get_parameter_default("b") == "2"
+    assert Test2.get_parameter_default("a") == 1
+    assert Test2.get_parameter_default("b") == "2"
     with pytest.raises(KeyError):
         t.get_parameter_default("c")
 
@@ -72,6 +76,7 @@ def test_parameters():
     t = Test3()
     assert t.parameters["a"] == 3
     assert t.get_parameter_default("a") == 3
+    assert Test3.get_parameter_default("a") == 3
     assert set(t.parameters.keys()) == {"a", "b", "c"}
 
     # test get_all_parameters function after having used Parameters

@@ -415,19 +415,29 @@ class Parameterized:
 
         return result
 
+    @hybridmethod
+    def get_parameter_default(cls, name):  # @NoSelf
+        """return the default value for the parameter with `name`
+
+        Args:
+            name (str): The parameter name
+        """
+        for c in cls.__mro__:
+            if hasattr(c, "parameters_default"):
+                for p in c.parameters_default:
+                    if isinstance(p, Parameter) and p.name == name:
+                        return p.default_value
+
+        raise KeyError(f"Parameter `{name}` is not defined")
+
+    @get_parameter_default.instancemethod  # type: ignore
     def get_parameter_default(self, name):
         """return the default value for the parameter with `name`
 
         Args:
             name (str): The parameter name
         """
-        for cls in self.__class__.__mro__:
-            if hasattr(cls, "parameters_default"):
-                for p in cls.parameters_default:
-                    if isinstance(p, Parameter) and p.name == name:
-                        return p.default_value
-
-        raise KeyError(f"Parameter `{name}` is not defined")
+        return self.__class__.get_parameter_default(name)
 
     @classmethod
     def _show_parameters(
