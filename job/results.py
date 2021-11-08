@@ -352,11 +352,16 @@ class ResultCollection(list):
         folder = Path(folder)
         assert folder.is_dir()
 
-        results = [
-            Result.from_file(path, model)
-            for path in tqdm(list(folder.glob(pattern)), disable=not progress)
-            if path.is_file()
-        ]
+        results = []
+        for path in tqdm(list(folder.glob(pattern)), disable=not progress):
+            if path.is_file():
+                try:
+                    result = Result.from_file(path, model)
+                except Exception as err:
+                    err.args = (str(err) + f"\nError reading file `{path}`",)
+                    raise
+                else:
+                    results.append(result)
         return cls(results)
 
     def __repr__(self):
