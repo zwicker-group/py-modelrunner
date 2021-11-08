@@ -14,6 +14,8 @@ One aim is to allow easy management of inheritance of parameters.
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
+from __future__ import annotations
+
 import importlib
 import logging
 from typing import Any, Dict, Sequence, Union
@@ -105,7 +107,7 @@ class Parameter:
         self.hidden = hidden
         self.extra = {} if extra is None else extra
 
-        if cls is not object and default_value not in {None, NoValue}:
+        if cls is not object and not any(default_value is v for v in {None, NoValue}):
             # check whether the default value is of the correct type
             try:
                 converted_value = cls(default_value)
@@ -126,7 +128,7 @@ class Parameter:
         return (
             f'{self.__class__.__name__}(name="{self.name}", default_value='
             f"{self.default_value}, cls={self.cls.__name__}, description="
-            f'"{self.description}", required={self.required}, hidden={self.hidden})'
+            f'"{self.description}", hidden={self.hidden})'
         )
 
     __str__ = __repr__
@@ -138,7 +140,6 @@ class Parameter:
             "default_value": self.convert(),
             "cls": object.__module__ + "." + self.cls.__name__,
             "description": self.description,
-            "required": self.required,
             "hidden": self.hidden,
             "extra": self.extra,
         }
@@ -170,7 +171,7 @@ class Parameter:
         if value is NoValue:
             value = self.default_value
 
-        if value in {NoValue, None}:
+        if value is NoValue or value is None:
             pass  # treat these values special
         elif self.cls is object:
             value = auto_type(value)
@@ -271,6 +272,7 @@ class Parameterized:
     """a mixin that manages the parameters of a class"""
 
     parameters_default: ParameterListType = []
+    _subclasses: Dict[str, Parameterized] = {}
 
     def __init__(self, parameters: Dict[str, Any] = None, *, strict: bool = True):
         """initialize the parameters of the object
@@ -306,6 +308,9 @@ class Parameterized:
             cls.parameters_default = [
                 Parameter(*args) for args in cls.parameters_default.items()
             ]
+        # register the subclasses
+        super().__init_subclass__(**kwargs)
+        cls._subclasses[cls.__name__] = cls
 
     @classmethod
     def get_parameters(
@@ -544,3 +549,31 @@ class Parameterized:
             show_deprecated,
             parameter_values=None if default_value else self.parameters,
         )
+
+
+def get_all_parameters(data: str = "name") -> Dict[str, Any]:
+    """get a dictionary with all parameters of all registered classes
+
+    Args:
+        data (str):
+            Determines what data is returned. Possible values are 'name',
+            'value', or 'description', to return the respective information
+            about the parameters.
+    """
+    result = {}
+    for cls_name, cls in Parameterized._subclasses.items():
+        if data == "name":
+            parameters = set(cls.get_parameters().keys())
+        elif data == "value":
+            parameters = {  # type: ignore
+                k: v.default_value for k, v in cls.get_parameters().items()
+            }
+        elif data == "description":
+            parameters = {  # type: ignore
+                k: v.description for k, v in cls.get_parameters().items()
+            }
+        else:
+            raise ValueError(f"Cannot interpret data `{data}`")
+
+        result[cls_name] = parameters
+    return result
