@@ -2,6 +2,8 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
+from __future__ import annotations
+
 import collections
 import inspect
 import json
@@ -147,7 +149,7 @@ class Result:
         result,
         model: ModelBase = None,
         info: Dict[str, Any] = None,
-    ) -> "Result":
+    ) -> Result:
         """create result from data
 
         Args:
@@ -208,7 +210,7 @@ class Result:
             raise ValueError(f"Unknown file format `{ext}`")
 
     @classmethod
-    def from_json(cls, path, model: ModelBase = None) -> "Result":
+    def from_json(cls, path, model: ModelBase = None) -> Result:
         """read result from a JSON file
 
         Args:
@@ -242,7 +244,7 @@ class Result:
             json.dump(data, fp, default=json_encoder)
 
     @classmethod
-    def from_yaml(cls, path, model: ModelBase = None) -> "Result":
+    def from_yaml(cls, path, model: ModelBase = None) -> Result:
         """read result from a YAML file
 
         Args:
@@ -281,7 +283,7 @@ class Result:
             yaml.dump(data, fp)
 
     @classmethod
-    def from_hdf(cls, path, model: ModelBase = None) -> "Result":
+    def from_hdf(cls, path, model: ModelBase = None) -> Result:
         """read result from a HDf file
 
         Args:
@@ -405,7 +407,7 @@ class ResultCollection(list):
         """dict: the parameters that vary in this result collection"""
         return {k: sorted(v) for k, v in self.parameters.items() if len(v) > 1}
 
-    def filtered(self, **kwargs) -> "ResultCollection":
+    def filtered(self, **kwargs) -> ResultCollection:
         r"""return a subset of the results
 
         Args:
@@ -420,7 +422,7 @@ class ResultCollection(list):
             if all(item.parameters[k] == v for k, v in kwargs.items())
         )
 
-    def sorted(self, *args, reverse: bool = False) -> "ResultCollection":
+    def sorted(self, *args, reverse: bool = False) -> ResultCollection:
         r"""return a sorted version of the results
 
         Args:
@@ -436,6 +438,16 @@ class ResultCollection(list):
             return [item.parameters[name] for name in args]
 
         return self.__class__(sorted(self, key=sort_func, reverse=reverse))
+
+    def remove_duplicates(self) -> ResultCollection:
+        """remove duplicates in the result collection"""
+        #  we cannot use a set for `seen`, since parameters might not always be hashable
+        unique_results, seen = [], []
+        for result in self:
+            if result.parameters not in seen:
+                unique_results.append(result)
+                seen.append(result.parameters)
+        return self.__class__(unique_results)
 
     @property
     def dataframe(self):
