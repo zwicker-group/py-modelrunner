@@ -407,6 +407,24 @@ class ResultCollection(list):
         """dict: the parameters that vary in this result collection"""
         return {k: sorted(v) for k, v in self.parameters.items() if len(v) > 1}
 
+    def get(self, **kwargs) -> Result:
+        """return a single result with the given parameters
+
+        Warning:
+            If there are multiple results compatible with the specified parameters, only
+            the first one is returned.
+
+        Args:
+            **kwargs: Specify parameter values of result that is returned
+
+        Returns:
+            :class:`Result`: A single result from the collection
+        """
+        for item in self:
+            if all(item.parameters[k] == v for k, v in kwargs.items()):
+                return item
+        raise ValueError("Result not contained in collection")
+
     def filtered(self, **kwargs) -> ResultCollection:
         r"""return a subset of the results
 
