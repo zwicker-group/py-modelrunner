@@ -327,7 +327,7 @@ class Result:
             write_hdf_dataset(fp, self.result, "result")
 
 
-class ResultCollection(list):
+class ResultCollection(List[Result]):
     """represents a collection of results"""
 
     @classmethod

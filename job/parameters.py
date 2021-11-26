@@ -201,7 +201,30 @@ class Parameter:
             kwargs = {"default": self.default_value, "help": description}
 
             if self.cls is bool:
-                parser.add_argument(arg_name, action="store_true", **kwargs)
+                # parameter is a boolean that we want to adjust
+                if self.default_value is False:
+                    # allow enabling the parameter
+                    parser.add_argument(
+                        arg_name, action="store_true", default=False, help=description
+                    )
+
+                elif self.default_value is True:
+                    # allow disabling the parameter
+                    arg_name = f"--no-{self.name}"
+                    parser.add_argument(
+                        arg_name, action="store_false", default=True, help=description
+                    )
+
+                else:
+                    # no default value => allow setting it
+                    flag_parser = parser.add_mutually_exclusive_group(required=True)
+                    flag_parser.add_argument(
+                        arg_name, dest=self.name, action="store_true", help=description
+                    )
+                    flag_parser.add_argument(
+                        f"--no-{self.name}", dest=self.name, action="store_false"
+                    )
+                    # in python 3.9, we could use `argparse.BooleanOptionalAction`
 
             elif self.cls is object or self.cls is auto_type:
                 parser.add_argument(arg_name, metavar="VALUE", **kwargs)
