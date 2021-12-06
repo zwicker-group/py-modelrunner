@@ -10,9 +10,11 @@
 # Preserve environment variables:
 #$ -V
 #$ -N {{ JOB_NAME }}
-{% if PARTITION is defined %}
 # Queue (Partition):
+{% if PARTITION is defined %}
 #$ -q {{ PARTITION }}
+{% else %}
+#$ -q teutates.q
 {% endif %}
 
 hostname

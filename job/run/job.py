@@ -60,6 +60,7 @@ def submit_job(
     method: str = "qsub",
     template: Union[str, Path] = None,
     overwrite_files: bool = False,
+    **kwargs,
 ) -> Tuple[str, str]:
     """submit a script to the cluster queue
 
@@ -81,8 +82,10 @@ def submit_job(
             Jinja template file for submission script. If omitted, a standard template
             is chosen based on the submission method.
         overwrite_files (bool):
-            Determines whether output files are overwritten\
-        
+            Determines whether output files are overwritten
+        **kwargs:
+            Extra arguments are forwarded as template variables to the script
+
     Returns:
         tuple: The result `(stdout, stderr)` of the submission call
     """
@@ -103,6 +106,8 @@ def submit_job(
         "JOB_NAME": name,
         "MODEL_FILE": escape_string(script),
     }
+    for k, v in kwargs.items():
+        script_args[k.upper()] = v
 
     job_args = []
     if parameters is not None:
