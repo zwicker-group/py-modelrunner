@@ -7,9 +7,12 @@ import inspect
 import json
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
-from typing import Any, Callable, Dict, Optional, Sequence, Type
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Type
 
 from .parameters import NoValue, Parameter, Parameterized
+
+if TYPE_CHECKING:
+    from .results import Result  # @UnusedImport
 
 
 class ModelBase(Parameterized, metaclass=ABCMeta):
@@ -38,13 +41,13 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         """main method calculating the result"""
         pass
 
-    def get_result(self, result=None):
+    def get_result(self, result=None) -> "Result":
         """get the result as a :class:`~model.Result` object
 
         Args:
             result: The result data. If omitted, the model is ran to obtain results
         """
-        from .results import Result
+        from .results import Result  # @Reimport
 
         if result is None:
             result = self()
@@ -52,7 +55,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         info = {"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
         return Result(self, result, info=info)
 
-    def write_result(self, result=None):
+    def write_result(self, result=None) -> None:
         """write the result to the output file
 
         Args:
@@ -97,8 +100,13 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         return parser
 
     @classmethod
-    def from_command_line(cls, args: Sequence[str] = None, name: str = None):
+    def from_command_line(
+        cls, args: Sequence[str] = None, name: str = None
+    ) -> "Result":
         """create model from command line parameters"""
+        if args is None:
+            args = []
+
         # read the command line arguments
         parser = cls._prepare_argparser(name)
         parameters = vars(parser.parse_args(args))

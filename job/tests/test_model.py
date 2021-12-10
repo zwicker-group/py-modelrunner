@@ -157,3 +157,30 @@ def test_make_model_class():
     assert model()() == 4
     assert model({"a": 3})() == 9
     assert model({"a": 4}).get_result().result == 16
+
+
+def test_argparse_boolean_arguments():
+    """test boolean parameters"""
+
+    @make_model
+    def f0(flag: bool):
+        return flag
+
+    with pytest.raises(SystemExit):
+        f0.from_command_line()
+    assert f0.from_command_line(["--flag"]).result
+    assert not f0.from_command_line(["--no-flag"]).result
+
+    @make_model
+    def f1(flag: bool = False):
+        return flag
+
+    assert not f1.from_command_line().result
+    assert f1.from_command_line(["--flag"]).result
+
+    @make_model
+    def f2(flag: bool = True):
+        return flag
+
+    assert f2.from_command_line().result
+    assert not f2.from_command_line(["--no-flag"]).result

@@ -210,9 +210,12 @@ class Parameter:
 
                 elif self.default_value is True:
                     # allow disabling the parameter
-                    arg_name = f"--no-{self.name}"
                     parser.add_argument(
-                        arg_name, action="store_false", default=True, help=description
+                        f"--no-{self.name}",
+                        dest=self.name,
+                        action="store_false",
+                        default=True,
+                        help=description,
                     )
 
                 else:
