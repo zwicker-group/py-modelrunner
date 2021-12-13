@@ -7,6 +7,7 @@ from __future__ import annotations
 import collections
 import inspect
 import json
+import logging
 import os.path
 import warnings
 from pathlib import Path
@@ -337,6 +338,7 @@ class ResultCollection(List[Result]):
         pattern: str = "*.*",
         model: ModelBase = None,
         *,
+        strict: bool = False,
         progress: bool = False,
     ):
         """create results collection from a folder
@@ -348,9 +350,14 @@ class ResultCollection(List[Result]):
                 Filename pattern that is used to detect result files
             model (:class:`~job.model.ModelBase`):
                 Base class from which models are initialized
+            strict (bool):
+                Whether to raise an exception or just emit a warning when a file cannot
+                be read
             progress (bool):
                 Flag indiciating whether a progress bar is shown
         """
+        logger = logging.getLogger(cls.__name__)
+
         folder = Path(folder)
         assert folder.is_dir()
 
@@ -360,8 +367,11 @@ class ResultCollection(List[Result]):
                 try:
                     result = Result.from_file(path, model)
                 except Exception as err:
-                    err.args = (str(err) + f"\nError reading file `{path}`",)
-                    raise
+                    if strict:
+                        err.args = (str(err) + f"\nError reading file `{path}`",)
+                        raise
+                    else:
+                        logger.warning(f"Error reading file `{path}`")
                 else:
                     results.append(result)
         return cls(results)
