@@ -25,11 +25,12 @@ def main():
 
     parser.add_argument("-o", "--output", help="Path to output file", metavar="PATH")
     parser.add_argument(
-        "-f",
-        "--force",
-        action="store_true",
-        default=False,
-        help="Overwrite data if it already exists",
+        "--overwrite",
+        nargs="?",
+        default="error",
+        const="overwrite",
+        choices=["error", "warn_skip", "silent_skip", "overwrite", "silent_overwrite"],
+        help="Decide how existing data should be handled",
     )
     parser.add_argument(
         "-m", "--method", default="qsub", help="Method for job submission"
@@ -50,7 +51,7 @@ def main():
         parameters=args.parameters,
         method=args.method,
         template=args.template,
-        overwrite_files=args.force,
+        overwrite_strategy=args.overwrite,
     )
     print(stdout, stderr)
 

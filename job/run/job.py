@@ -8,6 +8,7 @@ import json
 import os
 import pipes
 import subprocess as sp
+import warnings
 from pathlib import Path
 from typing import Any, Dict, Tuple, Union
 
@@ -36,7 +37,7 @@ def get_job_name(base: str, args: Dict[str, Any] = None, length: int = 7) -> str
     Args:
         base (str): The stem of the job name
         args (dict): Parameters to include in the job name
-        length (int)": Length of the abbreviated parameter name
+        length (int): Length of the abbreviated parameter name
 
     Returns:
         str: A suitable job name
@@ -59,7 +60,7 @@ def submit_job(
     log_folder: Union[str, Path] = "logs",
     method: str = "qsub",
     template: Union[str, Path] = None,
-    overwrite_files: bool = False,
+    overwrite_strategy: str = "error",
     **kwargs,
 ) -> Tuple[str, str]:
     """submit a script to the cluster queue
@@ -81,8 +82,9 @@ def submit_job(
         template (str of :class:`~pathlib.Path`):
             Jinja template file for submission script. If omitted, a standard template
             is chosen based on the submission method.
-        overwrite_files (bool):
-            Determines whether output files are overwritten
+        overwrite_strategy (str):
+            Determines what to do when files already exist. Possible options include
+            `error`, `warn_skip`, `silent_skip`, `overwrite`, and `silent_overwrite`.
         **kwargs:
             Extra arguments are forwarded as template variables to the script
 
@@ -109,6 +111,7 @@ def submit_job(
     for k, v in kwargs.items():
         script_args[k.upper()] = v
 
+    # add the parameters to the job arguments
     job_args = []
     if parameters is not None:
         if isinstance(parameters, dict):
@@ -117,10 +120,24 @@ def submit_job(
             raise TypeError("Parameters need to be given as a string or a dict")
         job_args.append(f"--json {escape_string(parameters)}")
 
+    # add the output folder to the job arguments
     if output:
         output = Path(output)
-        if output.is_file() and not overwrite_files:
-            raise RuntimeError(f"Output file `{output}` already exists")
+        if output.is_file():
+            if overwrite_strategy == "error":
+                raise RuntimeError(f"Output file `{output}` already exists")
+            elif overwrite_strategy == "warn_skip":
+                warnings.warn(f"Output file `{output}` already exists")
+                return "", f"Output file `{output}` already exists"  # do nothing
+            elif overwrite_strategy == "silent_skip":
+                return "", f"Output file `{output}` already exists"  # do nothing
+            elif overwrite_strategy == "overwrite":
+                warnings.warn(f"Output file `{output}` will be overwritten")
+            elif overwrite_strategy == "silent_overwrite":
+                pass
+            else:
+                raise NotImplementedError(f"Unknown strategy `{overwrite_strategy}`")
+
         script_args["OUTPUT_FOLDER"] = pipes.quote(str(output.parent))
         job_args.append(f"--output {escape_string(output)}")
     else:
@@ -130,8 +147,8 @@ def submit_job(
     # replace parameters in submission script template
     script = Template(script_template).render(script_args)
 
-    # submit job to queue
     if method == "qsub":
+        # submit job to queue
         proc = sp.Popen(
             ["qsub"],
             stdin=sp.PIPE,
@@ -141,6 +158,7 @@ def submit_job(
         )
 
     elif method == "local":
+        # run job locally
         proc = sp.Popen(
             ["bash"],
             stdin=sp.PIPE,
