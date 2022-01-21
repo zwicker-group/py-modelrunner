@@ -5,6 +5,7 @@
 import argparse
 import inspect
 import json
+import logging
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Type
@@ -21,7 +22,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
     name: Optional[str] = None
     description: Optional[str] = None
 
-    def __init__(self, parameters: Dict[str, Any] = None, *, output: str = None):
+    def __init__(self, parameters: Dict[str, Any] = None):
         """initialize the parameters of the object
 
         Args:
@@ -30,11 +31,9 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
                 allowed parameters can be obtained from
                 :meth:`~Parameterized.get_parameters` or displayed by calling
                 :meth:`~Parameterized.show_parameters`.
-            output (str):
-                File where the output will be written to
         """
         super().__init__(parameters)
-        self.output = output
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     @abstractmethod
     def __call__(self):
@@ -55,15 +54,15 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         info = {"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
         return Result(self, result, info=info)
 
-    def write_result(self, result=None) -> None:
+    def write_result(self, output: str, result=None) -> None:
         """write the result to the output file
 
         Args:
+            output (str): File where the output will be written to
             result: The result data. If omitted, the model is ran to obtain results
         """
-        if self.output:
-            result = self.get_result(result)
-            result.write_to_file(self.output)
+        result = self.get_result(result)
+        result.write_to_file(output)
 
     @classmethod
     def _prepare_argparser(cls, name: str = None) -> argparse.ArgumentParser:
@@ -85,13 +84,6 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
 
         # add special parameters
         parser.add_argument(
-            "-o",
-            "--output",
-            metavar="PATH",
-            help="Path to output file. If omitted, no output file is created.",
-        )
-        # add special parameters
-        parser.add_argument(
             "--json",
             metavar="JSON",
             help="JSON-encoded parameter values. Overwrites other parameters.",
@@ -109,20 +101,31 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
 
         # read the command line arguments
         parser = cls._prepare_argparser(name)
+
+        # add special parameters to determine the output file
+        parser.add_argument(
+            "-o",
+            "--output",
+            metavar="PATH",
+            help="Path to output file. If omitted, no output file is created.",
+        )
+
         parameters = vars(parser.parse_args(args))
         output = parameters.pop("output")
         parameters_json = parameters.pop("json")
 
-        # build parameter list
+        # update parameters with data from the json argument
         if parameters_json:
             parameters.update(json.loads(parameters_json))
 
         # create the model
-        mdl = cls(parameters, output=output)
+        mdl = cls(parameters)
         # run the model
         result = mdl.get_result()
+
         # write the results (if output file was specified)
-        mdl.write_result(result=result)
+        if output:
+            mdl.write_result(output=output, result=result)
 
         return result
 

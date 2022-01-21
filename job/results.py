@@ -33,10 +33,15 @@ def contains_array(data) -> bool:
         return False
 
 
-def json_encoder(data):
-    """helper function for encoding python data in JSON"""
-    if isinstance(data, np.generic):
-        return data.item()
+class NumpyEncoder(json.JSONEncoder):
+    """helper class for encoding python data in JSON"""
+
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, np.generic):
+            return obj.item()
+        return json.JSONEncoder.default(self, obj)
 
 
 def prepare_yaml(data):
@@ -76,21 +81,22 @@ def write_hdf_dataset(node, data, name: str) -> None:
         node.create_dataset(name, data=data)
 
     else:
-        group = node.create_group(name)
-
         if not contains_array(data):
             # write everything as JSON encoded string
             if isinstance(data, dict):
+                group = node.create_group(name)
                 for key, value in data.items():
-                    group.attrs[key] = json.dumps(value, default=json_encoder)
+                    group.attrs[key] = json.dumps(value, cls=NumpyEncoder)
             else:
-                group.attrs[name] = json.dumps(data, default=json_encoder)
+                node.attrs[name] = json.dumps(data, cls=NumpyEncoder)
 
         elif isinstance(data, dict):
+            group = node.create_group(name)
             for key, value in data.items():
                 write_hdf_dataset(group, value, key)
 
         else:
+            group = node.create_group(name)
             for n, value in enumerate(data):
                 write_hdf_dataset(group, value, str(n))
 
@@ -242,7 +248,7 @@ class Result:
             data["info"] = self.info
 
         with open(path, "w") as fp:
-            json.dump(data, fp, default=json_encoder)
+            json.dump(data, fp, cls=NumpyEncoder)
 
     @classmethod
     def from_yaml(cls, path, model: ModelBase = None) -> Result:
@@ -319,10 +325,10 @@ class Result:
         with h5py.File(path, "w") as fp:
             # write attributes
             for key, value in self.model.attributes.items():
-                fp.attrs[key] = json.dumps(value, default=json_encoder)
+                fp.attrs[key] = json.dumps(value, cls=NumpyEncoder)
 
             if self.info:
-                fp.attrs["__info__"] = json.dumps(self.info, default=json_encoder)
+                fp.attrs["__info__"] = json.dumps(self.info, cls=NumpyEncoder)
 
             # write the actual data
             write_hdf_dataset(fp, self.result, "result")
