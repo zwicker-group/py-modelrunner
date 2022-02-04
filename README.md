@@ -1,5 +1,10 @@
 # py-job
-Python classes for handling and running physical simulations
+
+[![Build status](https://github.com/zwicker-group/py-job/workflows/build/badge.svg)](https://github.com/zwicker-group/py-job/actions?query=workflow%3Abuild)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+
+Python classes for handling and running physical simulations.
 
 
 Installation
