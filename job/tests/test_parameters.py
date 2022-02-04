@@ -96,7 +96,7 @@ def test_parameters_simple():
     assert t.parameters["a"] == 1
 
 
-def test_parameter_help(monkeypatch, capsys):
+def test_parameter_help(capsys):
     """test how parameters are shown"""
 
     class Test1(Parameterized):
@@ -106,16 +106,13 @@ def test_parameter_help(monkeypatch, capsys):
         parameters_default = [Parameter("b", 2, int, "another word")]
 
     t = Test2()
-    for in_jupyter in [False, True]:
-        monkeypatch.setattr("pde.tools.output.in_jupyter_notebook", lambda: in_jupyter)
-
-        for flags in itertools.combinations_with_replacement([True, False], 3):
-            Test2.show_parameters(*flags)
-            o1, e1 = capsys.readouterr()
-            t.show_parameters(*flags)
-            o2, e2 = capsys.readouterr()
-            assert o1 == o2
-            assert e1 == e2 == ""
+    for flags in itertools.combinations_with_replacement([True, False], 3):
+        Test2.show_parameters(*flags)
+        o1, e1 = capsys.readouterr()
+        t.show_parameters(*flags)
+        o2, e2 = capsys.readouterr()
+        assert o1 == o2
+        assert e1 == e2 == ""
 
 
 def test_hidden_parameter():
