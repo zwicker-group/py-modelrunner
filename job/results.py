@@ -501,6 +501,8 @@ class ResultCollection(List[Result]):
                 for key, value in result.result.items():
                     if np.isscalar(value):
                         data[key] = value
+                    elif isinstance(value, list) or isinstance(value, np.ndarray):
+                        data[key] = np.asarray(value)
             else:
                 raise RuntimeError("Do not know how to interpret result")
             return data
