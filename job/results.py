@@ -17,6 +17,7 @@ import numpy as np
 from tqdm.auto import tqdm
 
 from .model import ModelBase
+from .parameters import NoValueType
 
 
 def contains_array(data) -> bool:
@@ -41,6 +42,8 @@ class NumpyEncoder(json.JSONEncoder):
             return obj.tolist()
         if isinstance(obj, np.generic):
             return obj.item()
+        if isinstance(obj, NoValueType):
+            return None
         return json.JSONEncoder.default(self, obj)
 
 
