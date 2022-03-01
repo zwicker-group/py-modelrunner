@@ -22,7 +22,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
     name: Optional[str] = None
     description: Optional[str] = None
 
-    def __init__(self, parameters: Dict[str, Any] = None):
+    def __init__(self, parameters: Dict[str, Any] = None, output: str = None):
         """initialize the parameters of the object
 
         Args:
@@ -31,8 +31,11 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
                 allowed parameters can be obtained from
                 :meth:`~Parameterized.get_parameters` or displayed by calling
                 :meth:`~Parameterized.show_parameters`.
+            output (str):
+                Path to write the output file
         """
         super().__init__(parameters)
+        self.output = output
         self._logger = logging.getLogger(self.__class__.__name__)
 
     @abstractmethod
@@ -54,13 +57,21 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         info = {"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
         return Result(self, result, info=info)
 
-    def write_result(self, output: str, result=None) -> None:
+    def write_result(self, output: str = None, result=None) -> None:
         """write the result to the output file
 
         Args:
-            output (str): File where the output will be written to
-            result: The result data. If omitted, the model is ran to obtain results
+            output (str):
+                File where the output will be written to. If omitted self.output will be
+                used. If self.output is also None, an error will be thrown.
+            result:
+                The result data. If omitted, the model is ran to obtain results
         """
+        if output is None:
+            output = self.output
+        if output is None:
+            raise RuntimeError("output file needs to be specified")
+
         result = self.get_result(result)
         result.write_to_file(output)
 
@@ -119,13 +130,13 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
             parameters.update(json.loads(parameters_json))
 
         # create the model
-        mdl = cls(parameters)
+        mdl = cls(parameters, output=output)
         # run the model
         result = mdl.get_result()
 
         # write the results (if output file was specified)
         if output:
-            mdl.write_result(output=output, result=result)
+            mdl.write_result(output=None, result=result)
 
         return result
 
