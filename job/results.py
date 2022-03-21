@@ -171,7 +171,7 @@ class Result:
         if model is None:
             model_cls: Type[ModelBase] = MockModel
         else:
-            model_cls = model if inspect.isclass(model) else model.__class__  # type: ignore
+            model_cls = model if inspect.isclass(model) else model.__class__
 
         if not model_data:
             warnings.warn("Model data not found")

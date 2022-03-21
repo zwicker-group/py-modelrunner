@@ -121,7 +121,7 @@ def test_make_model():
 
     @make_model
     def f(a=2):
-        return a ** 2
+        return a**2
 
     assert f.parameters == {"a": 2}
 
@@ -150,7 +150,7 @@ def test_make_model_class():
     """test the make_model_class function"""
 
     def f(a=2):
-        return a ** 2
+        return a**2
 
     model = make_model_class(f)
 
