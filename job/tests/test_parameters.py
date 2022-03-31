@@ -177,3 +177,40 @@ def test_convert_default_values(caplog):
         t4 = Test4()
     assert "Default value" in caplog.text
     np.testing.assert_equal(t4.parameters["a"], "1")
+
+
+def test_parameters_default_full():
+    """test the _parameters_default_full property"""
+    ps = [
+        Parameter("a", 1),
+        Parameter("b", 2),
+        HideParameter("b"),
+        Parameter("a", 3),
+        Parameter("b", 4, hidden=True),
+        Parameter("a", 5),
+    ]
+
+    class Test1(Parameterized):
+        parameters_default = [ps[0], ps[1]]
+
+    assert Test1()._parameters_default_full == [ps[0], ps[1]]
+
+    class Test2(Test1):
+        parameters_default = [ps[2]]
+
+    assert Test2()._parameters_default_full == [ps[0]]
+
+    class Test3(Test1):
+        parameters_default = [ps[3], ps[4]]
+
+    assert Test3()._parameters_default_full == [ps[3], ps[4]]
+
+    class Test4(Test3):
+        parameters_default = [ps[2]]
+
+    assert Test4()._parameters_default_full == [ps[3]]
+
+    class Test5(Test3):
+        parameters_default = [ps[5]]
+
+    assert Test5()._parameters_default_full == [ps[5], ps[4]]

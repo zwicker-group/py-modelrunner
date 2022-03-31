@@ -16,9 +16,10 @@ One aim is to allow easy management of inheritance of parameters.
 
 from __future__ import annotations
 
+import functools
 import importlib
 import logging
-from typing import Any, Dict, Sequence, Union
+from typing import Any, Dict, List, Sequence, Union
 
 import numpy as np
 
@@ -257,6 +258,71 @@ class HideParameter:
         pass
 
 
+class classproperty(property):
+    """decorator that can be used to define read-only properties for classes.
+
+    This is inspired by the implementation of :mod:`astropy`, see
+    `astropy.org <http://astropy.org/>`_.
+
+    Example:
+        The decorator can be used much like the `property` decorator::
+
+            class Test():
+
+                item: str = 'World'
+
+                @classproperty
+                def message(cls):
+                    return 'Hello ' + cls.item
+
+            print(Test.message)
+    """
+
+    def __new__(cls, fget=None, doc=None):
+        if fget is None:
+            # use wrapper to support decorator without arguments
+            def wrapper(func):
+                return cls(func)
+
+            return wrapper
+
+        return super().__new__(cls)
+
+    def __init__(self, fget, doc=None):
+        fget = self._wrap_fget(fget)
+
+        super().__init__(fget=fget, doc=doc)
+
+        if doc is not None:
+            self.__doc__ = doc
+
+    def __get__(self, obj, objtype):
+        # The base property.__get__ will just return self here;
+        # instead we pass objtype through to the original wrapped
+        # function (which takes the class as its sole argument)
+        return self.fget.__wrapped__(objtype)
+
+    def getter(self, fget):
+        return super().getter(self._wrap_fget(fget))
+
+    def setter(self, fset):
+        raise NotImplementedError("classproperty is read-only")
+
+    def deleter(self, fdel):
+        raise NotImplementedError("classproperty is read-only")
+
+    @staticmethod
+    def _wrap_fget(orig_fget):
+        if isinstance(orig_fget, classmethod):
+            orig_fget = orig_fget.__func__
+
+        @functools.wraps(orig_fget)
+        def fget(obj):
+            return orig_fget(obj.__class__)
+
+        return fget
+
+
 class hybridmethod:
     """
     descriptor that can be used as a decorator to allow calling a method both
@@ -331,6 +397,35 @@ class Parameterized:
         # register the subclasses
         super().__init_subclass__(**kwargs)
         cls._subclasses[cls.__name__] = cls
+
+    @classproperty
+    def _parameters_default_full(cls) -> ParameterListType:  # @NoSelf
+        """default parameters including these of parent classes"""
+        result: List[Union[Parameter, HideParameter]] = []
+        names: Dict[str, int] = {}
+        for cls in reversed(cls.__mro__):  # type: ignore
+            if hasattr(cls, "parameters_default"):
+                for p in cls.parameters_default:
+                    if p.name in names:
+                        # parameter was already seen
+                        if isinstance(p, HideParameter):
+                            # remove parameter since we need to hide it
+                            p_i = names[p.name]
+                            del result[p_i]
+                            names = {  # adjust indices
+                                k: i if i < p_i else i - 1
+                                for k, i in names.items()
+                                if i != p_i
+                            }
+                        else:
+                            # overwrite old parameter
+                            result[names[p.name]] = p
+
+                    elif not isinstance(p, HideParameter):
+                        # add the parameter if it is not a hidden parameter
+                        names[p.name] = len(result)
+                        result.append(p)
+        return result
 
     @classmethod
     def get_parameters(
