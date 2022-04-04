@@ -145,7 +145,7 @@ def submit_job(
     script_args["JOB_ARGS"] = " ".join(job_args)
 
     # replace parameters in submission script template
-    script = Template(script_template).render(script_args)
+    script_content = Template(script_template).render(script_args)
 
     if method == "qsub":
         # submit job to queue
@@ -170,7 +170,7 @@ def submit_job(
     else:
         raise ValueError(f"Unknown submit method `{method}`")
 
-    return proc.communicate(script)
+    return proc.communicate(script_content)
 
 
 def submit_jobs(

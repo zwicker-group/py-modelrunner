@@ -4,12 +4,15 @@
 
 import importlib.util
 import inspect
+import logging
 import os.path
 import sys
 
 from job import ModelBase, run_function_with_cmd_args
 
 if __name__ == "__main__":
+    logger = logging.getLogger("job")
+
     # get the script name from the command line
     try:
         script_path = sys.argv[1]
@@ -29,6 +32,7 @@ if __name__ == "__main__":
     spec.loader.exec_module(model_code)  # type: ignore
 
     # find all functions in the module
+    logger.debug("Search for models in script")
     candidate_instance, candidate_classes, candidate_funcs = {}, {}, {}
     for name, member in inspect.getmembers(model_code):
         if isinstance(member, ModelBase):
@@ -42,6 +46,7 @@ if __name__ == "__main__":
     if len(candidate_instance) == 1:
         # there is a single instance of a model => use this
         _, obj = candidate_instance.popitem()
+        logger.info("Run model instance `%s`", obj.__class__.__name__)
         obj.from_command_line(model_args, name=filename)
 
     elif len(candidate_instance) > 1:
@@ -52,6 +57,7 @@ if __name__ == "__main__":
     elif len(candidate_classes) == 1:
         # there is a single class of a model => use this
         _, cls = candidate_classes.popitem()
+        logger.info("Run model class `%s`", cls.__name__)
         cls.from_command_line(model_args, name=filename)
 
     elif len(candidate_classes) > 1:
@@ -63,8 +69,10 @@ if __name__ == "__main__":
         # there is a single function of a model => use this
         if "main" in candidate_funcs:
             func = candidate_funcs["main"]
+            logger.info("Run model function named `main`")
         else:
             _, func = candidate_funcs.popitem()
+            logger.info("Run model function named `%s`", func.__name__)
         run_function_with_cmd_args(func, args=sys.argv[2:], name=filename)
 
     elif len(candidate_funcs) > 1:
