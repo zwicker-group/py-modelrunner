@@ -22,6 +22,7 @@ def test_submit_job(tmp_path):
             SCRIPT_PATH / "function.py",
             output,
             parameters=p,
+            log_folder=tmp_path,
             method="foreground",
             overwrite_strategy="silent_overwrite",
         )
@@ -41,6 +42,7 @@ def test_submit_jobs(tmp_path):
             SCRIPT_PATH / "function.py",
             tmp_path,
             parameters=kwargs.copy(),
+            log_folder=tmp_path,
             method="foreground",
             overwrite_strategy="silent_overwrite",
         )
