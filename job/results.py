@@ -405,10 +405,17 @@ class ResultCollection(List[Result]):
 
     @property
     def parameters(self) -> Dict[str, Set[Any]]:
-        """dict: the parameter values in this result collection"""
+        """dict: the parameter values in this result collection
+
+        Note that parameters that are lists in the individual models are turned into
+        tuples, so they can be handled efficiently, e.g., in sets.
+        """
         params = collections.defaultdict(set)
+
         for result in self:
             for k, v in result.model.parameters.items():
+                if isinstance(v, list):
+                    v = tuple(v)  # work around to make lists hashable
                 params[k].add(v)
         return dict(params)
 
@@ -439,6 +446,7 @@ class ResultCollection(List[Result]):
         Returns:
             :class:`Result`: A single result from the collection
         """
+        # return the first result that matches the requirements
         for item in self:
             if all(item.parameters[k] == v for k, v in kwargs.items()):
                 return item
@@ -453,6 +461,7 @@ class ResultCollection(List[Result]):
         Returns:
             :class:`ResultColelction`: The filtered collection
         """
+        # return a filtered result collection
         return self.__class__(
             item
             for item in self
@@ -504,7 +513,7 @@ class ResultCollection(List[Result]):
                 for key, value in result.result.items():
                     if np.isscalar(value):
                         data[key] = value
-                    elif isinstance(value, list) or isinstance(value, np.ndarray):
+                    elif isinstance(value, (list, tuple, np.ndarray)):
                         data[key] = np.asarray(value)
             else:
                 raise RuntimeError("Do not know how to interpret result")
