@@ -49,7 +49,7 @@ def get_job_name(base: str, args: Dict[str, Any] = None, length: int = 7) -> str
     res = base[:-1] if base.endswith("_") else base
     for name, value in args.items():
         if hasattr(value, "__iter__"):
-            value_str = ",".join(f"{v:g}" for v in value)
+            value_str = "_".join(f"{v:g}" for v in value)
         else:
             value_str = f"{value:g}"
         res += f"_{name.replace('_', '')[:length].upper()}_{value_str}"
