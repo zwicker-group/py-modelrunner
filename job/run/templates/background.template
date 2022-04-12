@@ -1,0 +1,11 @@
+#!/bin/bash -l
+
+{% if OUTPUT_FOLDER is defined and OUTPUT_FOLDER %}
+mkdir -p {{ OUTPUT_FOLDER }}
+{% endif %}
+
+# Run the program
+nohup python3 -m job {{ MODEL_FILE }} \
+    {{ JOB_ARGS }} \
+	> {{ LOG_FOLDER }}/{{ JOB_NAME }}.out.txt \
+	2> {{ LOG_FOLDER }}/{{ JOB_NAME }}.err.txt &

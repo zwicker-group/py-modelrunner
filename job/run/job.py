@@ -47,7 +47,11 @@ def get_job_name(base: str, args: Dict[str, Any] = None, length: int = 7) -> str
 
     res = base[:-1] if base.endswith("_") else base
     for name, value in args.items():
-        res += f"_{name.replace('_', '')[:length].upper()}_{value:g}"
+        if hasattr(value, "__iter__"):
+            value_str = ",".join(f"{v:g}" for v in value)
+        else:
+            value_str = f"{value:g}"
+        res += f"_{name.replace('_', '')[:length].upper()}_{value_str}"
     return res
 
 
@@ -78,7 +82,8 @@ def submit_job(
         log_folder (str of :class:`~pathlib.Path`):
             Path to the logging folder
         method (str):
-            Specifies the submission method. Currently `qsub` and `local` are supported.
+            Specifies the submission method. Currently `background`, `foreground`, and
+            `qsub` are supported.
         template (str of :class:`~pathlib.Path`):
             Jinja template file for submission script. If omitted, a standard template
             is chosen based on the submission method.
@@ -124,6 +129,7 @@ def submit_job(
     if output:
         output = Path(output)
         if output.is_file():
+            # output is an existing file, so we need to decide what to do with this
             if overwrite_strategy == "error":
                 raise RuntimeError(f"Output file `{output}` already exists")
             elif overwrite_strategy == "warn_skip":
@@ -138,9 +144,15 @@ def submit_job(
             else:
                 raise NotImplementedError(f"Unknown strategy `{overwrite_strategy}`")
 
-        script_args["OUTPUT_FOLDER"] = pipes.quote(str(output.parent))
-        job_args.append(f"--output {escape_string(output)}")
+        # check whether output points to a directory or whether this should be a file
+        if output.is_dir():
+            script_args["OUTPUT_FOLDER"] = pipes.quote(str(output))
+        else:
+            script_args["OUTPUT_FOLDER"] = pipes.quote(str(output.parent))
+            job_args.append(f"--output {escape_string(output)}")
+
     else:
+        # if `output` is not specified, save data to current directory
         script_args["OUTPUT_FOLDER"] = "."
     script_args["JOB_ARGS"] = " ".join(job_args)
 
@@ -157,8 +169,8 @@ def submit_job(
             universal_newlines=True,
         )
 
-    elif method == "local":
-        # run job locally
+    elif method in {"background", "foreground", "local"}:
+        # run job locally (`local` was deprecated on 2022-04-12
         proc = sp.Popen(
             ["bash"],
             stdin=sp.PIPE,
