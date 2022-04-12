@@ -98,6 +98,11 @@ def submit_job(
     """
     from jinja2 import Template
 
+    if method == "local":
+        # deprecated since 2022-04-12
+        warnings.warn("Use method `background` instead of `local`", DeprecationWarning)
+        method = "background"
+
     if template is None:
         template_path = Path(__file__).parent / "templates" / (method + ".template")
     else:
@@ -169,8 +174,8 @@ def submit_job(
             universal_newlines=True,
         )
 
-    elif method in {"background", "foreground", "local"}:
-        # run job locally (`local` was deprecated on 2022-04-12
+    elif method in {"background", "foreground"}:
+        # run job locally
         proc = sp.Popen(
             ["bash"],
             stdin=sp.PIPE,

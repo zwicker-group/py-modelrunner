@@ -13,7 +13,7 @@ SCRIPT_PATH = Path(__file__).parent / "scripts"
 
 
 def test_submit_job(tmp_path):
-    """test some basic useage of the submit_job function"""
+    """test some basic usage of the submit_job function"""
 
     def run(**p):
         """helper submitting job locally"""
