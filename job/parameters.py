@@ -230,6 +230,9 @@ class Parameter:
                     )
                     # in python 3.9, we could use `argparse.BooleanOptionalAction`
 
+            elif issubclass(self.cls, (list, tuple, set)):
+                parser.add_argument(arg_name, metavar="VALUE", nargs="+", **kwargs)
+
             elif self.cls is object or self.cls is auto_type:
                 parser.add_argument(arg_name, metavar="VALUE", **kwargs)
 
