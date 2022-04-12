@@ -5,6 +5,7 @@
 import errno
 import itertools
 import json
+import logging
 import os
 import pipes
 import subprocess as sp
@@ -98,6 +99,8 @@ def submit_job(
     """
     from jinja2 import Template
 
+    logger = logging.getLogger("job.submit_job")
+
     if method == "local":
         # deprecated since 2022-04-12
         warnings.warn("Use method `background` instead of `local`", DeprecationWarning)
@@ -107,6 +110,7 @@ def submit_job(
         template_path = Path(__file__).parent / "templates" / (method + ".template")
     else:
         template_path = Path(template)
+    logger.info("Load template `%s`", template_path)
     with open(template_path, "r") as fp:
         script_template = fp.read()
 
@@ -129,6 +133,8 @@ def submit_job(
         elif not isinstance(parameters, str):
             raise TypeError("Parameters need to be given as a string or a dict")
         job_args.append(f"--json {escape_string(parameters)}")
+
+    logger.debug("Job arguments: `%s`", job_args)
 
     # add the output folder to the job arguments
     if output:
@@ -163,6 +169,7 @@ def submit_job(
 
     # replace parameters in submission script template
     script_content = Template(script_template).render(script_args)
+    logger.debug("Script: `%s`", script_content)
 
     if method == "qsub":
         # submit job to queue
