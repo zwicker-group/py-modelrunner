@@ -59,5 +59,7 @@ def test_submit_jobs(tmp_path):
     np.testing.assert_allclose(run(a=(1, 2))["a"], [1, 2])
 
     res = run(b=[[1, 2], [3, 4]])["b"]
-    np.testing.assert_allclose(res[0], [1, 2])
-    np.testing.assert_allclose(res[1], [3, 4])
+    # the order of the results might not be deterministic
+    test1 = np.allclose(res[0], [1, 2]) and np.allclose(res[1], [3, 4])
+    test2 = np.allclose(res[0], [3, 4]) and np.allclose(res[1], [1, 2])
+    assert test1 or test2
