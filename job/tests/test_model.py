@@ -36,6 +36,12 @@ def run_script(script, *args):
     return outs.strip()
 
 
+def test_empty_script():
+    """test the empty.py script"""
+    with pytest.raises(AssertionError):
+        run_script("empty.py")
+
+
 def test_function_script():
     """test the function.py script"""
     assert float(run_script("function.py")) == 2
@@ -184,3 +190,26 @@ def test_argparse_boolean_arguments():
 
     assert f2.from_command_line().result
     assert not f2.from_command_line(["--no-flag"]).result
+
+
+def test_argparse_list_arguments():
+    """test list parameters"""
+
+    @make_model
+    def f0(flag: list):
+        return flag
+
+    with pytest.raises(TypeError):
+        assert f0.from_command_line()
+    assert f0.from_command_line(["--flag"]).result == []
+    assert f0.from_command_line(["--flag", "0"]).result == ["0"]
+    assert f0.from_command_line(["--flag", "0", "1"]).result == ["0", "1"]
+
+    @make_model
+    def f1(flag: list = [0, 1]):
+        return flag
+
+    assert f1.from_command_line().result == [0, 1]
+    assert f1.from_command_line(["--flag"]).result == []
+    assert f1.from_command_line(["--flag", "0"]).result == ["0"]
+    assert f1.from_command_line(["--flag", "0", "1"]).result == ["0", "1"]
