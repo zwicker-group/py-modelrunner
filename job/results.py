@@ -6,12 +6,13 @@ from __future__ import annotations
 
 import collections
 import inspect
+import itertools
 import json
 import logging
 import os.path
 import warnings
 from pathlib import Path
-from typing import Any, Dict, List, Set, Type, Union
+from typing import Any, Dict, Iterator, List, Set, Tuple, Type, Union
 
 import numpy as np
 from tqdm.auto import tqdm
@@ -467,6 +468,25 @@ class ResultCollection(List[Result]):
             for item in self
             if all(item.parameters[k] == v for k, v in kwargs.items())
         )
+
+    def groupby(self, *args) -> Iterator[Tuple[Dict[str, List[Any]], ResultCollection]]:
+        r"""group results according to the given variables
+
+        Args:
+            *args: Specify parameters according to which the results are sorted
+
+        Returns:
+            generator that allows iterating over the groups. Each iteration returns a
+            dictionary with the current parameters and the associated
+            :class:`ResultCollection`.
+        """
+        group_values = [self.parameters[name] for name in args]
+
+        for group_value in itertools.product(*group_values):
+            group_parameters = dict(zip(args, group_value))
+            subset = self.filtered(**group_parameters)
+            if len(subset) > 0:
+                yield group_parameters, subset
 
     def sorted(self, *args, reverse: bool = False) -> ResultCollection:
         r"""return a sorted version of the results

@@ -66,3 +66,30 @@ def test_result_collections():
     assert len(rc) == 2
     rc2 = rc.remove_duplicates()
     assert len(rc2) == 1
+
+
+def test_collection_groupby():
+    """test grouping of result collections"""
+    p1 = {"a": 1, "b": (0, 1), "c": "c"}
+    r1 = Result.from_data({"name": "1", "parameters": p1}, p1)
+    p2 = {"a": 2, "b": (0, 1), "c": "c"}
+    r2 = Result.from_data({"name": "2", "parameters": p2}, p2)
+    p3 = {"a": 1, "b": (0, 1, 2), "c": "c"}
+    r3 = Result.from_data({"name": "3", "parameters": p3}, p3)
+    rc = ResultCollection([r1, r2, r3])
+
+    with pytest.raises(KeyError):
+        list(rc.groupby("nan"))
+
+    assert len(list(rc.groupby("c"))) == 1
+
+    for p, r in rc.groupby("a"):
+        if p == {"a": 1}:
+            assert len(r) == 2
+        elif p == {"a": 2}:
+            assert len(r) == 1
+        else:
+            raise AssertionError
+
+    groups = list(r for p, r in rc.groupby("a", "b"))
+    assert len(groups) == 3
