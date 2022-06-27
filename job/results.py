@@ -364,13 +364,14 @@ class ResultCollection(List[Result]):
                 Whether to raise an exception or just emit a warning when a file cannot
                 be read
             progress (bool):
-                Flag indiciating whether a progress bar is shown
+                Flag indicating whether a progress bar is shown
         """
         logger = logging.getLogger(cls.__name__)
 
         folder = Path(folder)
         assert folder.is_dir()
 
+        # iterate over all files and load them as a Result
         results = []
         for path in tqdm(list(folder.glob(pattern)), disable=not progress):
             if path.is_file():
@@ -384,6 +385,16 @@ class ResultCollection(List[Result]):
                         logger.warning(f"Error reading file `{path}`")
                 else:
                     results.append(result)
+
+        # raise a warning if now results were detected
+        if not results:
+            if pattern == "*.*":
+                logger.warning("Did not find any files")
+            else:
+                logger.warning(
+                    f"Did not find any files. Is pattern `{pattern}` too restrictive?"
+                )
+
         return cls(results)
 
     def __repr__(self):
@@ -517,7 +528,7 @@ class ResultCollection(List[Result]):
 
     @property
     def dataframe(self):
-        """create a pandas Dataframe summarizing the data"""
+        """create a pandas dataframe summarizing the data"""
         import pandas as pd
 
         assert self.same_model
