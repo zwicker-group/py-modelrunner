@@ -560,7 +560,7 @@ class Parameterized:
     @classmethod
     def _show_parameters(
         cls,
-        description: bool = None,
+        description: bool = False,
         sort: bool = False,
         show_hidden: bool = False,
         show_deprecated: bool = False,
@@ -570,9 +570,7 @@ class Parameterized:
 
         Args:
             description (bool):
-                Flag determining whether the parameter description is shown. The
-                default is to show the description only when we are in a jupyter
-                notebook environment.
+                Flag determining whether the parameter description is shown.
             sort (bool):
                 Flag determining whether the parameters are sorted
             show_hidden (bool):
@@ -619,7 +617,7 @@ class Parameterized:
     @hybridmethod
     def show_parameters(  # @NoSelf
         cls,
-        description: bool = None,  # @NoSelf
+        description: bool = False,  # @NoSelf
         sort: bool = False,
         show_hidden: bool = False,
         show_deprecated: bool = False,
@@ -628,9 +626,7 @@ class Parameterized:
 
         Args:
             description (bool):
-                Flag determining whether the parameter description is shown. The
-                default is to show the description only when we are in a jupyter
-                notebook environment.
+                Flag determining whether the parameter description is shown.
             sort (bool):
                 Flag determining whether the parameters are sorted
             show_hidden (bool):
@@ -645,7 +641,7 @@ class Parameterized:
     @show_parameters.instancemethod  # type: ignore
     def show_parameters(
         self,
-        description: bool = None,  # @NoSelf
+        description: bool = False,  # @NoSelf
         sort: bool = False,
         show_hidden: bool = False,
         show_deprecated: bool = False,
@@ -655,9 +651,7 @@ class Parameterized:
 
         Args:
             description (bool):
-                Flag determining whether the parameter description is shown. The
-                default is to show the description only when we are in a jupyter
-                notebook environment.
+                Flag determining whether the parameter description is shown.
             sort (bool):
                 Flag determining whether the parameters are sorted
             show_hidden (bool):
