@@ -116,10 +116,19 @@ class Parameter:
                 raise TypeError(
                     f"Parameter {self.name} has invalid default value: {default_value}"
                 ) from err
+
             if isinstance(converted_value, np.ndarray):
+                # numpy arrays are checked for each individual value
                 valid_default = np.allclose(converted_value, default_value)
+
             else:
-                valid_default = converted_value == default_value
+                # other values are compared directly. Note that we also check identity
+                # to capture the case where the value is `math.nan`, where the direct
+                # comparison (nan == nan) would evaluate to False
+                valid_default = (
+                    converted_value is default_value or converted_value == default_value
+                )
+
             if not valid_default:
                 logging.warning(
                     f"Default value `{name}` is not of type `{cls.__name__}`"
