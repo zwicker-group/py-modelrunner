@@ -6,3 +6,4 @@ from .model import ModelBase, make_model, make_model_class, run_function_with_cm
 from .parameters import Parameter
 from .results import Result, ResultCollection
 from .run import submit_job, submit_jobs
+from .version import __version__
