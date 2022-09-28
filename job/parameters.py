@@ -119,7 +119,9 @@ class Parameter:
 
             if isinstance(converted_value, np.ndarray):
                 # numpy arrays are checked for each individual value
-                valid_default = np.allclose(converted_value, default_value)
+                valid_default = np.allclose(
+                    converted_value, default_value, equal_nan=True
+                )
 
             else:
                 # other values are compared directly. Note that we also check identity
