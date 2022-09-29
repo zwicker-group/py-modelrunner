@@ -1,4 +1,4 @@
-#!/usr/bin/env python3 -m job
+#!/usr/bin/env python3 -m modelrunner
 """
 This example displays a minimal script defining a model using a `main` function. 
 

@@ -99,7 +99,7 @@ def submit_job(
     """
     from jinja2 import Template
 
-    logger = logging.getLogger("job.submit_job")
+    logger = logging.getLogger("modelrunner.submit_job")
 
     if method == "local":
         # deprecated since 2022-04-12

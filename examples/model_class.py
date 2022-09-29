@@ -5,7 +5,7 @@ This example shows defining a custom model class by subclassing.
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-from job import ModelBase
+from modelrunner import ModelBase
 
 
 class MyModel(ModelBase):

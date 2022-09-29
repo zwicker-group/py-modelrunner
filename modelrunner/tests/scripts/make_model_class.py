@@ -1,4 +1,4 @@
-import job
+import modelrunner
 
 
 def do_not_calculate(a=1, b=2):
@@ -6,7 +6,7 @@ def do_not_calculate(a=1, b=2):
     raise RuntimeError("This must not run")
 
 
-@job.make_model_class
+@modelrunner.make_model_class
 def calculate(a=1, b=2):
     """This function has been marked as a model"""
     print(a * b)

@@ -358,7 +358,7 @@ class ResultCollection(List[Result]):
                 Path to the folder that is scanned
             pattern (str):
                 Filename pattern that is used to detect result files
-            model (:class:`~job.model.ModelBase`):
+            model (:class:`~modelrunner.model.ModelBase`):
                 Base class from which models are initialized
             strict (bool):
                 Whether to raise an exception or just emit a warning when a file cannot

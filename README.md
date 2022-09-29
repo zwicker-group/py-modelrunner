@@ -1,6 +1,6 @@
-# py-job
+# py-modelrunner
 
-[![Build status](https://github.com/zwicker-group/py-job/workflows/build/badge.svg)](https://github.com/zwicker-group/py-job/actions?query=workflow%3Abuild)
+[![Build status](https://github.com/zwicker-group/py-modelrunner/workflows/build/badge.svg)](https://github.com/zwicker-group/py-modelrunner/actions?query=workflow%3Abuild)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 
@@ -28,7 +28,7 @@ Custom models can be created by inheriting from `ModelBase` and defining suitabl
 parameters:
 
 ```python
-from job import ModelBase
+from modelrunner import ModelBase
 
 class MyModel(ModelBase):  # define custom model
 
@@ -48,7 +48,7 @@ The last line actually creates an instance of the model with custom parameters.
 Alternatively, a model can also be defined from a simple function:
 
 ```python
-from job import make_model
+from modelrunner import make_model
 
 @make_model
 def multiply(a=1, b=2):
@@ -72,11 +72,11 @@ In typical numerical simulations, models need to be evaluated for many different
 parameters. The packages facilitates this by providing a special interface to set
 arguments from the command line. To show this, either one of the model definitions
 given above can be saved as a python file `model.py`. Using the special call
-`python -m job model.py` provides a command line interface for adjusting model parameters.
+`python -m modelrunner model.py` provides a command line interface for adjusting model parameters.
 The supported parameters can be obtained with the following command
 
 ```console
-$ python -m job model.py --help
+$ python -m modelrunner model.py --help
 
 usage: model.py [-h] [--a VALUE] [--b VALUE] [-o PATH] [--json JSON]
 
@@ -91,7 +91,7 @@ optional arguments:
 ```
 
 This can be helpful to call a model automatically and save the result. For instance, by
-calling `python -m job model.py -h --a 3 -o result.yaml`, we obtain a file `result.yaml` that
+calling `python -m modelrunner model.py -h --a 3 -o result.yaml`, we obtain a file `result.yaml` that
 looks something like this:
 
 ```yaml
@@ -114,7 +114,7 @@ system.
 A simple full script displaying this reads
 
 ```python
-from job import make_model, submit_job
+from modelrunner import make_model, submit_job
 
 @make_model
 def multiply(a=1, b=2):
@@ -130,7 +130,7 @@ In particular, this method allows submitting the same script with multiple diffe
 parameters to conduct a parameter study:
 
 ```python
-from job import make_model, submit_job
+from modelrunner import make_model, submit_job
 
 @make_model
 def multiply(a=1, b=2):
@@ -149,7 +149,7 @@ when the actual jobs start. It is also important to choose unique file names for
 We also support submitting multiple jobs of a parameter study:
 
 ```python
-from job import make_model, submit_jobs
+from modelrunner import make_model, submit_jobs
 
 @make_model
 def multiply(a=1, b=2):
@@ -160,11 +160,11 @@ if __name__ == "__main__":
 ```
 
 Finally, the packages also offers a method to submit a model script to the cluster using
-a simple command: `python3 -m job.run script.py`. This command also offers multiple options
+a simple command: `python3 -m modelrunner.run script.py`. This command also offers multiple options
 that can be adjusted using command line arguments:
 
 ```
-usage: python -m job.run [-h] [-n NAME] [-p JSON] [-o PATH] [-f] [-m METHOD] [-t PATH] script
+usage: python -m modelrunner.run [-h] [-n NAME] [-p JSON] [-o PATH] [-f] [-m METHOD] [-t PATH] script
 
 Run a script as a job
 
@@ -193,7 +193,7 @@ many different simulations that have been run in parallel. In particular, the cl
 For instance, the data from the multiple jobs ran above can be collected using
 
 ```python
-from job import ResultCollection
+from modelrunner import ResultCollection
 
 results = ResultCollection.from_folder(".", pattern="data_*.hdf5")
 print(results.dataframe)

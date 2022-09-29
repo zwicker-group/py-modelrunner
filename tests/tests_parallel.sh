@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# add the likely paths of custom packages, relative to current base path
-export PYTHONPATH=../py-pde:../py-droplets:../py-phasesep:$PYTHONPATH
-
 if [ ! -z $1 ] 
 then 
     # test pattern was specified 

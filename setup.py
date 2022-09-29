@@ -7,10 +7,10 @@ BASE_PATH = Path(__file__).resolve().parent
 
 
 # read the version from the particular file
-with open(BASE_PATH / "phasesep" / "version.py", "r") as f:
+with open(BASE_PATH / "modelrunner" / "version.py", "r") as f:
     exec(f.read())
 
-DOWNLOAD_URL = f"https://github.com/zwicker-group/py-job/archive/v{__version__}.tar.gz"
+DOWNLOAD_URL = f"https://github.com/zwicker-group/py-modelrunner/archive/v{__version__}.tar.gz"
 
 
 # read the requirements from requirements.txt
@@ -35,7 +35,7 @@ with open(BASE_PATH / "README.md", "r") as fh:
 
 
 setup(
-    name="py-job",
+    name="py-modelrunner",
     packages=find_packages(),
     zip_safe=False,  # this is required for mypy to find the py.typed file
     version=__version__,
@@ -45,7 +45,7 @@ setup(
     long_description_content_type="text/markdown",
     author="David Zwicker",
     author_email="david.zwicker@ds.mpg.de",
-    url="https://github.com/zwicker-group/py-job",
+    url="https://github.com/zwicker-group/py-modelrunner",
     download_url=DOWNLOAD_URL,
     python_requires=">=3.8",
     install_requires=install_requires,

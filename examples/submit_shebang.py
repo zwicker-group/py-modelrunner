@@ -1,4 +1,4 @@
-#!/usr/bin/env python3 -m job.run --output data.hdf5 --method local
+#!/usr/bin/env python3 -m modelrunner.run --output data.hdf5 --method local
 """
 This example shows how to submit a model to a queuing system using the magic line above.
 

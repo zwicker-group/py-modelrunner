@@ -26,7 +26,7 @@ def run_script(script, *args):
 
     # run example in temporary folder since it might create data files
     path = SCRIPT_PATH / script
-    cmd_args = (sys.executable, "-m", "job", path) + args
+    cmd_args = (sys.executable, "-m", "modelrunner", path) + args
     proc = sp.Popen(cmd_args, env=env, stdout=sp.PIPE, stderr=sp.PIPE)
     outs, errs = proc.communicate(timeout=30)
 

@@ -5,7 +5,7 @@ This example shows defining a custom model class using a function.
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-from job import make_model
+from modelrunner import make_model
 
 
 def multiply(a, b=2):
