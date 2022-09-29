@@ -7,7 +7,7 @@ This example shows reading and writing data using HDF files.
 
 import numpy as np
 
-from job import Result, run_function_with_cmd_args
+from modelrunner import Result, run_function_with_cmd_args
 
 
 def number_range(start: float = 1, length: int = 3):

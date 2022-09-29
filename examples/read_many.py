@@ -7,7 +7,7 @@ This example shows how a collection of results can be read.
 
 import os
 
-from job import ResultCollection, make_model_class
+from modelrunner import ResultCollection, make_model_class
 
 
 def multiply(a: float = 1, b: float = 2):

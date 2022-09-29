@@ -38,4 +38,4 @@ jobs:
     - name: Test types with mypy
       continue-on-error: true
       run: |
-        python -m mypy --config-file tests/mypy.ini --pretty --package job
+        python -m mypy --config-file tests/mypy.ini --pretty --package modelrunner

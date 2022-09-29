@@ -8,10 +8,10 @@ import logging
 import os.path
 import sys
 
-from job import ModelBase, run_function_with_cmd_args
+from modelrunner import ModelBase, run_function_with_cmd_args
 
 if __name__ == "__main__":
-    logger = logging.getLogger("job")
+    logger = logging.getLogger("modelrunner")
 
     # get the script name from the command line
     try:

@@ -5,7 +5,7 @@ mkdir -p {{ OUTPUT_FOLDER }}
 {% endif %}
 
 # Run the program
-python3 -m job {{ MODEL_FILE }} \
+python3 -m modelrunner {{ MODEL_FILE }} \
     {{ JOB_ARGS }} \
 	> {{ LOG_FOLDER }}/{{ JOB_NAME }}.out.txt \
 	2> {{ LOG_FOLDER }}/{{ JOB_NAME }}.err.txt

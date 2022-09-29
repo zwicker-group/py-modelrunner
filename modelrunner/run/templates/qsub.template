@@ -25,4 +25,4 @@ mkdir -p {{ OUTPUT_FOLDER }}
 {% endif %}
 
 # Run the program
-python3 -m job {{ MODEL_FILE }} {{ JOB_ARGS }}
+python3 -m modelrunner {{ MODEL_FILE }} {{ JOB_ARGS }}
