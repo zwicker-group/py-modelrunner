@@ -1,8 +1,9 @@
 # py-modelrunner
 
+[![PyPI version](https://badge.fury.io/py/py-pde.svg)](https://badge.fury.io/py/py-pde)
 [![Build status](https://github.com/zwicker-group/py-modelrunner/workflows/build/badge.svg)](https://github.com/zwicker-group/py-modelrunner/actions?query=workflow%3Abuild)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 Python classes for handling and running physical simulations.
 
