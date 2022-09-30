@@ -5,15 +5,19 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-Python classes for handling and running physical simulations.
+This package provides python classes for handling and running physical simulations.
+The main aim is to easily wrap simulation code and deal with input and output automatically.
+The package also facilitates submitting simulations to high performance computing
+environments and it provides functions for running parameter scans.
 
 
 Installation
 ============
-The package can simply be cloned from github. The only compulsory package is `numpy`, but
-additionally packages might be necessary for the full functionality (e.g., `jinja2` and
-`pandas`).
+The package can simply be cloned from github, but it is also available on `pip`:
 
+```bash
+pip install py-modelrunner
+```
 
 Usage
 =====
@@ -39,8 +43,8 @@ class MyModel(ModelBase):  # define custom model
     def __call__(self):
         """calculate the actual model"""
         return self.parameters["a"] * self.parameters["b"]
-        
-        
+
+
 model = MyModel({"a" : 3})
 ```
 

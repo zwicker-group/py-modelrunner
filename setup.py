@@ -10,7 +10,9 @@ BASE_PATH = Path(__file__).resolve().parent
 with open(BASE_PATH / "modelrunner" / "version.py", "r") as f:
     exec(f.read())
 
-DOWNLOAD_URL = f"https://github.com/zwicker-group/py-modelrunner/archive/v{__version__}.tar.gz"
+DOWNLOAD_URL = (
+    f"https://github.com/zwicker-group/py-modelrunner/archive/v{__version__}.tar.gz"
+)
 
 
 # read the requirements from requirements.txt
@@ -24,7 +26,11 @@ except FileNotFoundError:
     # fall-back for conda, where requirements.txt apparently does not work
     print("Cannot find requirements.txt")
     install_requires = [
+        "jinja2>=3",
+        "h5py>=3.5",
         "numpy>=1.18.0",
+        "pandas>=1.2",
+        "PyYAML>=5",
         "tqdm>=4.45",
     ]
 
