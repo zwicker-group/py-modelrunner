@@ -1,4 +1,6 @@
 """
+Classes that describe the final result of a simulation.
+
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 

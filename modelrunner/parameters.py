@@ -1,5 +1,5 @@
 """
-Infrastructure for managing classes with parameters
+Infrastructure for managing classes with parameters.
 
 One aim is to allow easy management of inheritance of parameters.
 
@@ -10,7 +10,7 @@ One aim is to allow easy management of inheritance of parameters.
    DeprecatedParameter
    HideParameter
    Parameterized
-   
+
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 

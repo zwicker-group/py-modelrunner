@@ -33,6 +33,58 @@ Usage
 This package has multiple purposes that are described in more detail below. Additional
 examples can be found in the `examples` folder.
 
+Minimal example
+---------------
+Assume you have written a python simulation in form of a simple script that defines a
+function with several arguments, like so
+
+```python
+def main(a: float = 1, b: int = 2, negate: bool = False):
+    res = a ** b
+    if negate:
+    	res *= -1
+    return res
+```
+
+The `modelrunner` package now allows you to wrap a convenient command line interface
+around this simple function. Assuming the script is saved in a file called `script.py`,
+calling `python -m modelrunner script.py -h` shows the follwing help
+
+```
+usage: test.py [-h] [--a VALUE] [--b VALUE] [--negate] [--json JSON] [-o PATH]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --json JSON           JSON-encoded parameter values. Overwrites other parameters. (default: None)
+  -o PATH, --output PATH
+                        Path to output file. If omitted, no output file is created. (default: None)
+
+  --a VALUE             Parameter `a` (default: 1)
+  --b VALUE             Parameter `b` (default: 2)
+  --negate              Parameter `negate` (default: False)
+```
+
+Consequently, the function can be called using `python -m modelrunner script.py --a 2 --b 3 --negate -o result.yaml`,
+which produces a file `result.yaml` with the following content:
+
+```yaml
+info:
+  time: # TIMESTAMP
+model:
+  class: main
+  description: null
+  name: main
+  parameters:
+    a: 2.0
+    b: 3
+    negate: true
+result: -8.0
+```
+
+This file not only contains the result, but also metainformation including the
+parameters to run the simulation and the time when it was started.
+
+
 Creating models
 ---------------
 The package introduces a base class `ModelBase` that describes the bare structure all

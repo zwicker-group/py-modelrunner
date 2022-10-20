@@ -1,4 +1,6 @@
 """
+Base class describing a model.
+
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
