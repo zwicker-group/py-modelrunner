@@ -1,6 +1,7 @@
 # py-modelrunner
 
 [![PyPI version](https://badge.fury.io/py/py-modelrunner.svg)](https://badge.fury.io/py/py-modelrunner)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/py-modelrunner.svg)](https://anaconda.org/conda-forge/py-modelrunner)
 [![Build status](https://github.com/zwicker-group/py-modelrunner/workflows/build/badge.svg)](https://github.com/zwicker-group/py-modelrunner/actions?query=workflow%3Abuild)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
@@ -13,7 +14,7 @@ environments and it provides functions for running parameter scans.
 
 Installation
 ============
-The package can simply be cloned from github, but it is also available on `pip`:
+The package can simply be cloned from github, but it is also available on `pip` and `conda`:
 
 ```bash
 pip install py-modelrunner
