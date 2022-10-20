@@ -1,11 +1,17 @@
 # py-modelrunner
 
-[![PyPI version](https://badge.fury.io/py/py-modelrunner.svg)](https://badge.fury.io/py/py-modelrunner)
-[![Conda Version](https://img.shields.io/conda/vn/conda-forge/py-modelrunner.svg)](https://anaconda.org/conda-forge/py-modelrunner)
+
 [![Build status](https://github.com/zwicker-group/py-modelrunner/workflows/build/badge.svg)](https://github.com/zwicker-group/py-modelrunner/actions?query=workflow%3Abuild)
 [![Documentation Status](https://readthedocs.org/projects/py-modelrunner/badge/?version=latest)](https://py-modelrunner.readthedocs.io/en/latest/?badge=latest)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![PyPI version](https://badge.fury.io/py/py-modelrunner.svg)](https://badge.fury.io/py/py-modelrunner)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/py-modelrunner.svg)](https://anaconda.org/conda-forge/py-modelrunner)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![codecov](https://codecov.io/gh/zwicker-group/py-modelrunner/branch/main/graph/badge.svg)](https://codecov.io/gh/zwicker-group/py-modelrunner)
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/zwicker-group/py-modelrunner.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/zwicker-group/py-modelrunner/context:python)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+
 
 This package provides python classes for handling and running physical simulations.
 The main aim is to easily wrap simulation code and deal with input and output automatically.
