@@ -28,7 +28,6 @@ jobs:
         NUMBA_WARNINGS: 1
         MPLBACKEND: agg
       run: |
-        pip install pytest
         cd tests
         ./tests_run.sh
 
