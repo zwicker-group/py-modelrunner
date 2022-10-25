@@ -146,9 +146,13 @@ class MockModel(ModelBase):
 class Result:
     """describes a model (with parameters) together with its result"""
 
+<<<<<<< Upstream, based on main
     def __init__(
         self, model: ModelBase, state: StateBase, info: Optional[Dict[str, Any]] = None
     ):
+=======
+    def __init__(self, model: ModelBase, state: StateBase, info: Dict[str, Any] = None):
+>>>>>>> effedef Use State classes in rest of package
         """
         Args:
             model (:class:`ModelBase`):
@@ -167,16 +171,25 @@ class Result:
     @property
     def data(self):
         """direct access to the underlying state data"""
+<<<<<<< Upstream, based on main
         assert self.state is not self
+=======
+>>>>>>> effedef Use State classes in rest of package
         return self.state.data
 
     @classmethod
     def from_data(
         cls,
         model_data: Dict[str, Any],
+<<<<<<< Upstream, based on main
         state,
         model: Optional[ModelBase] = None,
         info: Optional[Dict[str, Any]] = None,
+=======
+        state: StateBase,
+        model: ModelBase = None,
+        info: Dict[str, Any] = None,
+>>>>>>> effedef Use State classes in rest of package
     ) -> Result:
         """create result from data
 
@@ -189,9 +202,12 @@ class Result:
                 The model from which the result was obtained
             info (dict):
                 Additional information for this result
+<<<<<<< Upstream, based on main
 
         Returns:
             :class:`Result`: The result object
+=======
+>>>>>>> effedef Use State classes in rest of package
         """
         if model is None:
             model_cls: Type[ModelBase] = MockModel
@@ -278,11 +294,15 @@ class Result:
         return cls.from_data(
 <<<<<<< Upstream, based on main
             model_data=data.get("model", {}),
+<<<<<<< Upstream, based on main
             state=StateBase._from_text_data(content["state"]),
 =======
             model_data=content.get("model", {}),
             state=StateBase._from_simple_objects(content["state"]),
 >>>>>>> 1e5cf15 Added more flexibility by defining generic interfaces
+=======
+            state=state,
+>>>>>>> effedef Use State classes in rest of package
             model=model,
             info=info,
         )
@@ -295,6 +315,7 @@ class Result:
             path (str or :class:`~pathlib.Path`): The path to the file
         """
         data = {
+<<<<<<< Upstream, based on main
 =======
     def _to_simple_objects(self):
         """write result to JSON file"""
@@ -318,6 +339,11 @@ class Result:
 >>>>>>> 1e5cf15 Added more flexibility by defining generic interfaces
 =======
 >>>>>>> 0c7ab76 Rebased to current main branch
+=======
+            "model": self.model.attributes,
+            "state": self.state.attributes,
+            "data": self.state.data,
+>>>>>>> effedef Use State classes in rest of package
         }
         if self.info:
             data["info"] = self.info
@@ -363,9 +389,15 @@ class Result:
 
         # compile all data
         data = {
+<<<<<<< Upstream, based on main
             "model": simplify_data(self.model.attributes),
             "state": simplify_data(self.state.attributes),
             "data": simplify_data(self.state.data),
+=======
+            "model": self.model.attributes,
+            "state": prepare_yaml(self.state.attributes),
+            "data": prepare_yaml(self.state.data),
+>>>>>>> effedef Use State classes in rest of package
         }
         if self.info:
             data["info"] = self.info
@@ -426,11 +458,14 @@ class Result:
             # write the actual data
             write_hdf_dataset(fp, self.state.attributes, "state")
             write_hdf_dataset(fp, self.state.data, "data")
+<<<<<<< Upstream, based on main
 =======
         # write the actual data
         write_hdf_dataset(root, self.state._attributes_store, "state")
         write_hdf_dataset(root, self.state._data_store, "data")
 >>>>>>> 1e5cf15 Added more flexibility by defining generic interfaces
+=======
+>>>>>>> effedef Use State classes in rest of package
 
 
 class ResultCollection(List[Result]):

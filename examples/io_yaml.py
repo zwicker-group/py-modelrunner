@@ -17,5 +17,9 @@ if __name__ == "__main__":
     result = run_function_with_cmd_args(multiply)
     result.to_file("test.yaml")
 
+<<<<<<< Upstream, based on main
     read = Result.from_file("test.yaml")
+=======
+    read = Result.from_yaml("test.yaml")
+>>>>>>> effedef Use State classes in rest of package
     print(read.parameters, "–– a * b =", read.state)

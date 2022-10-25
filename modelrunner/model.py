@@ -14,6 +14,7 @@ from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Type, Union
 
+<<<<<<< Upstream, based on main
 from .parameters import (
     DeprecatedParameter,
     HideParameter,
@@ -21,6 +22,9 @@ from .parameters import (
     Parameter,
     Parameterized,
 )
+=======
+from .parameters import NoValue, Parameter, Parameterized
+>>>>>>> effedef Use State classes in rest of package
 from .state import ObjectState, StateBase
 
 if TYPE_CHECKING:
@@ -57,28 +61,43 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         """main method calculating the result"""
         pass
 
+<<<<<<< Upstream, based on main
     def get_result(self, state: Optional[StateBase] = None) -> "Result":
+=======
+    def get_result(self, state: StateBase = None) -> "Result":
+>>>>>>> effedef Use State classes in rest of package
         """get the result as a :class:`~model.Result` object
 
         Args:
+<<<<<<< Upstream, based on main
             state:
                 The result data. If omitted, the model is run to obtain results
 
         Returns:
             :class:`Result`: The result after the model is run
+=======
+            state: The result data. If omitted, the model is ran to obtain results
+>>>>>>> effedef Use State classes in rest of package
         """
         from .results import Result  # @Reimport
 
         if state is None:
             state_data = self()
             state = self.state_cls(state_data)
+<<<<<<< Upstream, based on main
         elif isinstance(state, Result):
             return state
+=======
+>>>>>>> effedef Use State classes in rest of package
 
         info = {"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
         return Result(self, state, info=info)
 
+<<<<<<< Upstream, based on main
     def write_result(self, output: Optional[str] = None, result=None) -> None:
+=======
+    def write_result(self, output: str = None, result: "Result" = None) -> None:
+>>>>>>> effedef Use State classes in rest of package
         """write the result to the output file
 
         Args:
@@ -99,7 +118,11 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
             from .results import Result  # @Reimport
 
             assert isinstance(result, Result)
+<<<<<<< Upstream, based on main
         result.to_file(output)
+=======
+        result.write_to_file(output)
+>>>>>>> effedef Use State classes in rest of package
 
     @classmethod
     def _prepare_argparser(cls, name: Optional[str] = None) -> argparse.ArgumentParser:

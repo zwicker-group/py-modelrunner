@@ -28,7 +28,11 @@ def test_result_serialization(extension, tmp_path):
     # read data
     read = Result.from_file(path)
     assert read.model.name == "model"
+<<<<<<< Upstream, based on main
     np.testing.assert_equal(read.data, result.data)
+=======
+    np.testing.assert_equal(read.state, result.state)
+>>>>>>> effedef Use State classes in rest of package
 
 
 def test_result_collections():

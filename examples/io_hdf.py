@@ -21,5 +21,9 @@ if __name__ == "__main__":
     result.to_file("test.hdf")
 
     # write result from file
+<<<<<<< Upstream, based on main
     read = Result.from_file("test.hdf")
+=======
+    read = Result.from_hdf("test.hdf")
+>>>>>>> effedef Use State classes in rest of package
     print(read.parameters, "–– start + [0..length-1] =", read.state)

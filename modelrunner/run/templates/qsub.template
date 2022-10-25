@@ -26,6 +26,7 @@ mkdir -p {{ OUTPUT_FOLDER }}
 
 # Run the program
 <<<<<<< Upstream, based on main
+<<<<<<< Upstream, based on main
 {% if USE_MODELRUNNER is defined and USE_MODELRUNNER %}
 python3 -m modelrunner {{ MODEL_FILE }} {{ JOB_ARGS }}
 {% else %}
@@ -34,3 +35,6 @@ python3 {{ MODEL_FILE }} {{ JOB_ARGS }}
 =======
 python -m modelrunner {{ MODEL_FILE }} {{ JOB_ARGS }}
 >>>>>>> 047a3c6 Use State classes in rest of package
+=======
+python -m modelrunner {{ MODEL_FILE }} {{ JOB_ARGS }}
+>>>>>>> effedef Use State classes in rest of package
