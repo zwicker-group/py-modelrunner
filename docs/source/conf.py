@@ -96,7 +96,7 @@ exclude_patterns = ["*conftest*"]
 pygments_style = None
 
 modindex_common_prefix = [f"{module_name}."]
-
+toc_object_entries = False
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -254,7 +254,7 @@ graphviz_output_format = "svg"
 # this uses the nicer SVG format for graphviz environments. Note that there is an issue
 # in sphinx (https://github.com/sphinx-doc/sphinx/issues/3176) which implies wrong links
 # for the graph, which we here corrected manually, but which lead to issues if we also
-# used the inheritance_diagram extension 
+# used the inheritance_diagram extension
 
 # run autodoc
 from run_autodoc import main
