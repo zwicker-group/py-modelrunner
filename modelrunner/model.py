@@ -99,7 +99,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
             from .results import Result  # @Reimport
 
             assert isinstance(result, Result)
-        result.write_to_file(output)
+        result.to_file(output)
 
     @classmethod
     def _prepare_argparser(cls, name: Optional[str] = None) -> argparse.ArgumentParser:

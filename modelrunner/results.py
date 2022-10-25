@@ -21,7 +21,7 @@ from tqdm.auto import tqdm
 
 from .model import ModelBase
 from .parameters import NoValueType
-from .state import make_state, StateBase
+from .state import ArrayState, ObjectState, StateBase
 
 
 def contains_array(data) -> bool:
@@ -141,39 +141,46 @@ class MockModel(ModelBase):
 class Result:
     """describes a model (with parameters) together with its result"""
 
-    def __init__(
-        self, model: ModelBase, result_data, info: Optional[Dict[str, Any]] = None
-    ):
+    def __init__(self, model: ModelBase, state: StateBase, info: Optional[Dict[str, Any]] = None):
         """
         Args:
-            model (:class:`ModelBase`): The model from which the result was obtained
-            result_data: The actual result data
-            info (dict): Additional information for this result
+            model (:class:`ModelBase`):
+                The model from which the result was obtained
+            state (:class:`StateBase`):
+                The actual result, saved as a state
+            info (dict):
+                Additional information for this result
         """
         assert isinstance(model, ModelBase)
         assert isinstance(state, StateBase)
         self.model = model
         self.info = info
-        if isinstance(result_data, Result):
-            self.result: Any = result_data.result
-        else:
-            self.result = result_data
+        self.state = state
+
+    @property
+    def data(self):
+        """direct access to the underlying state data"""
+        return self.state.data
 
     @classmethod
     def from_data(
         cls,
         model_data: Dict[str, Any],
-        result_data,
+        state,
         model: Optional[ModelBase] = None,
         info: Optional[Dict[str, Any]] = None,
     ) -> Result:
         """create result from data
 
         Args:
-            model_data (dict): The data identifying the model
-            result_data: The actual result data
-            model (:class:`ModelBase`): The model from which the result was obtained
-            info (dict): Additional information for this result
+            model_data (dict):
+                The data identifying the model
+            state:
+                The actual result data
+            model (:class:`ModelBase`):
+                The model from which the result was obtained
+            info (dict):
+                Additional information for this result
 
         Returns:
             :class:`Result`: The result object
@@ -189,16 +196,12 @@ class Result:
         obj.name = model_data.get("name")
         obj.description = model_data.get("description")
 
-<<<<<<< Upstream, based on main
-        if isinstance(result_data, np.ndarray):
-            result_data = ArrayState(result_data)
-        elif not isinstance(result_data, StateBase):
-            result_data = ObjectState(result_data)
+        if isinstance(state, np.ndarray):
+            state = ArrayState(state)
+        elif not isinstance(state, StateBase):
+            state = ObjectState(state)
 
-        return cls(obj, result_data, info)
-=======
-        return cls(obj, make_state(state), info)
->>>>>>> a1eebc2 Split trajectory from state module
+        return cls(obj, state, info)
 
     @property
     def parameters(self) -> Dict[str, Any]:
@@ -258,7 +261,7 @@ class Result:
 
         return cls.from_data(
             model_data=data.get("model", {}),
-            result_data=state,
+            state=state,
             model=model,
             info=info,
         )
@@ -302,7 +305,7 @@ class Result:
 
         return cls.from_data(
             model_data=data.get("model", {}),
-            result_data=state,
+            state=state,
             model=model,
             info=info,
         )
@@ -353,9 +356,7 @@ class Result:
         info = model_data.pop("__info__") if "__info__" in model_data else {}
         info.setdefault("name", Path(path).with_suffix("").stem)
 
-        return cls.from_data(
-            model_data=model_data, result_data=state, model=model, info=info
-        )
+        return cls.from_data(model_data=model_data, state=state, model=model, info=info)
 
     def write_to_hdf(self, path) -> None:
         """write result to HDF file
