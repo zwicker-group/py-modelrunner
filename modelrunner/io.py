@@ -242,9 +242,9 @@ class IOBase:
 
 from __future__ import annotations
 
-from typing import Union
 import json
 from pathlib import Path
+from typing import Union
 
 import numpy as np
 import zarr
@@ -358,25 +358,18 @@ zarrElement = Union[zarr.Group, zarr.Array]
 class IOBase:
     """base class for handling structured input and output
 
-    Subclasses need to define `_from_*` and `_to_*` methods to support the interface,
-    where * is a supported file format (e.g., "yaml", "json"). The default method for
-    storing data is using the `zarr` package, where the details are defined in the
-    method `_write_zarr`, which needs to be implemented by subclasses.
+    Subclasses need to define :meth:`_from_text_data` and :meth:`_to_text_data` methods
+    to support the interface that store data in text files. However, the default method
+    for storing data is using the :mod:`zarr` package, where the details are defined in
+    the method :meth:`_write_zarr`, which needs to be implemented by subclasses.
     """
 
     @classmethod
-    def _from_json_data(cls, content) -> IOBase:
-        raise NotImplementedError(f"{cls.__name__}: no JSON reading")
+    def _from_text_data(cls, content, *, fmt: str = "yaml") -> IOBase:
+        raise NotImplementedError(f"{cls.__name__}: no text reading")
 
-    def _to_json_data(self):
-        raise NotImplementedError(f"{self.__class__.__name__}: no JSON writing")
-
-    @classmethod
-    def _from_yaml_data(cls, content) -> IOBase:
-        raise NotImplementedError(f"{cls.__name__}: no YAML reading")
-
-    def _to_yaml_data(self):
-        raise NotImplementedError(f"{self.__class__.__name__}: no YAML writing")
+    def _to_text_data(self):
+        raise NotImplementedError(f"{self.__class__.__name__}: no text writing")
 
     @classmethod
     def _from_hdf(cls, hdf_element) -> IOBase:
@@ -425,14 +418,14 @@ class IOBase:
         if fmt == "json":
             with open(store, "r") as fp:
                 content = json.load(fp)
-            return cls._from_json_data(content, **kwargs)
+            return cls._from_text_data(content, fmt="json", **kwargs)
 
         elif fmt == "yaml":
             import yaml
 
             with open(store, "r") as fp:
                 content = yaml.safe_load(fp)
-            return cls._from_yaml_data(content, **kwargs)
+            return cls._from_text_data(content, fmt="yaml", **kwargs)
 
         elif fmt == "hdf":
             import h5py
@@ -463,7 +456,7 @@ class IOBase:
         """
         fmt = self._guess_format(store, fmt)
         if fmt == "json":
-            content = self._to_json_data()
+            content = self._to_text_data()
             kwargs.setdefault("cls", NumpyEncoder)
             with open(store, "w" if overwrite else "x") as fp:
                 json.dump(content, fp, **kwargs)
@@ -471,8 +464,12 @@ class IOBase:
         elif fmt == "yaml":
             import yaml
 
+<<<<<<< Upstream, based on main
             content = prepare_yaml(self._to_yaml_data())
 >>>>>>> 58f9ab8 Renamed _io to io
+=======
+            content = prepare_yaml(self._to_text_data())
+>>>>>>> 4ebae4d Added first tests and fixed some bugs
             kwargs.setdefault("sort_keys", False)
             with open(store, "w" if overwrite else "x") as fp:
                 yaml.dump(content, fp, **kwargs)

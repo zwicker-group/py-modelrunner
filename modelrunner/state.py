@@ -51,12 +51,16 @@ def _equals(left: Any, right: Any) -> bool:
     if left.__class__ is not right.__class__:
         return False
 
+<<<<<<< Upstream, based on main
     if isinstance(left, str):
         return bool(left == right)
 
+=======
+>>>>>>> 4ebae4d Added first tests and fixed some bugs
     if isinstance(left, np.ndarray):
         return np.array_equal(left, right)
 
+<<<<<<< Upstream, based on main
 <<<<<<< Upstream, based on main
     if isinstance(left, dict):
         return left.keys() == right.keys() and all(
@@ -72,6 +76,16 @@ def _equals(left: Any, right: Any) -> bool:
         return len(left) == len(right) and all(
             _equals(l, r) for l, r in zip(left, right)
         )
+=======
+    if isinstance(left, dict):
+        return left.keys() == right.keys() and _equals(left.values(), right.values())
+
+    if isinstance(left, StateBase):
+        return left.attributes == right.attributes and _equals(left.data, right.data)
+
+    if hasattr(left, "__iter__"):
+        return any(_equals(l, r) for l, r in zip(left, right))
+>>>>>>> 4ebae4d Added first tests and fixed some bugs
 
     return bool(left == right)
 
@@ -130,7 +144,11 @@ class StateBase(IOBase):
         cls._state_classes[cls.__name__] = cls
 
     def __eq__(self, other):
+<<<<<<< Upstream, based on main
         return _equals(self, other)
+=======
+        return _equals(self.data, other.data)
+>>>>>>> 4ebae4d Added first tests and fixed some bugs
 
     @classmethod
     def from_state(cls, attributes: Dict[str, Any], data=None) -> StateBase:
@@ -144,10 +162,14 @@ class StateBase(IOBase):
             # use the base class as a point to load arbitrary subclasses
             if attributes["__class__"] == "StateBase":
 <<<<<<< Upstream, based on main
+<<<<<<< Upstream, based on main
                 raise RuntimeError("Cannot create StateBase instances")
 =======
                 raise RuntimeError("Cannot init class StateBase")
 >>>>>>> 5b3d6ac More restructuring
+=======
+                raise RuntimeError("Cannot create StateBase instances")
+>>>>>>> 4ebae4d Added first tests and fixed some bugs
             state_cls = cls._state_classes[attributes["__class__"]]
             return state_cls.from_state(attributes, data)
 
@@ -235,6 +257,7 @@ class StateBase(IOBase):
 
     @classmethod
 <<<<<<< Upstream, based on main
+<<<<<<< Upstream, based on main
     def _from_simple_objects(
         cls, content, *, state_cls: Optional[StateBase] = None
     ) -> StateBase:
@@ -255,27 +278,24 @@ class StateBase(IOBase):
 =======
     def _from_json_data(cls, content) -> StateBase:
         """create state from JSON data
+=======
+    def _from_text_data(
+        cls, content, *, fmt="yaml", state_cls: StateBase = None
+    ) -> StateBase:
+        """create state from text data
+>>>>>>> 4ebae4d Added first tests and fixed some bugs
 
         Args:
-            content: The data loaded from json
+            content: The loaded data
         """
-        return StateBase.from_state(content["attributes"], content["data"])
+        if state_cls is None:
+            state_cls = cls._state_classes[content["attributes"]["__class__"]]
+            return state_cls._from_text_data(content, fmt=fmt, state_cls=state_cls)
+        else:
+            return state_cls.from_state(content["attributes"], content["data"])
 
-    def _to_json_data(self):
-        """return object data suitable for encoding as JSON"""
-        return {"attributes": self.attributes, "data": self.data}
-
-    @classmethod
-    def _from_yaml_data(cls, content) -> StateBase:
-        """create state from YAML data
-
-        Args:
-            content: The data loaded from yaml
-        """
-        return StateBase.from_state(content["attributes"], content["data"])
-
-    def _to_yaml_data(self):
-        """return object data suitable for encoding as YAML"""
+    def _to_text_data(self, *, fmt="yaml"):
+        """return object data suitable for encoding as text"""
         return {"attributes": self.attributes, "data": self.data}
 >>>>>>> 5b3d6ac More restructuring
 
@@ -670,22 +690,26 @@ class DictState(StateBase):
             substate._append_to_zarr_trajectory(zarr_element[label])
 
     @classmethod
-    def _from_json_data(cls, json) -> StateBase:
+    def _from_text_data(
+        cls, content, *, fmt="yaml", state_cls: StateBase = None
+    ) -> StateBase:
         """create state from JSON data
 
         Args:
-            json: The data loaded from json
+            content: The data loaded from json
         """
-        data = {
-            label: cls._from_json_data(substate)
-            for label, substate in json["data"].items()
-        }
-        return StateBase.from_state(json["attributes"], data)
+        if state_cls is None:
+            return super()._from_text_data(content, fmt=fmt)
 
-    def _to_json_data(self):
+        data = {}
+        for label, substate in content["data"].items():
+            data[label] = StateBase._from_text_data(substate, fmt=fmt)
+        return state_cls.from_state(content["attributes"], data)
+
+    def _to_text_data(self):
         """return object data suitable for encoding as JSON"""
         data = {
-            label: substate._to_json_data() for label, substate in self.data.items()
+            label: substate._to_text_data() for label, substate in self.data.items()
         }
         return {"attributes": self.attributes, "data": data}
 >>>>>>> 5b3d6ac More restructuring

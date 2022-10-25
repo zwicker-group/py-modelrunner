@@ -20,6 +20,7 @@ from tqdm.auto import tqdm
 
 <<<<<<< Upstream, based on main
 <<<<<<< Upstream, based on main
+<<<<<<< Upstream, based on main
 from .io import IOBase, NumpyEncoder, read_hdf_data, write_hdf_dataset
 =======
 from ._io import IOBase, read_hdf_data, write_hdf_dataset, NumpyEncoder
@@ -27,6 +28,9 @@ from ._io import IOBase, read_hdf_data, write_hdf_dataset, NumpyEncoder
 =======
 from .io import IOBase, read_hdf_data, write_hdf_dataset, NumpyEncoder
 >>>>>>> 58f9ab8 Renamed _io to io
+=======
+from .io import IOBase, NumpyEncoder, read_hdf_data, write_hdf_dataset
+>>>>>>> 4ebae4d Added first tests and fixed some bugs
 from .model import ModelBase
 <<<<<<< Upstream, based on main
 <<<<<<< Upstream, based on main
@@ -241,6 +245,7 @@ class Result(IOBase):
 <<<<<<< Upstream, based on main
 <<<<<<< Upstream, based on main
 <<<<<<< Upstream, based on main
+<<<<<<< Upstream, based on main
     def from_file(cls, path, model: Optional[ModelBase] = None):
         """read result from file
 
@@ -285,6 +290,9 @@ class Result(IOBase):
 =======
     def _from_json_data(cls, content, model: ModelBase = None) -> Result:
 >>>>>>> 5b3d6ac More restructuring
+=======
+    def _from_text_data(cls, content, model: ModelBase = None, *, fmt="yaml") -> Result:
+>>>>>>> 4ebae4d Added first tests and fixed some bugs
         """read result from a JSON file
 
         Args:
@@ -306,12 +314,17 @@ class Result(IOBase):
 >>>>>>> effedef Use State classes in rest of package
 =======
             model_data=content.get("model", {}),
+<<<<<<< Upstream, based on main
             state=StateBase._from_json_data(content["state"]),
 >>>>>>> 5b3d6ac More restructuring
+=======
+            state=StateBase._from_text_data(content["state"], fmt=fmt),
+>>>>>>> 4ebae4d Added first tests and fixed some bugs
             model=model,
             info=content.get("info"),
         )
 
+<<<<<<< Upstream, based on main
 <<<<<<< Upstream, based on main
 <<<<<<< Upstream, based on main
     def write_to_json(self, path) -> None:
@@ -348,10 +361,14 @@ class Result(IOBase):
 =======
 =======
     def _to_json_data(self):
+=======
+    def _to_text_data(self):
+>>>>>>> 4ebae4d Added first tests and fixed some bugs
         """write result to JSON file"""
         content = {
 >>>>>>> 5b3d6ac More restructuring
             "model": self.model.attributes,
+<<<<<<< Upstream, based on main
 <<<<<<< Upstream, based on main
             "state": self.state.attributes,
             "data": self.state.data,
@@ -409,6 +426,9 @@ class Result(IOBase):
 =======
             "state": self.state._to_yaml_data(),
 >>>>>>> 5b3d6ac More restructuring
+=======
+            "state": self.state._to_text_data(),
+>>>>>>> 4ebae4d Added first tests and fixed some bugs
         }
         if self.info:
             content["info"] = self.info
