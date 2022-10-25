@@ -119,10 +119,14 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
 
             assert isinstance(result, Result)
 <<<<<<< Upstream, based on main
+<<<<<<< Upstream, based on main
         result.to_file(output)
 =======
         result.write_to_file(output)
 >>>>>>> effedef Use State classes in rest of package
+=======
+        result.to_file(output)
+>>>>>>> 5b3d6ac More restructuring
 
     @classmethod
     def _prepare_argparser(cls, name: Optional[str] = None) -> argparse.ArgumentParser:

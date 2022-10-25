@@ -11,7 +11,6 @@ import inspect
 import itertools
 import json
 import logging
-import os.path
 import warnings
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Type, Union
@@ -19,8 +18,13 @@ from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Type, Union
 import numpy as np
 from tqdm.auto import tqdm
 
+<<<<<<< Upstream, based on main
 from .io import IOBase, NumpyEncoder, read_hdf_data, write_hdf_dataset
+=======
+from ._io import IOBase, read_hdf_data, write_hdf_dataset, NumpyEncoder
+>>>>>>> 5b3d6ac More restructuring
 from .model import ModelBase
+<<<<<<< Upstream, based on main
 <<<<<<< Upstream, based on main
 from .parameters import NoValueType
 from .state import make_state, StateBase
@@ -124,6 +128,9 @@ def read_hdf_data(node):
 =======
 from .state import StateBase, make_state
 >>>>>>> 0c7ab76 Rebased to current main branch
+=======
+from .state import StateBase, make_state
+>>>>>>> 5b3d6ac More restructuring
 
 
 class MockModel(ModelBase):
@@ -143,7 +150,7 @@ class MockModel(ModelBase):
         return f"{self.__class__.__name__}({self.parameters})"
 
 
-class Result:
+class Result(IOBase):
     """describes a model (with parameters) together with its result"""
 
 <<<<<<< Upstream, based on main
@@ -216,17 +223,18 @@ class Result:
 
         if not model_data:
             warnings.warn("Model data not found")
-        obj = model_cls(model_data.get("parameters", {}))
-        obj.name = model_data.get("name")
-        obj.description = model_data.get("description")
+        model = model_cls(model_data.get("parameters", {}))
+        model.name = model_data.get("name")
+        model.description = model_data.get("description")
 
-        return cls(obj, make_state(state), info)
+        return cls(model, make_state(state), info)
 
     @property
     def parameters(self) -> Dict[str, Any]:
         return self.model.parameters
 
     @classmethod
+<<<<<<< Upstream, based on main
 <<<<<<< Upstream, based on main
 <<<<<<< Upstream, based on main
     def from_file(cls, path, model: Optional[ModelBase] = None):
@@ -270,23 +278,17 @@ class Result:
 =======
     def _from_simple_objects(cls, content, model: Optional[ModelBase] = None) -> Result:
 >>>>>>> 0c7ab76 Rebased to current main branch
+=======
+    def _from_json_data(cls, content, model: ModelBase = None) -> Result:
+>>>>>>> 5b3d6ac More restructuring
         """read result from a JSON file
 
         Args:
             path (str or :class:`~pathlib.Path`): The path to the file
             model (:class:`ModelBase`): The model from which the result was obtained
         """
-        with open(path, "r") as fp:
-            data = json.load(fp)
-
-        # load state
-        state = StateBase.from_state(data["state"], data.get("data"))
-
-        # load additional info
-        info = data.get("info", {})
-        info.setdefault("name", Path(path).with_suffix("").stem)
-
         return cls.from_data(
+<<<<<<< Upstream, based on main
 <<<<<<< Upstream, based on main
             model_data=data.get("model", {}),
 <<<<<<< Upstream, based on main
@@ -298,10 +300,15 @@ class Result:
 =======
             state=state,
 >>>>>>> effedef Use State classes in rest of package
+=======
+            model_data=content.get("model", {}),
+            state=StateBase._from_json_data(content["state"]),
+>>>>>>> 5b3d6ac More restructuring
             model=model,
-            info=info,
+            info=content.get("info"),
         )
 
+<<<<<<< Upstream, based on main
 <<<<<<< Upstream, based on main
     def write_to_json(self, path) -> None:
         """write result to JSON file
@@ -335,115 +342,127 @@ class Result:
 =======
 >>>>>>> 0c7ab76 Rebased to current main branch
 =======
+=======
+    def _to_json_data(self):
+        """write result to JSON file"""
+        content = {
+>>>>>>> 5b3d6ac More restructuring
             "model": self.model.attributes,
+<<<<<<< Upstream, based on main
             "state": self.state.attributes,
             "data": self.state.data,
 >>>>>>> effedef Use State classes in rest of package
+=======
+            "state": self.state._to_json_data(),
+>>>>>>> 5b3d6ac More restructuring
         }
         if self.info:
-            data["info"] = self.info
-
-        with open(path, "w") as fp:
-            json.dump(data, fp, cls=NumpyEncoder)
+            content["info"] = self.info
+        return content
 
     @classmethod
 <<<<<<< Upstream, based on main
+<<<<<<< Upstream, based on main
     def from_yaml(cls, path, model: Optional[ModelBase] = None) -> Result:
+=======
+    def _from_yaml_data(cls, content, model: ModelBase = None) -> Result:
+>>>>>>> 5b3d6ac More restructuring
         """read result from a YAML file
 
         Args:
             path (str or :class:`~pathlib.Path`): The path to the file
             model (:class:`ModelBase`): The model from which the result was obtained
         """
-        import yaml
-
-        with open(path, "r") as fp:
-            data = yaml.safe_load(fp)
-
-        # load state
-        state = StateBase.from_state(data["state"], data.get("data"))
-
-        # load additional info
-        info = data.get("info", {})
-        info.setdefault("name", Path(path).with_suffix("").stem)
-
         return cls.from_data(
-            model_data=data.get("model", {}),
-            state=state,
+            model_data=content.get("model", {}),
+            state=StateBase._from_yaml_data(content["state"]),
             model=model,
-            info=info,
+            info=content.get("info", {}),
         )
 
-    def write_to_yaml(self, path) -> None:
+    def _to_yaml_data(self):
         """write result to YAML file
 
         Args:
             path (str or :class:`~pathlib.Path`): The path to the file
         """
-        import yaml
-
         # compile all data
+<<<<<<< Upstream, based on main
         data = {
 <<<<<<< Upstream, based on main
             "model": simplify_data(self.model.attributes),
             "state": simplify_data(self.state.attributes),
             "data": simplify_data(self.state.data),
 =======
+=======
+        content = {
+>>>>>>> 5b3d6ac More restructuring
             "model": self.model.attributes,
+<<<<<<< Upstream, based on main
             "state": prepare_yaml(self.state.attributes),
             "data": prepare_yaml(self.state.data),
 >>>>>>> effedef Use State classes in rest of package
+=======
+            "state": self.state._to_yaml_data(),
+>>>>>>> 5b3d6ac More restructuring
         }
         if self.info:
-            data["info"] = self.info
-
-        with open(path, "w") as fp:
-            yaml.dump(data, fp, sort_keys=False)
+            content["info"] = self.info
+        return content
 
     @classmethod
+<<<<<<< Upstream, based on main
     def from_hdf(cls, path, model: Optional[ModelBase] = None) -> Result:
 =======
     def _from_hdf(cls, hdf_element, model: Optional[ModelBase] = None) -> Result:
 >>>>>>> 0c7ab76 Rebased to current main branch
+=======
+    def _from_hdf(cls, hdf_element, model: ModelBase = None) -> Result:
+>>>>>>> 5b3d6ac More restructuring
         """read result from a HDf file
 
         Args:
-            path (str or :class:`~pathlib.Path`): The path to the file
+            hdf_element: The path to the file
             model (:class:`ModelBase`): The model from which the result was obtained
         """
-        import h5py
-
-        with h5py.File(path, "r") as fp:
-            model_data = {key: json.loads(value) for key, value in fp.attrs.items()}
-            # if "state" in fp:
-            attributes = read_hdf_data(fp["state"])
-            data = read_hdf_data(fp["data"])
-            # else:
-            #     state = model_data.pop("result")
-            # # check for other nodes, which might not be read
+        model_data = {
+            key: json.loads(value) for key, value in hdf_element.attrs.items()
+        }
+        attributes = read_hdf_data(hdf_element["state"])
+        data = read_hdf_data(hdf_element["data"])
+        # else:
+        #     state = model_data.pop("result")
+        # # check for other nodes, which might not be read
 
         # load state
         state = StateBase.from_state(attributes, data)
 
         # load additional info
         info = model_data.pop("__info__") if "__info__" in model_data else {}
-        info.setdefault("name", Path(path).with_suffix("").stem)
 
         return cls.from_data(model_data=model_data, state=state, model=model, info=info)
 
-    def write_to_hdf(self, path) -> None:
+    def _write_hdf(self, root) -> None:
         """write result to HDF file
 
         Args:
             path (str or :class:`~pathlib.Path`): The path to the file
         """
-        import h5py
+        # write attributes
+        for key, value in self.model.attributes.items():
+            root.attrs[key] = json.dumps(value, cls=NumpyEncoder)
 
+<<<<<<< Upstream, based on main
         with h5py.File(path, "w") as fp:
             # write attributes
             for key, value in self.model.attributes.items():
                 fp.attrs[key] = json.dumps(simplify_data(value), cls=NumpyEncoder)
+=======
+        if self.info:
+            root.attrs["__info__"] = json.dumps(self.info, cls=NumpyEncoder)
+>>>>>>> 5b3d6ac More restructuring
 
+<<<<<<< Upstream, based on main
 <<<<<<< Upstream, based on main
             if self.info:
                 fp.attrs["__info__"] = json.dumps(
@@ -461,6 +480,11 @@ class Result:
 >>>>>>> 1e5cf15 Added more flexibility by defining generic interfaces
 =======
 >>>>>>> effedef Use State classes in rest of package
+=======
+        # write the actual data
+        write_hdf_dataset(root, self.state.attributes, "state")
+        write_hdf_dataset(root, self.state.data, "data")
+>>>>>>> 5b3d6ac More restructuring
 
 
 class ResultCollection(List[Result]):
@@ -501,7 +525,7 @@ class ResultCollection(List[Result]):
         for path in tqdm(list(folder.glob(pattern)), disable=not progress):
             if path.is_file():
                 try:
-                    result = Result.from_file(path, model)
+                    result = Result.from_file(path, model=model)
                 except Exception as err:
                     if strict:
                         err.args = (str(err) + f"\nError reading file `{path}`",)

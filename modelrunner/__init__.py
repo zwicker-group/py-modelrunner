@@ -1,10 +1,16 @@
 """
 
 .. inheritance-diagram::
+<<<<<<< Upstream, based on main
         io.IOBase
         state.StateBase
         state.ArrayState
         state.ArrayCollectionState
+=======
+        _io.IOBase
+        state.StateBase
+        state.ArrayState
+>>>>>>> 5b3d6ac More restructuring
         state.ObjectState
         state.DictState
         results.Result

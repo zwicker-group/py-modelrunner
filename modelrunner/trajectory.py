@@ -12,6 +12,7 @@ Classes that describe the state of a simulation over time
 
 from __future__ import annotations
 <<<<<<< Upstream, based on main
+<<<<<<< Upstream, based on main
 
 from typing import Any, Dict, Iterator, Optional, Union
 
@@ -138,6 +139,10 @@ class Trajectory:
             self._state._update_from_zarr(self._root["data"], index=t_index)
 =======
 from typing import Any, Dict, Iterator, Union, Optional
+=======
+
+from typing import Any, Dict, Iterator, Optional, Union
+>>>>>>> 5b3d6ac More restructuring
 
 import numpy as np
 import zarr
@@ -182,13 +187,13 @@ class TrajectoryWriter:
 
     def append(self, data: StateBase, time: float = None) -> None:
         if "data" not in self._root:
-            data._prepare_trajectory(self._root, label="data")
+            data._prepare_zarr_trajectory(self._root, label="data")
 
         if time is None:
             time = 0 if len(self.times) == 0 else self.times[-1] + 1
 
         self.times.append([time])
-        data._append_to_trajectory(self._root["data"])
+        data._append_to_zarr_trajectory(self._root["data"])
 
     def close(self):
         self._root.store.close()
@@ -253,12 +258,16 @@ class Trajectory:
 
         if self.ret_copy or self._state is None:
             # create the state with the data of the given index
-            self._state = StateBase._load_state(self._root["data"], index=t_index)
+            self._state = StateBase._from_zarr(self._root["data"], index=t_index)
 
         else:
             # update the state with the data of the given index
+<<<<<<< Upstream, based on main
             self._state._update_data(self._root["data"], index=t_index)
 >>>>>>> 4c1ad3b Split trajectory from state module
+=======
+            self._state._update_from_zarr(self._root["data"], index=t_index)
+>>>>>>> 5b3d6ac More restructuring
         return self._state
 
     def __getitem__(self, key: Union[int, slice]) -> Union[StateBase, Trajectory]:

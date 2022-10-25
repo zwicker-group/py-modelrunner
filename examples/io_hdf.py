@@ -22,8 +22,12 @@ if __name__ == "__main__":
 
     # write result from file
 <<<<<<< Upstream, based on main
+<<<<<<< Upstream, based on main
     read = Result.from_file("test.hdf")
 =======
     read = Result.from_hdf("test.hdf")
 >>>>>>> effedef Use State classes in rest of package
+=======
+    read = Result.from_file("test.hdf")
+>>>>>>> 5b3d6ac More restructuring
     print(read.parameters, "–– start + [0..length-1] =", read.state)
