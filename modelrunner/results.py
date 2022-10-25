@@ -23,7 +23,7 @@ from .io import IOBase, NumpyEncoder, read_hdf_data, write_hdf_dataset
 from .model import ModelBase
 <<<<<<< Upstream, based on main
 from .parameters import NoValueType
-from .state import ArrayState, ObjectState, StateBase
+from .state import make_state, StateBase
 
 
 def contains_array(data) -> bool:
@@ -220,12 +220,7 @@ class Result:
         obj.name = model_data.get("name")
         obj.description = model_data.get("description")
 
-        if isinstance(state, np.ndarray):
-            state = ArrayState(state)
-        elif not isinstance(state, StateBase):
-            state = ObjectState(state)
-
-        return cls(obj, state, info)
+        return cls(obj, make_state(state), info)
 
     @property
     def parameters(self) -> Dict[str, Any]:
