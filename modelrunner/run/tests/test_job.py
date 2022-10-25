@@ -17,7 +17,7 @@ def test_submit_job(tmp_path):
 
     def run(**p):
         """helper submitting job locally"""
-        output = tmp_path / "output.yaml"
+        output = tmp_path / "output.json"
         submit_job(
             SCRIPT_PATH / "function.py",
             output,
@@ -26,11 +26,11 @@ def test_submit_job(tmp_path):
             method="foreground",
             overwrite_strategy="silent_overwrite",
         )
-        return Result.from_file(output).result
+        return Result.from_file(output)
 
-    assert run()["a"] == 1
-    assert run(a=2)["a"] == 2
-    assert run(b=[1, 2, 3])["b"] == [1, 2, 3]
+    assert run().state.data["a"] == 1
+    assert run(a=2).state.data["a"] == 2
+    assert run(b=[1, 2, 3]).state.data["b"] == [1, 2, 3]
 
 
 def test_submit_jobs(tmp_path):

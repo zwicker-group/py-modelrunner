@@ -18,4 +18,4 @@ if __name__ == "__main__":
     result.write_to_yaml("test.yaml")
 
     read = Result.from_yaml("test.yaml")
-    print(read.parameters, "–– a * b =", read.result)
+    print(read.parameters, "–– a * b =", read.state)

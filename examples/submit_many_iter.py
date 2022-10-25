@@ -28,5 +28,5 @@ if __name__ == "__main__":
                 output=f"data/{name}.json",
                 name=name,
                 parameters={"a": a, "b": b},
-                method="local",  # run job locally
+                method="foreground",  # run job locally
             )
