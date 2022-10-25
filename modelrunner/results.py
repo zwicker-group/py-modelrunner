@@ -21,6 +21,7 @@ from tqdm.auto import tqdm
 
 from .model import ModelBase
 from .parameters import NoValueType
+from .state import ArrayState, ObjectState, StateBase
 
 
 def contains_array(data) -> bool:
@@ -140,19 +141,26 @@ class MockModel(ModelBase):
 class Result:
     """describes a model (with parameters) together with its result"""
 
-    def __init__(self, model: ModelBase, result, info: Optional[Dict[str, Any]] = None):
+    def __init__(self, model: ModelBase, state: StateBase, info: Optional[Dict[str, Any]] = None):
         """
         Args:
-            model (:class:`ModelBase`): The model from which the result was obtained
-            result: The actual result
-            info (dict): Additional information for this result
+            model (:class:`ModelBase`):
+                The model from which the result was obtained
+            state (:class:`StateBase`):
+                The actual result, saved as a state
+            info (dict):
+                Additional information for this result
         """
+        assert isinstance(model, ModelBase)
+        assert isinstance(state, StateBase)
         self.model = model
         self.info = info
-        if isinstance(result, Result):
-            self.result: Any = result.result
-        else:
-            self.result = result
+        self.state = state
+
+    @property
+    def data(self):
+        """direct access to the underlying state data"""
+        return self.state.data
 
     @classmethod
     def from_data(
@@ -165,10 +173,14 @@ class Result:
         """create result from data
 
         Args:
-            model_data (dict): The data identifying the model
-            result: The actual result
-            model (:class:`ModelBase`): The model from which the result was obtained
-            info (dict): Additional information for this result
+            model_data (dict):
+                The data identifying the model
+            state:
+                The actual result data
+            model (:class:`ModelBase`):
+                The model from which the result was obtained
+            info (dict):
+                Additional information for this result
         """
         if model is None:
             model_cls: Type[ModelBase] = MockModel
@@ -181,7 +193,12 @@ class Result:
         obj.name = model_data.get("name")
         obj.description = model_data.get("description")
 
-        return cls(obj, result, info)
+        if isinstance(state, np.ndarray):
+            state = ArrayState(state)
+        elif not isinstance(state, StateBase):
+            state = ObjectState(state)
+
+        return cls(obj, state, info)
 
     @property
     def parameters(self) -> Dict[str, Any]:
@@ -232,12 +249,16 @@ class Result:
         with open(path, "r") as fp:
             data = json.load(fp)
 
+        # load state
+        state = StateBase.from_state(data["state"], data.get("data"))
+
+        # load additional info
         info = data.get("info", {})
         info.setdefault("name", Path(path).with_suffix("").stem)
 
         return cls.from_data(
             model_data=data.get("model", {}),
-            result=data.get("result"),
+            state=state,
             model=model,
             info=info,
         )
@@ -250,7 +271,8 @@ class Result:
         """
         data = {
             "model": simplify_data(self.model.attributes),
-            "result": simplify_data(self.result),
+            "state": simplify_data(self.state.attributes),
+            "data": simplify_data(self.state.data),
         }
         if self.info:
             data["info"] = self.info
@@ -271,12 +293,16 @@ class Result:
         with open(path, "r") as fp:
             data = yaml.safe_load(fp)
 
+        # load state
+        state = StateBase.from_state(data["state"], data.get("data"))
+
+        # load additional info
         info = data.get("info", {})
         info.setdefault("name", Path(path).with_suffix("").stem)
 
         return cls.from_data(
             model_data=data.get("model", {}),
-            result=data.get("result"),
+            state=state,
             model=model,
             info=info,
         )
@@ -292,13 +318,14 @@ class Result:
         # compile all data
         data = {
             "model": simplify_data(self.model.attributes),
-            "result": simplify_data(self.result),
+            "state": simplify_data(self.state.attributes),
+            "data": simplify_data(self.state.data),
         }
         if self.info:
             data["info"] = self.info
 
         with open(path, "w") as fp:
-            yaml.dump(data, fp)
+            yaml.dump(data, fp, sort_keys=False)
 
     @classmethod
     def from_hdf(cls, path, model: Optional[ModelBase] = None) -> Result:
@@ -312,18 +339,21 @@ class Result:
 
         with h5py.File(path, "r") as fp:
             model_data = {key: json.loads(value) for key, value in fp.attrs.items()}
-            if "result" in fp:
-                result = read_hdf_data(fp["result"])
-            else:
-                result = model_data.pop("result")
-            # check for other nodes, which might not be read
+            # if "state" in fp:
+            attributes = read_hdf_data(fp["state"])
+            data = read_hdf_data(fp["data"])
+            # else:
+            #     state = model_data.pop("result")
+            # # check for other nodes, which might not be read
 
+        # load state
+        state = StateBase.from_state(attributes, data)
+
+        # load additional info
         info = model_data.pop("__info__") if "__info__" in model_data else {}
         info.setdefault("name", Path(path).with_suffix("").stem)
 
-        return cls.from_data(
-            model_data=model_data, result=result, model=model, info=info
-        )
+        return cls.from_data(model_data=model_data, state=state, model=model, info=info)
 
     def write_to_hdf(self, path) -> None:
         """write result to HDF file
@@ -344,7 +374,8 @@ class Result:
                 )
 
             # write the actual data
-            write_hdf_dataset(fp, self.result, "result")
+            write_hdf_dataset(fp, self.state.attributes, "state")
+            write_hdf_dataset(fp, self.state.data, "data")
 
 
 class ResultCollection(List[Result]):
@@ -547,10 +578,10 @@ class ResultCollection(List[Result]):
             data = result.parameters.copy()
             if result.info.get("name"):
                 data.setdefault("name", result.info["name"])
-            if np.isscalar(result.result):
-                data["result"] = result.result
-            elif isinstance(result.result, dict):
-                for key, value in result.result.items():
+            if np.isscalar(result.state.data):
+                data["result"] = result.state.data
+            elif isinstance(result.state.data, dict):
+                for key, value in result.state.data.items():
                     if np.isscalar(value):
                         data[key] = value
                     elif isinstance(value, (list, tuple, np.ndarray)):

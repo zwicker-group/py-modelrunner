@@ -43,7 +43,7 @@ def test_result_serialization(extension, tmp_path):
     # read data
     read = Result.from_file(path)
     assert read.model.name == "model"
-    np.testing.assert_equal(read.result, result.result)
+    np.testing.assert_equal(read.state, result.state)
 
 
 def test_result_collections():

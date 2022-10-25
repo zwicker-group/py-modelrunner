@@ -134,7 +134,7 @@ def test_make_model():
     assert f() == 4
     assert f(3) == 9
     assert f(a=4) == 16
-    assert f.get_result().result == 4
+    assert f.get_result().state.data == 4
 
     @make_model
     def g(a, b=2):
@@ -162,7 +162,7 @@ def test_make_model_class():
 
     assert model()() == 4
     assert model({"a": 3})() == 9
-    assert model({"a": 4}).get_result().result == 16
+    assert model({"a": 4}).get_result().state.data == 16
 
 
 def test_argparse_boolean_arguments():
@@ -176,6 +176,9 @@ def test_argparse_boolean_arguments():
         f0.run_from_command_line()
     assert f0.run_from_command_line(["--flag"]).result
     assert not f0.run_from_command_line(["--no-flag"]).result
+        f0.from_command_line()
+    assert f0.from_command_line(["--flag"]).state.data
+    assert not f0.from_command_line(["--no-flag"]).state.data
 
     @make_model
     def f1(flag: bool = False):
@@ -183,6 +186,8 @@ def test_argparse_boolean_arguments():
 
     assert not f1.run_from_command_line().result
     assert f1.run_from_command_line(["--flag"]).result
+    assert not f1.from_command_line().state.data
+    assert f1.from_command_line(["--flag"]).state.data
 
     @make_model
     def f2(flag: bool = True):
@@ -190,6 +195,8 @@ def test_argparse_boolean_arguments():
 
     assert f2.run_from_command_line().result
     assert not f2.run_from_command_line(["--no-flag"]).result
+    assert f2.from_command_line().state.data
+    assert not f2.from_command_line(["--no-flag"]).state.data
 
 
 def test_argparse_list_arguments():
@@ -204,15 +211,19 @@ def test_argparse_list_arguments():
     assert f0.run_from_command_line(["--flag"]).result == []
     assert f0.run_from_command_line(["--flag", "0"]).result == ["0"]
     assert f0.run_from_command_line(["--flag", "0", "1"]).result == ["0", "1"]
+        assert f0.from_command_line()
+    assert f0.from_command_line(["--flag"]).state.data == []
+    assert f0.from_command_line(["--flag", "0"]).state.data == ["0"]
+    assert f0.from_command_line(["--flag", "0", "1"]).state.data == ["0", "1"]
 
     @make_model
     def f1(flag: list = [0, 1]):
         return flag
 
-    assert f1.run_from_command_line().result == [0, 1]
-    assert f1.run_from_command_line(["--flag"]).result == []
-    assert f1.run_from_command_line(["--flag", "0"]).result == ["0"]
-    assert f1.run_from_command_line(["--flag", "0", "1"]).result == ["0", "1"]
+    assert f1.from_command_line().state.data == [0, 1]
+    assert f1.from_command_line(["--flag"]).state.data == []
+    assert f1.from_command_line(["--flag", "0"]).state.data == ["0"]
+    assert f1.from_command_line(["--flag", "0", "1"]).state.data == ["0", "1"]
 
 
 def test_model_class_inheritence():
@@ -236,7 +247,7 @@ def test_model_class_inheritence():
 
     assert A().parameters == {"a": 1, "b": 2, "c": 3}
     assert A()() == 4
-    assert A.run_from_command_line(["--a", "2"]).result == 5
+    assert A.run_from_command_line(["--a", "2"]).state.data == 5
     with pytest.raises(SystemExit):
         A.run_from_command_line(["--b", "2"])
 
@@ -246,5 +257,5 @@ def test_model_class_inheritence():
         B.run_from_command_line(["--a", "2"])
     with pytest.raises(SystemExit):
         B.run_from_command_line(["--b", "2"])
-    assert B.run_from_command_line(["--c", "2"]).result == 8
-    assert B.run_from_command_line(["--d", "6"]).result == 11
+    assert B.run_from_command_line(["--c", "2"]).state.data == 8
+    assert B.run_from_command_line(["--d", "6"]).state.data == 11

@@ -47,6 +47,7 @@ def main(package="modelrunner"):
     sp.check_call(
         [
             "sphinx-apidoc",
+            "--separate",
             "--maxdepth",
             "4",
             "--output-dir",
