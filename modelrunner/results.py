@@ -19,10 +19,14 @@ import numpy as np
 from tqdm.auto import tqdm
 
 <<<<<<< Upstream, based on main
+<<<<<<< Upstream, based on main
 from .io import IOBase, NumpyEncoder, read_hdf_data, write_hdf_dataset
 =======
 from ._io import IOBase, read_hdf_data, write_hdf_dataset, NumpyEncoder
 >>>>>>> 5b3d6ac More restructuring
+=======
+from .io import IOBase, read_hdf_data, write_hdf_dataset, NumpyEncoder
+>>>>>>> 58f9ab8 Renamed _io to io
 from .model import ModelBase
 <<<<<<< Upstream, based on main
 <<<<<<< Upstream, based on main

@@ -2,12 +2,16 @@
 
 .. inheritance-diagram::
 <<<<<<< Upstream, based on main
+<<<<<<< Upstream, based on main
         io.IOBase
         state.StateBase
         state.ArrayState
         state.ArrayCollectionState
 =======
         _io.IOBase
+=======
+        io.IOBase
+>>>>>>> 58f9ab8 Renamed _io to io
         state.StateBase
         state.ArrayState
 >>>>>>> 5b3d6ac More restructuring

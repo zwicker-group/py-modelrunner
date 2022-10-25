@@ -28,10 +28,14 @@ import numpy as np
 import zarr
 
 <<<<<<< Upstream, based on main
+<<<<<<< Upstream, based on main
 from .io import IOBase, zarrElement
 =======
 from ._io import IOBase, zarrElement
 >>>>>>> 5b3d6ac More restructuring
+=======
+from .io import IOBase, zarrElement
+>>>>>>> 58f9ab8 Renamed _io to io
 
 
 def _equals(left: Any, right: Any) -> bool:
