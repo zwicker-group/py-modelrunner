@@ -16,7 +16,7 @@ from typing import Any, Dict, Iterator, List, Set, Tuple, Type, Union
 import numpy as np
 from tqdm.auto import tqdm
 
-from .io import IOBase, read_hdf_data, write_hdf_dataset, NumpyEncoder
+from .io import IOBase, NumpyEncoder, read_hdf_data, write_hdf_dataset
 from .model import ModelBase
 from .state import StateBase, make_state
 
@@ -100,7 +100,7 @@ class Result(IOBase):
         return self.model.parameters
 
     @classmethod
-    def _from_json_data(cls, content, model: ModelBase = None) -> Result:
+    def _from_text_data(cls, content, model: ModelBase = None, *, fmt="yaml") -> Result:
         """read result from a JSON file
 
         Args:
@@ -109,46 +109,16 @@ class Result(IOBase):
         """
         return cls.from_data(
             model_data=content.get("model", {}),
-            state=StateBase._from_json_data(content["state"]),
+            state=StateBase._from_text_data(content["state"], fmt=fmt),
             model=model,
             info=content.get("info"),
         )
 
-    def _to_json_data(self):
+    def _to_text_data(self):
         """write result to JSON file"""
         content = {
             "model": self.model.attributes,
-            "state": self.state._to_json_data(),
-        }
-        if self.info:
-            content["info"] = self.info
-        return content
-
-    @classmethod
-    def _from_yaml_data(cls, content, model: ModelBase = None) -> Result:
-        """read result from a YAML file
-
-        Args:
-            path (str or :class:`~pathlib.Path`): The path to the file
-            model (:class:`ModelBase`): The model from which the result was obtained
-        """
-        return cls.from_data(
-            model_data=content.get("model", {}),
-            state=StateBase._from_yaml_data(content["state"]),
-            model=model,
-            info=content.get("info", {}),
-        )
-
-    def _to_yaml_data(self):
-        """write result to YAML file
-
-        Args:
-            path (str or :class:`~pathlib.Path`): The path to the file
-        """
-        # compile all data
-        content = {
-            "model": self.model.attributes,
-            "state": self.state._to_yaml_data(),
+            "state": self.state._to_text_data(),
         }
         if self.info:
             content["info"] = self.info
