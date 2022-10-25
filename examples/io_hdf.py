@@ -18,8 +18,8 @@ def number_range(start: float = 1, length: int = 3):
 if __name__ == "__main__":
     # write result to file
     result = run_function_with_cmd_args(number_range)
-    result.write_to_hdf("test.hdf")
+    result.to_file("test.hdf")
 
     # write result from file
-    read = Result.from_hdf("test.hdf")
+    read = Result.from_file("test.hdf")
     print(read.parameters, "–– start + [0..length-1] =", read.state)

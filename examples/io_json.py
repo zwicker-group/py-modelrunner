@@ -15,7 +15,7 @@ def multiply(a: float = 1, b: float = 2):
 
 if __name__ == "__main__":
     result = run_function_with_cmd_args(multiply)
-    result.write_to_json("test.json")
+    result.to_file("test.json")
 
-    read = Result.from_json("test.json")
+    read = Result.from_file("test.json")
     print(read.parameters, "–– a * b =", read.state)
