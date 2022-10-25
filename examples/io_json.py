@@ -18,4 +18,4 @@ if __name__ == "__main__":
     result.write_to_json("test.json")
 
     read = Result.from_json("test.json")
-    print(read.parameters, "–– a * b =", read.result)
+    print(read.parameters, "–– a * b =", read.state)

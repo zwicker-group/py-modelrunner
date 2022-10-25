@@ -119,6 +119,7 @@ def submit_job(
     ensure_directory_exists(log_folder)
 
     script_args = {
+        "PACKAGE_PATH": Path(__file__).parents[2],
         "LOG_FOLDER": log_folder,
         "JOB_NAME": name,
         "MODEL_FILE": escape_string(script),

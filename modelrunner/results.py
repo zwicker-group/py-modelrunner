@@ -21,6 +21,7 @@ from tqdm.auto import tqdm
 
 from .model import ModelBase
 from .parameters import NoValueType
+from .state import ArrayState, ObjectState, StateBase
 
 
 def contains_array(data) -> bool:
@@ -149,6 +150,8 @@ class Result:
             result_data: The actual result data
             info (dict): Additional information for this result
         """
+        assert isinstance(model, ModelBase)
+        assert isinstance(state, StateBase)
         self.model = model
         self.info = info
         if isinstance(result_data, Result):
@@ -185,6 +188,11 @@ class Result:
         obj = model_cls(model_data.get("parameters", {}))
         obj.name = model_data.get("name")
         obj.description = model_data.get("description")
+
+        if isinstance(result_data, np.ndarray):
+            result_data = ArrayState(result_data)
+        elif not isinstance(result_data, StateBase):
+            result_data = ObjectState(result_data)
 
         return cls(obj, result_data, info)
 
@@ -237,12 +245,16 @@ class Result:
         with open(path, "r") as fp:
             data = json.load(fp)
 
+        # load state
+        state = StateBase.from_state(data["state"], data.get("data"))
+
+        # load additional info
         info = data.get("info", {})
         info.setdefault("name", Path(path).with_suffix("").stem)
 
         return cls.from_data(
             model_data=data.get("model", {}),
-            result_data=data.get("result"),
+            result_data=state,
             model=model,
             info=info,
         )
@@ -255,7 +267,8 @@ class Result:
         """
         data = {
             "model": simplify_data(self.model.attributes),
-            "result": simplify_data(self.result),
+            "state": simplify_data(self.state.attributes),
+            "data": simplify_data(self.state.data),
         }
         if self.info:
             data["info"] = self.info
@@ -276,12 +289,16 @@ class Result:
         with open(path, "r") as fp:
             data = yaml.safe_load(fp)
 
+        # load state
+        state = StateBase.from_state(data["state"], data.get("data"))
+
+        # load additional info
         info = data.get("info", {})
         info.setdefault("name", Path(path).with_suffix("").stem)
 
         return cls.from_data(
             model_data=data.get("model", {}),
-            result_data=data.get("result"),
+            result_data=state,
             model=model,
             info=info,
         )
@@ -297,13 +314,14 @@ class Result:
         # compile all data
         data = {
             "model": simplify_data(self.model.attributes),
-            "result": simplify_data(self.result),
+            "state": simplify_data(self.state.attributes),
+            "data": simplify_data(self.state.data),
         }
         if self.info:
             data["info"] = self.info
 
         with open(path, "w") as fp:
-            yaml.dump(data, fp)
+            yaml.dump(data, fp, sort_keys=False)
 
     @classmethod
     def from_hdf(cls, path, model: Optional[ModelBase] = None) -> Result:
@@ -317,17 +335,22 @@ class Result:
 
         with h5py.File(path, "r") as fp:
             model_data = {key: json.loads(value) for key, value in fp.attrs.items()}
-            if "result" in fp:
-                result = read_hdf_data(fp["result"])
-            else:
-                result = model_data.pop("result")
-            # check for other nodes, which might not be read
+            # if "state" in fp:
+            attributes = read_hdf_data(fp["state"])
+            data = read_hdf_data(fp["data"])
+            # else:
+            #     state = model_data.pop("result")
+            # # check for other nodes, which might not be read
 
+        # load state
+        state = StateBase.from_state(attributes, data)
+
+        # load additional info
         info = model_data.pop("__info__") if "__info__" in model_data else {}
         info.setdefault("name", Path(path).with_suffix("").stem)
 
         return cls.from_data(
-            model_data=model_data, result_data=result, model=model, info=info
+            model_data=model_data, result_data=state, model=model, info=info
         )
 
     def write_to_hdf(self, path) -> None:
@@ -349,7 +372,8 @@ class Result:
                 )
 
             # write the actual data
-            write_hdf_dataset(fp, self.result, "result")
+            write_hdf_dataset(fp, self.state.attributes, "state")
+            write_hdf_dataset(fp, self.state.data, "data")
 
 
 class ResultCollection(List[Result]):
@@ -552,10 +576,10 @@ class ResultCollection(List[Result]):
             data = result.parameters.copy()
             if result.info.get("name"):
                 data.setdefault("name", result.info["name"])
-            if np.isscalar(result.result):
-                data["result"] = result.result
-            elif isinstance(result.result, dict):
-                for key, value in result.result.items():
+            if np.isscalar(result.state.data):
+                data["result"] = result.state.data
+            elif isinstance(result.state.data, dict):
+                for key, value in result.state.data.items():
                     if np.isscalar(value):
                         data[key] = value
                     elif isinstance(value, (list, tuple, np.ndarray)):

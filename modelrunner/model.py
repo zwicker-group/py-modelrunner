@@ -21,6 +21,7 @@ from .parameters import (
     Parameter,
     Parameterized,
 )
+from .state import ObjectState, StateBase
 
 if TYPE_CHECKING:
     from .results import Result  # @UnusedImport
@@ -31,6 +32,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
 
     name: Optional[str] = None
     description: Optional[str] = None
+    state_cls = ObjectState
 
     def __init__(
         self, parameters: Optional[Dict[str, Any]] = None, output: Optional[str] = None
@@ -55,11 +57,11 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         """main method calculating the result"""
         pass
 
-    def get_result(self, result_data=None) -> "Result":
+    def get_result(self, state: StateBase = None) -> "Result":
         """get the result as a :class:`~model.Result` object
 
         Args:
-            result_data:
+            state:
                 The result data. If omitted, the model is run to obtain results
 
         Returns:
@@ -67,22 +69,23 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         """
         from .results import Result  # @Reimport
 
-        if result_data is None:
-            result_data = self()
-        elif isinstance(result_data, Result):
-            return result_data
+        if state is None:
+            state_data = self()
+            state = self.state_cls(state_data)
+        elif isinstance(state, Result):
+            return state
 
         info = {"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-        return Result(self, result_data, info=info)
+        return Result(self, state, info=info)
 
-    def write_result(self, output: Optional[str] = None, result_data=None) -> None:
+    def write_result(self, output: Optional[str] = None, result=None) -> None:
         """write the result to the output file
 
         Args:
             output (str):
                 File where the output will be written to. If omitted self.output will be
                 used. If self.output is also None, an error will be thrown.
-            result_data:
+            result:
                 The result data. If omitted, the model is run to obtain results
         """
         if output is None:
@@ -90,7 +93,12 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         if output is None:
             raise RuntimeError("output file needs to be specified")
 
-        result = self.get_result(result_data)
+        if result is None:
+            result = self.get_result()
+        else:
+            from .results import Result  # @Reimport
+
+            assert isinstance(result, Result)
         result.write_to_file(output)
 
     @classmethod
