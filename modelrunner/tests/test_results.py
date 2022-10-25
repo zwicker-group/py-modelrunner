@@ -38,7 +38,7 @@ def test_result_serialization(extension, tmp_path):
 
     # write data
     path = tmp_path / ("test" + extension)
-    result.write_to_file(path)
+    result.to_file(path)
 
     # read data
     read = Result.from_file(path)

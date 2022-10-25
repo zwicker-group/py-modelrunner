@@ -153,6 +153,9 @@ def submit_job(
             else:
                 raise NotImplementedError(f"Unknown strategy `{overwrite_strategy}`")
 
+            # delete old output
+            output.unlink(missing_ok=True)
+
         # check whether output points to a directory or whether this should be a file
         if output.is_dir():
             script_args["OUTPUT_FOLDER"] = pipes.quote(str(output))

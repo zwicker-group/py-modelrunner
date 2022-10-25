@@ -11,7 +11,6 @@ import inspect
 import itertools
 import json
 import logging
-import os.path
 import warnings
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Type, Union
@@ -19,106 +18,12 @@ from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Type, Union
 import numpy as np
 from tqdm.auto import tqdm
 
+from ._io import IOBase, read_hdf_data, write_hdf_dataset, NumpyEncoder
 from .model import ModelBase
 from .parameters import NoValueType
 from .state import make_state, StateBase
 
 
-def contains_array(data) -> bool:
-    """checks whether data contains a numpy array"""
-    if isinstance(data, np.ndarray):
-        return True
-    elif isinstance(data, dict):
-        return any(contains_array(d) for d in data.values())
-    elif isinstance(data, str):
-        return False
-    elif hasattr(data, "__iter__"):
-        return any(contains_array(d) for d in data)
-    else:
-        return False
-
-
-class NumpyEncoder(json.JSONEncoder):
-    """helper class for encoding python data in JSON"""
-
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        if isinstance(obj, np.generic):
-            return obj.item()
-        if isinstance(obj, NoValueType):
-            return None
-        return json.JSONEncoder.default(self, obj)
-
-
-def simplify_data(data):
-    """simplify data (e.g. for writing to yaml)"""
-    if isinstance(data, dict):
-        data = {key: simplify_data(value) for key, value in data.items()}
-
-    elif isinstance(data, (tuple, list)):
-        data = [simplify_data(item) for item in data]
-
-    elif isinstance(data, np.ndarray):
-        if np.isscalar(data):
-            data = data.item()
-        elif data.size <= 100:
-            # for less than ~100 items a list is actually more efficient to store
-            data = data.tolist()
-
-    elif isinstance(data, np.number):
-        data = data.tolist()
-
-    return data
-
-
-def write_hdf_dataset(node, data, name: str) -> None:
-    """writes data to an HDF node
-
-    Args:
-        node: the HDF node
-        data: the data to be written
-        name (str): name of the data in case a new dataset or group is created
-    """
-    if data is None:
-        return
-
-    if isinstance(data, np.ndarray):
-        node.create_dataset(name, data=data)
-
-    else:
-        if not contains_array(data):
-            # write everything as JSON encoded string
-            if isinstance(data, dict):
-                group = node.create_group(name)
-                for key, value in data.items():
-                    group.attrs[key] = json.dumps(value, cls=NumpyEncoder)
-            else:
-                node.attrs[name] = json.dumps(data, cls=NumpyEncoder)
-
-        elif isinstance(data, dict):
-            group = node.create_group(name)
-            for key, value in data.items():
-                write_hdf_dataset(group, value, key)
-
-        else:
-            group = node.create_group(name)
-            for n, value in enumerate(data):
-                write_hdf_dataset(group, value, str(n))
-
-
-def read_hdf_data(node):
-    """read structured data written with :func:`write_hdf_dataset` from an HDF node"""
-    import h5py
-
-    if isinstance(node, h5py.Dataset):
-        return np.array(node)
-    else:
-        # this must be a group
-        data = {key: json.loads(value) for key, value in node.attrs.items()}
-        for key, value in node.items():
-            data[key] = read_hdf_data(value)
-        return data
 
 
 class MockModel(ModelBase):
@@ -138,7 +43,7 @@ class MockModel(ModelBase):
         return f"{self.__class__.__name__}({self.parameters})"
 
 
-class Result:
+class Result(IOBase):
     """describes a model (with parameters) together with its result"""
 
     def __init__(self, model: ModelBase, state: StateBase, info: Optional[Dict[str, Any]] = None):
@@ -189,188 +94,112 @@ class Result:
 
         if not model_data:
             warnings.warn("Model data not found")
-        obj = model_cls(model_data.get("parameters", {}))
-        obj.name = model_data.get("name")
-        obj.description = model_data.get("description")
+        model = model_cls(model_data.get("parameters", {}))
+        model.name = model_data.get("name")
+        model.description = model_data.get("description")
 
-        return cls(obj, make_state(state), info)
+        return cls(model, make_state(state), info)
 
     @property
     def parameters(self) -> Dict[str, Any]:
         return self.model.parameters
 
     @classmethod
-    def from_file(cls, path, model: Optional[ModelBase] = None):
-        """read result from file
-
-        Args:
-            path (str or :class:`~pathlib.Path`): The path to the file
-            model (:class:`ModelBase`): The model from which the result was obtained
-        """
-        ext = os.path.splitext(path)[1].lower()
-        if ext == ".json":
-            return cls.from_json(path, model)
-        elif ext in {".yml", ".yaml"}:
-            return cls.from_yaml(path, model)
-        elif ext in {".h5", ".hdf", ".hdf5"}:
-            return cls.from_hdf(path, model)
-        else:
-            raise ValueError(f"Unknown file format of `{path}`")
-
-    def write_to_file(self, path):
-        """write result to a file
-
-        Args:
-            path (str or :class:`~pathlib.Path`): The path to the file
-        """
-        ext = os.path.splitext(path)[1].lower()
-        if ext == ".json":
-            self.write_to_json(path)
-        elif ext in {".yml", ".yaml"}:
-            self.write_to_yaml(path)
-        elif ext in {".h5", ".hdf", ".hdf5"}:
-            self.write_to_hdf(path)
-        else:
-            raise ValueError(f"Unknown file format `{ext}`")
-
-    @classmethod
-    def from_json(cls, path, model: Optional[ModelBase] = None) -> Result:
+    def _from_json_data(cls, content, model: ModelBase = None) -> Result:
         """read result from a JSON file
 
         Args:
             path (str or :class:`~pathlib.Path`): The path to the file
             model (:class:`ModelBase`): The model from which the result was obtained
         """
-        with open(path, "r") as fp:
-            data = json.load(fp)
-
-        # load state
-        state = StateBase.from_state(data["state"], data.get("data"))
-
-        # load additional info
-        info = data.get("info", {})
-        info.setdefault("name", Path(path).with_suffix("").stem)
-
         return cls.from_data(
-            model_data=data.get("model", {}),
-            state=state,
+            model_data=content.get("model", {}),
+            state=StateBase._from_json_data(content["state"]),
             model=model,
-            info=info,
+            info=content.get("info"),
         )
 
-    def write_to_json(self, path) -> None:
-        """write result to JSON file
-
-        Args:
-            path (str or :class:`~pathlib.Path`): The path to the file
-        """
-        data = {
+    def _to_json_data(self):
+        """write result to JSON file"""
+        content = {
             "model": simplify_data(self.model.attributes),
-            "state": simplify_data(self.state.attributes),
-            "data": simplify_data(self.state.data),
+            "state": self.state._to_json_data(),
         }
         if self.info:
-            data["info"] = self.info
-
-        with open(path, "w") as fp:
-            json.dump(data, fp, cls=NumpyEncoder)
+            content["info"] = self.info
+        return content
 
     @classmethod
-    def from_yaml(cls, path, model: Optional[ModelBase] = None) -> Result:
+    def _from_yaml_data(cls, content, model: ModelBase = None) -> Result:
         """read result from a YAML file
 
         Args:
             path (str or :class:`~pathlib.Path`): The path to the file
             model (:class:`ModelBase`): The model from which the result was obtained
         """
-        import yaml
-
-        with open(path, "r") as fp:
-            data = yaml.safe_load(fp)
-
-        # load state
-        state = StateBase.from_state(data["state"], data.get("data"))
-
-        # load additional info
-        info = data.get("info", {})
-        info.setdefault("name", Path(path).with_suffix("").stem)
-
         return cls.from_data(
-            model_data=data.get("model", {}),
-            state=state,
+            model_data=content.get("model", {}),
+            state=StateBase._from_yaml_data(content["state"]),
             model=model,
-            info=info,
+            info=content.get("info", {}),
         )
 
-    def write_to_yaml(self, path) -> None:
+    def _to_yaml_data(self):
         """write result to YAML file
 
         Args:
             path (str or :class:`~pathlib.Path`): The path to the file
         """
-        import yaml
-
         # compile all data
         data = {
             "model": simplify_data(self.model.attributes),
-            "state": simplify_data(self.state.attributes),
-            "data": simplify_data(self.state.data),
+            "state": self.state._to_yaml_data(),
         }
         if self.info:
-            data["info"] = self.info
-
-        with open(path, "w") as fp:
-            yaml.dump(data, fp, sort_keys=False)
+            content["info"] = self.info
+        return content
 
     @classmethod
-    def from_hdf(cls, path, model: Optional[ModelBase] = None) -> Result:
+    def _from_hdf(cls, hdf_element, model: ModelBase = None) -> Result:
         """read result from a HDf file
 
         Args:
-            path (str or :class:`~pathlib.Path`): The path to the file
+            hdf_element: The path to the file
             model (:class:`ModelBase`): The model from which the result was obtained
         """
-        import h5py
-
-        with h5py.File(path, "r") as fp:
-            model_data = {key: json.loads(value) for key, value in fp.attrs.items()}
-            # if "state" in fp:
-            attributes = read_hdf_data(fp["state"])
-            data = read_hdf_data(fp["data"])
-            # else:
-            #     state = model_data.pop("result")
-            # # check for other nodes, which might not be read
+        model_data = {
+            key: json.loads(value) for key, value in hdf_element.attrs.items()
+        }
+        attributes = read_hdf_data(hdf_element["state"])
+        data = read_hdf_data(hdf_element["data"])
+        # else:
+        #     state = model_data.pop("result")
+        # # check for other nodes, which might not be read
 
         # load state
         state = StateBase.from_state(attributes, data)
 
         # load additional info
         info = model_data.pop("__info__") if "__info__" in model_data else {}
-        info.setdefault("name", Path(path).with_suffix("").stem)
 
         return cls.from_data(model_data=model_data, state=state, model=model, info=info)
 
-    def write_to_hdf(self, path) -> None:
+    def _write_hdf(self, root) -> None:
         """write result to HDF file
 
         Args:
             path (str or :class:`~pathlib.Path`): The path to the file
         """
-        import h5py
+        # write attributes
+        for key, value in self.model.attributes.items():
+            root.attrs[key] = json.dumps(value, cls=NumpyEncoder)
 
-        with h5py.File(path, "w") as fp:
-            # write attributes
-            for key, value in self.model.attributes.items():
-                fp.attrs[key] = json.dumps(simplify_data(value), cls=NumpyEncoder)
+        if self.info:
+            root.attrs["__info__"] = json.dumps(self.info, cls=NumpyEncoder)
 
-            if self.info:
-                fp.attrs["__info__"] = json.dumps(
-                    simplify_data(self.info), cls=NumpyEncoder
-                )
-
-            # write the actual data
-            write_hdf_dataset(fp, self.state.attributes, "state")
-            write_hdf_dataset(fp, self.state.data, "data")
+        # write the actual data
+        write_hdf_dataset(root, self.state.attributes, "state")
+        write_hdf_dataset(root, self.state.data, "data")
 
 
 class ResultCollection(List[Result]):
@@ -411,7 +240,7 @@ class ResultCollection(List[Result]):
         for path in tqdm(list(folder.glob(pattern)), disable=not progress):
             if path.is_file():
                 try:
-                    result = Result.from_file(path, model)
+                    result = Result.from_file(path, model=model)
                 except Exception as err:
                     if strict:
                         err.args = (str(err) + f"\nError reading file `{path}`",)
