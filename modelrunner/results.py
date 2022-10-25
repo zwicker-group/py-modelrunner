@@ -18,7 +18,7 @@ from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Type, Union
 import numpy as np
 from tqdm.auto import tqdm
 
-from ._io import IOBase, read_hdf_data, write_hdf_dataset, NumpyEncoder
+from .io import IOBase, read_hdf_data, write_hdf_dataset, NumpyEncoder
 from .model import ModelBase
 from .parameters import NoValueType
 from .state import make_state, StateBase

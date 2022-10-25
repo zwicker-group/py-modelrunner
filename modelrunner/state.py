@@ -22,7 +22,7 @@ import numcodecs
 import numpy as np
 import zarr
 
-from ._io import IOBase, zarrElement
+from .io import IOBase, zarrElement
 
 
 def rich_comparison(left: Any, right: Any) -> bool:

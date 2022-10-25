@@ -1,7 +1,7 @@
 Installation
 ############
 
-This `py-modelrunner` package is developed for python 3.7+ and should run on all common
+This `py-modelrunner` package is developed for python 3.8+ and should run on all common
 platforms. 
 
 
