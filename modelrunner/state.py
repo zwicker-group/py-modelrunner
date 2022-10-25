@@ -1,30 +1,25 @@
 """
-Classes that describe the state of a simulation at each point in time
+Classes that describe the state of a simulation at a single point in time
+
+.. autosummary::
+   :nosignatures:
+
+   ObjectState
+   ArrayState
+   DictState
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
 from __future__ import annotations
-
+import warnings
 import itertools
-from typing import Any, Dict, Iterator, Tuple, Union
+from typing import Any, Dict, Tuple, Union
 
 import numcodecs
 import numpy as np
 import zarr
 
-# States = attributes + data (shape: data_shape)
-#     attributes are a dictionary with immutable values
-#     data is mutable and often a numpy array or a collection of numpy arrays
-# Trajectory = attributes + time information + data (shape: n_times x data_shape)
-# Result = model + state
-
-# Examples:
-# Automated model wrapping: ObjectState
-# FieldBase: ArrayState
-# SphericalDroplet, Emulsion: ArrayState
-# DropletTrack: Trajectory
-# sim.State: DictState
 
 zarrElement = Union[zarr.Group, zarr.Array]
 
@@ -37,7 +32,7 @@ def rich_comparison(left: Any, right: Any) -> bool:
         right: other object
 
     Returns:
-    bool: Whether the two objects are equal
+        bool: Whether the two objects are equal
     """
     if left.__class__ is not right.__class__:
         return False
@@ -50,23 +45,38 @@ def rich_comparison(left: Any, right: Any) -> bool:
     elif hasattr(left, "__iter__"):
         return any(rich_comparison(l, r) for l, r in zip(left, right))
     else:
-        return left == right
+        return bool(left == right)
 
 
 class StateBase:
-    """Base class for specifying degrees of freedom of a simulation"""
+    """Base class for specifying degrees of freedom of a simulation
 
-    _subclasses: Dict[str, StateBase] = {}  # type: ignore
+    A state contains values of all degrees of freedom of a physical system (stored in
+    the `data` field) and potentially some additional information (stored in the
+    `attributes` field). The `data` is mutable and often a numpy array or a collection
+    of numpy arrays. Conversely, the `attributes` are a dictionary with immutable
+    values.
+    """
+
+    data: Any
+    _subclasses: Dict[str, StateBase] = {}
+
+    def __init__(self, data: Any):
+        """
+        Args:
+            data: The data describing the state
+        """
+        self.data = data
+
+    @property
+    def attributes(self) -> Dict[str, Any]:
+        """dict: Additional attributes, which are required to restore the state"""
+        return {"__class__": self.__class__.__name__}
 
     def __init_subclass__(cls, **kwargs):  # @NoSelf
         """register all subclassess to reconstruct them later"""
         super().__init_subclass__(**kwargs)
         cls._subclasses[cls.__name__] = cls
-
-    @property
-    def attributes(self) -> Dict[str, Any]:
-        """dict: information about the element state, which does not change in time"""
-        return {"class": self.__class__.__name__}
 
     def __eq__(self, other):
         if self.attributes != other.attributes:
@@ -76,25 +86,45 @@ class StateBase:
         return True
 
     @classmethod
-    def _load_state(cls, zarr_element: zarrElement, *, index=...) -> StateBase:
-        """create instance of correct subclass from data stored in zarr"""
-        class_name = zarr_element.attrs["class"]
-        state_cls = cls._subclasses[class_name]
-        return state_cls._read(zarr_element, index=index)
+    def from_state(cls, attributes: Dict[str, Any], data=None):
+        """create any state class from attributes and data
+
+        Args:
+            attributes (dict): Additional attributes
+            data: The data of the degerees of freedom of the physical system
+        """
+        if cls.__name__ == "StateBase":
+            # use the base class as a point to load arbitrary subclasses
+            if attributes["__class__"] == "StateBase":
+                raise RuntimeError("Cannot init class StateBase")
+            state_cls = cls._subclasses[attributes["__class__"]]
+            return state_cls.from_state(attributes, data)
+
+        elif cls.__name__ == attributes["__class__"]:
+            # simple version instantiating the current class with the given data
+            if len(attributes) > 1:
+                warnings.warn(
+                    f"Unused attributes, but {cls.__name__} did not implemented custom "
+                    "from_state"
+                )
+            return cls(data)
+
+        else:
+            raise ValueError(f"Incompatible state class {attributes['class']}")
 
     @classmethod
-    def from_state(cls, attributes: Dict[str, Any], data=None):
-        if cls.__name__ == "StateBase":
-            state_cls = cls._subclasses[attributes["class"]]
-            return state_cls.from_state(attributes, data)
-        elif cls.__name__ != attributes["class"]:
-            raise ValueError(f"Incompatible state class {attributes['class']}")
-        return cls()
+    def _load_state(cls, zarr_element: zarrElement, *, index=...) -> StateBase:
+        """create instance of correct subclass from data stored in zarr"""
+        attributes = zarr_element.attrs.asdict()
+        class_name = attributes["__class__"]
+        state_cls = cls._subclasses[class_name]
+        data = state_cls._read_data(zarr_element, index=index)
+        return state_cls.from_state(attributes, data)  # type: ignore
 
     @classmethod
     def from_file(cls, store) -> StateBase:
         root = zarr.open_group(store, mode="r")
-        return cls._read(root["data"])
+        return cls._load_state(root["data"])
 
     def copy(self):
         if hasattr(self, "data"):
@@ -103,47 +133,50 @@ class StateBase:
             return self.__class__.from_state(self.attributes)
 
     @classmethod
-    def _read(cls, zarr_element: zarrElement, *, index=...) -> StateBase:
-        """create instance of this class from data stored in zarr"""
+    def _read_data(cls, zarr_element: zarrElement, *, index=...) -> Any:
+        """read data stored in zarr element"""
         raise NotImplementedError
 
-    def _update(self, element: zarrElement, *, index=...) -> None:
+    def _update_data(self, element: zarrElement, *, index=...) -> None:
         raise NotImplementedError
 
     def _write_attributes(
         self, element: zarrElement, attrs: Dict[str, Any] = None
     ) -> zarrElement:
         """prepare the zarr element for this state"""
-        # write additional attributes
-        attributes = self.attributes
-        if attrs is not None:
-            if "class" in attrs:
-                raise ValueError("`class` attribute is reserved")
-            attributes.update(attrs)
+        # write the attributes of the state
+        element.attrs.update(self.attributes)
 
-        for k, v in attributes.items():
-            element.attrs[k] = v
+        # write additional attributes provided as argument
+        if attrs is not None:
+            if "__class__" in attrs:
+                raise ValueError("`class` attribute is reserved")
+            element.attrs.update(attrs)
+
         return element
 
-    def _write(
-        self, element: zarrElement, attrs: Dict[str, Any] = None, **kwargs
-    ) -> zarrElement:
+    def _write_data(self, zarr_group: zarr.Group, **kwargs) -> zarrElement:
         raise NotImplementedError
+
+    def _write(self, zarr_group: zarr.Group, attrs: Dict[str, Any] = None, **kwargs):
+        element = self._write_data(zarr_group, **kwargs)
+        self._write_attributes(element, attrs)
 
     def to_file(
         self, store, *, attrs: Dict[str, Any] = None, overwrite: bool = False, **kwargs
     ):
         """write this state to a file"""
         with zarr.group(store=store, overwrite=overwrite) as group:
-            self._write(group, attrs, **kwargs)
+            zarr_element = self._write_data(group, **kwargs)
+            self._write_attributes(zarr_element, attrs)
 
     def _prepare_trajectory(
-        self, element: zarrElement, attrs: Dict[str, Any] = None, **kwargs
+        self, zarr_group: zarr.Group, attrs: Dict[str, Any] = None, **kwargs
     ) -> zarrElement:
         """prepare the zarr element for this state"""
         raise NotImplementedError
 
-    def _append_to_trajectory(self, element: zarrElement) -> None:
+    def _append_to_trajectory(self, zarr_element: zarrElement) -> None:
         """append current data to the prepared zarr element"""
         raise NotImplementedError
 
@@ -153,41 +186,30 @@ class ObjectState(StateBase):
 
     default_codec = numcodecs.Pickle()
 
-    def __init__(self, data: Any):
-        self.data = data
-
     @classmethod
-    def from_state(cls, attributes: Dict[str, Any], data: np.ndarray):
-        assert cls.__name__ == attributes["class"]
-        return cls(data)
-
-    @classmethod
-    def _read(cls, zarr_element: zarr.Array, *, index=...) -> ArrayState:
+    def _read_data(cls, zarr_element: zarr.Array, *, index=...):
         if zarr_element.shape == () and index is ...:
-            return cls(zarr_element[index].item())
+            return zarr_element[index].item()
         else:
-            return cls(zarr_element[index])
+            return zarr_element[index]
 
-    def _update(self, element: zarrElement, *, index=...) -> None:
+    def _update_data(self, element: zarrElement, *, index=...) -> None:
         self.data = element[index].item()
 
-    def _write(
+    def _write_data(  # type: ignore
         self,
         zarr_group: zarr.Group,
-        attrs: Dict[str, Any] = None,
         *,
         label: str = "data",
         codec: numcodecs.abc.Codec = None,
     ):
         if codec is None:
             codec = self.default_codec
-        zarr_element = zarr_group.array(
+        return zarr_group.array(
             label, self.data, shape=(0,), dtype=object, object_codec=codec
         )
-        super()._write_attributes(zarr_element, attrs)
-        return zarr_element
 
-    def _prepare_trajectory(
+    def _prepare_trajectory(  # type: ignore
         self,
         zarr_group: zarr.Group,
         attrs: Dict[str, Any] = None,
@@ -219,35 +241,31 @@ class ObjectState(StateBase):
 class ArrayState(StateBase):
     """State characterized by a single numpy array"""
 
-    def __init__(self, data: np.ndarray):
-        self.data = data
+    data: np.ndarray
 
     def __eq__(self, other):
         return np.array_equal(self.data, other.data)
 
     @classmethod
-    def from_state(cls, attributes: Dict[str, Any], data: np.ndarray):
-        assert cls.__name__ == attributes["class"]
-        return cls(data)
+    def from_state(cls, attributes: Dict[str, Any], data=None):
+        if data is None or not isinstance(data, np.ndarray):
+            raise TypeError("`data` must be a numpy array")
+        return super().from_state(attributes, data)
 
     @classmethod
-    def _read(cls, zarr_element: zarr.Array, *, index=...) -> ArrayState:
-        return cls(zarr_element[index])
+    def _read_data(cls, zarr_element: zarr.Array, *, index=...):
+        return zarr_element[index]
 
-    def _update(self, element: zarrElement, *, index=...) -> None:
+    def _update_data(self, element: zarrElement, *, index=...) -> None:
         self.data = element[index]
 
-    def _write(
+    def _write_data(  # type: ignore
         self,
         zarr_group: zarr.Group,
-        attrs: Dict[str, Any] = None,
         *,
         label: str = "data",
-        **kwargs,
-    ):
-        zarr_element = zarr_group.array(label, self.data)
-        super()._write_attributes(zarr_element, attrs)
-        return zarr_element
+    ) -> zarr.Array:
+        return zarr_group.array(label, self.data)
 
     def _prepare_trajectory(
         self,
@@ -276,30 +294,28 @@ class ArrayState(StateBase):
 class DictState(StateBase):
     """State characterized by a dictionary of data"""
 
+    data: Dict[str, StateBase]
+
     def __init__(self, data: Union[Dict[str, StateBase], Tuple[StateBase]]):
-
-        if isinstance(data, dict):
-            self.data = data
-        else:
-            self.data = {str(i): v for i, v in enumerate(data)}
-
-    @classmethod
-    def from_state(
-        cls,
-        attributes: Dict[str, Any],
-        data: Union[Dict[str, StateBase], Tuple[StateBase]],
-    ):
-        assert cls.__name__ == attributes["class"]
-        if not isinstance(data, dict) and "keys" in attributes:
-            data = {k: v for k, v in zip(attributes["keys"], data)}
-        return cls(data)
+        if not isinstance(data, dict):
+            data = {str(i): v for i, v in enumerate(data)}
+        super().__init__(data)
 
     @property
     def attributes(self) -> Dict[str, Any]:
-        """dict: information about the element state, which does not change in time"""
+        """dict: Additional attributes, which are required to restore the state"""
         attributes = super().attributes
-        attributes["keys"] = list(self.data.keys())
+        attributes["__keys__"] = list(self.data.keys())
         return attributes
+
+    @classmethod
+    def from_state(cls, attributes: Dict[str, Any], data=None):
+        if data is None or not isinstance(data, (dict, tuple, list)):
+            raise TypeError("`data` must be a dictionary or sequence")
+        assert cls.__name__ == attributes["__class__"]
+        if not isinstance(data, dict) and "__keys__" in attributes:
+            data = {k: v for k, v in zip(attributes["__keys__"], data)}
+        return cls(data)
 
     def copy(self):
         return self.__class__({k: v.copy() for k, v in self.data.items()})
@@ -313,28 +329,18 @@ class DictState(StateBase):
             raise TypeError()
 
     @classmethod
-    def _read(cls, zarr_element: zarr.Array, *, index=...) -> ArrayState:
-        keys = zarr_element.attrs["keys"]
-        data = {
+    def _read_data(cls, zarr_element: zarr.Array, *, index=...) -> Dict[str, StateBase]:
+        return {
             label: StateBase._load_state(zarr_element[label], index=index)
-            for label in keys
+            for label in zarr_element.attrs["__keys__"]
         }
-        return cls(data)
 
-    def _update(self, element: zarrElement, *, index=...) -> None:
+    def _update_data(self, element: zarrElement, *, index=...) -> None:
         for key, substate in self.data.items():
-            substate._update(element[key], index=index)
+            substate._update_data(element[key], index=index)
 
-    def _write(
-        self,
-        zarr_group: zarr.Group,
-        attrs: Dict[str, Any] = None,
-        *,
-        label: str = "data",
-        **kwargs,
-    ):
+    def _write_data(self, zarr_group: zarr.Group, *, label: str = "data", **kwargs):
         zarr_subgroup = zarr_group.create_group(label)
-        self._write_attributes(zarr_subgroup, attrs)
         for label, substate in self.data.items():
             substate._write(zarr_subgroup, label=label, **kwargs)
         return zarr_subgroup
@@ -356,106 +362,16 @@ class DictState(StateBase):
 
         return zarr_subgroup
 
-    def _append_to_trajectory(self, zarr_group: zarr.Group) -> None:
+    def _append_to_trajectory(self, zarr_element: zarr.Group) -> None:
         """append current data to a stored element"""
         for label, substate in self.data.items():
-            substate._append_to_trajectory(zarr_group[label])
+            substate._append_to_trajectory(zarr_element[label])
 
 
-class TrajectoryWriter:
-    """allows writing trajectories of states
-
-    Example:
-
-        .. code-block:: python
-
-            # explicit use
-            writer = trajectory_writer("test.zarr")
-            writer.append(data0)
-            writer.append(data1)
-            writer.close()
-
-            # context manager
-            with trajectory_writer("test.zarr") as write:
-                for t, data in simulation:
-                    write(data, t)
-    """
-
-    def __init__(self, store, *, attrs: Dict[str, Any] = None, overwrite: bool = False):
-        self._attrs = attrs
-        self._root = zarr.group(store, overwrite=overwrite)
-        self.times = self._root.zeros("times", shape=(0,), chunks=(1,))
-
-    def append(self, data: StateBase, time: float = None) -> None:
-        if "data" not in self._root:
-            data._prepare_trajectory(self._root, attrs=self._attrs, label="data")
-
-        if time is None:
-            time = 0 if len(self.times) == 0 else self.times[-1] + 1
-
-        self.times.append([time])
-        data._append_to_trajectory(self._root["data"])
-
-    def close(self):
-        self._root.store.close()
-
-    def __enter__(self):
-        return self.append
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
-
-
-class Trajectory:
-    """Collection of states with identical type for successive time points"""
-
-    def __init__(self, store, ret_copy: bool = True):
-        self.ret_copy = ret_copy
-        self._root = zarr.open_group(store, mode="r")
-        self.times = np.array(self._root["times"])
-        self._state = None
-
-        # check temporal ordering
-        assert np.all(np.diff(self.times) > 0)
-
-    def __len__(self) -> int:
-        return len(self.times)
-
-    def _get_state(self, t_index: int) -> StateBase:
-        """return the data object corresponding to the given time index
-
-        Load the data given an index, i.e., the data at time `self.times[t_index]`.
-
-        Args:
-            t_index (int):
-                The index of the data to load
-
-        Returns:
-            :class:`~StateBase`: The requested state
-        """
-        if t_index < 0:
-            t_index += len(self)
-
-        if not 0 <= t_index < len(self):
-            raise IndexError("Time index out of range")
-
-        if self.ret_copy or self._state is None:
-            # create the state with the data of the given index
-            self._state = StateBase._load_state(self._root["data"], index=t_index)
-
-        else:
-            # update the state with the data of the given index
-            self._state._update(self._root["data"], index=t_index)
-        return self._state
-
-    def __getitem__(self, key: Union[int, slice]) -> Union[StateBase, Trajectory]:
-        """return field at given index or a list of fields for a slice"""
-        if isinstance(key, int):
-            return self._get_state(key)
-        else:
-            raise TypeError("Unknown key type")
-
-    def __iter__(self) -> Iterator[StateBase]:
-        """iterate over all stored fields"""
-        for i in range(len(self)):
-            yield self[i]  # type: ignore
+def make_state(data: Any) -> StateBase:
+    """turn any data into a :class:`StateBase`"""
+    if isinstance(data, StateBase):
+        return data
+    elif isinstance(data, np.ndarray):
+        return ArrayState(data)
+    return ObjectState(data)
