@@ -1,7 +1,7 @@
 """
 
 .. inheritance-diagram::
-        _io.IOBase
+        io.IOBase
         state.StateBase
         state.ArrayState
         state.ObjectState

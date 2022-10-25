@@ -19,6 +19,10 @@ from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Type, Union
 import numpy as np
 from tqdm.auto import tqdm
 
+<<<<<<< Upstream, based on main
+=======
+from .io import IOBase, read_hdf_data, write_hdf_dataset, NumpyEncoder
+>>>>>>> 463c5f1 Renamed _io to io
 from .model import ModelBase
 from .parameters import NoValueType
 from .state import ArrayState, ObjectState, StateBase
