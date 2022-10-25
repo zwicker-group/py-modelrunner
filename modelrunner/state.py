@@ -25,7 +25,7 @@ import zarr
 from .io import IOBase, zarrElement
 
 
-def rich_comparison(left: Any, right: Any) -> bool:
+def _equals(left: Any, right: Any) -> bool:
     """checks whether two objects are equal, also supporting :class:~numpy.ndarray`
 
     Args:
@@ -37,16 +37,20 @@ def rich_comparison(left: Any, right: Any) -> bool:
     """
     if left.__class__ is not right.__class__:
         return False
+
     if isinstance(left, np.ndarray):
         return np.array_equal(left, right)
-    elif isinstance(left, dict):
-        if left.keys() != right.keys():
-            return False
-        return rich_comparison(left.values(), right.values())
-    elif hasattr(left, "__iter__"):
-        return any(rich_comparison(l, r) for l, r in zip(left, right))
-    else:
-        return bool(left == right)
+
+    if isinstance(left, dict):
+        return left.keys() == right.keys() and _equals(left.values(), right.values())
+
+    if isinstance(left, StateBase):
+        return left.attributes == right.attributes and _equals(left.data, right.data)
+
+    if hasattr(left, "__iter__"):
+        return any(_equals(l, r) for l, r in zip(left, right))
+
+    return bool(left == right)
 
 
 class StateBase(IOBase):
@@ -80,11 +84,7 @@ class StateBase(IOBase):
         cls._state_classes[cls.__name__] = cls
 
     def __eq__(self, other):
-        if self.attributes != other.attributes:
-            return False
-        if hasattr(self, "data"):
-            return rich_comparison(self.data, other.data)
-        return True
+        return _equals(self.data, other.data)
 
     @classmethod
     def from_state(cls, attributes: Dict[str, Any], data=None) -> StateBase:
@@ -97,7 +97,7 @@ class StateBase(IOBase):
         if cls.__name__ == "StateBase":
             # use the base class as a point to load arbitrary subclasses
             if attributes["__class__"] == "StateBase":
-                raise RuntimeError("Cannot init class StateBase")
+                raise RuntimeError("Cannot create StateBase instances")
             state_cls = cls._state_classes[attributes["__class__"]]
             return state_cls.from_state(attributes, data)
 
@@ -168,29 +168,22 @@ class StateBase(IOBase):
         raise NotImplementedError
 
     @classmethod
-    def _from_json_data(cls, content) -> StateBase:
-        """create state from JSON data
+    def _from_text_data(
+        cls, content, *, fmt="yaml", state_cls: StateBase = None
+    ) -> StateBase:
+        """create state from text data
 
         Args:
-            content: The data loaded from json
+            content: The loaded data
         """
-        return StateBase.from_state(content["attributes"], content["data"])
+        if state_cls is None:
+            state_cls = cls._state_classes[content["attributes"]["__class__"]]
+            return state_cls._from_text_data(content, fmt=fmt, state_cls=state_cls)
+        else:
+            return state_cls.from_state(content["attributes"], content["data"])
 
-    def _to_json_data(self):
-        """return object data suitable for encoding as JSON"""
-        return {"attributes": self.attributes, "data": self.data}
-
-    @classmethod
-    def _from_yaml_data(cls, content) -> StateBase:
-        """create state from YAML data
-
-        Args:
-            content: The data loaded from yaml
-        """
-        return StateBase.from_state(content["attributes"], content["data"])
-
-    def _to_yaml_data(self):
-        """return object data suitable for encoding as YAML"""
+    def _to_text_data(self, *, fmt="yaml"):
+        """return object data suitable for encoding as text"""
         return {"attributes": self.attributes, "data": self.data}
 
 
@@ -261,8 +254,8 @@ class ArrayState(StateBase):
 
     @classmethod
     def from_state(cls, attributes: Dict[str, Any], data=None):
-        if data is None or not isinstance(data, np.ndarray):
-            raise TypeError("`data` must be a numpy array")
+        if data is not None:
+            data = np.asarray(data)
         return super().from_state(attributes, data)
 
     @classmethod
@@ -384,22 +377,26 @@ class DictState(StateBase):
             substate._append_to_zarr_trajectory(zarr_element[label])
 
     @classmethod
-    def _from_json_data(cls, json) -> StateBase:
+    def _from_text_data(
+        cls, content, *, fmt="yaml", state_cls: StateBase = None
+    ) -> StateBase:
         """create state from JSON data
 
         Args:
-            json: The data loaded from json
+            content: The data loaded from json
         """
-        data = {
-            label: cls._from_json_data(substate)
-            for label, substate in json["data"].items()
-        }
-        return StateBase.from_state(json["attributes"], data)
+        if state_cls is None:
+            return super()._from_text_data(content, fmt=fmt)
 
-    def _to_json_data(self):
+        data = {}
+        for label, substate in content["data"].items():
+            data[label] = StateBase._from_text_data(substate, fmt=fmt)
+        return state_cls.from_state(content["attributes"], data)
+
+    def _to_text_data(self):
         """return object data suitable for encoding as JSON"""
         data = {
-            label: substate._to_json_data() for label, substate in self.data.items()
+            label: substate._to_text_data() for label, substate in self.data.items()
         }
         return {"attributes": self.attributes, "data": data}
 
