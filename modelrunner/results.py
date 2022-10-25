@@ -21,7 +21,7 @@ from tqdm.auto import tqdm
 
 from .model import ModelBase
 from .parameters import NoValueType
-from .state import ArrayState, ObjectState, StateBase
+from .state import make_state, StateBase
 
 
 def contains_array(data) -> bool:
@@ -189,12 +189,16 @@ class Result:
         obj.name = model_data.get("name")
         obj.description = model_data.get("description")
 
+<<<<<<< Upstream, based on main
         if isinstance(result_data, np.ndarray):
             result_data = ArrayState(result_data)
         elif not isinstance(result_data, StateBase):
             result_data = ObjectState(result_data)
 
         return cls(obj, result_data, info)
+=======
+        return cls(obj, make_state(state), info)
+>>>>>>> a1eebc2 Split trajectory from state module
 
     @property
     def parameters(self) -> Dict[str, Any]:
