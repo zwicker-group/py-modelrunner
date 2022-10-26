@@ -19,14 +19,7 @@ from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Type, Union
 import numpy as np
 from tqdm.auto import tqdm
 
-<<<<<<< Upstream, based on main
-<<<<<<< Upstream, based on main
-=======
-from .io import IOBase, read_hdf_data, write_hdf_dataset, NumpyEncoder
->>>>>>> 463c5f1 Renamed _io to io
-=======
 from .io import IOBase, NumpyEncoder, read_hdf_data, write_hdf_dataset
->>>>>>> b6a64fd Added first tests and fixed some bugs
 from .model import ModelBase
 from .parameters import NoValueType
 from .state import ArrayState, ObjectState, StateBase
@@ -216,7 +209,6 @@ class Result:
         return self.model.parameters
 
     @classmethod
-<<<<<<< Upstream, based on main
     def from_file(cls, path, model: Optional[ModelBase] = None):
         """read result from file
 
@@ -252,9 +244,6 @@ class Result:
 
     @classmethod
     def from_json(cls, path, model: Optional[ModelBase] = None) -> Result:
-=======
-    def _from_text_data(cls, content, model: ModelBase = None) -> Result:
->>>>>>> b6a64fd Added first tests and fixed some bugs
         """read result from a JSON file
 
         Args:
@@ -272,18 +261,12 @@ class Result:
         info.setdefault("name", Path(path).with_suffix("").stem)
 
         return cls.from_data(
-<<<<<<< Upstream, based on main
             model_data=data.get("model", {}),
-            state=state,
-=======
-            model_data=content.get("model", {}),
-            state=StateBase._from_text_data(content["state"], fmt=fmt),
->>>>>>> b6a64fd Added first tests and fixed some bugs
+            state=StateBase._from_text_data(content["state"]),
             model=model,
             info=info,
         )
 
-<<<<<<< Upstream, based on main
     def write_to_json(self, path) -> None:
         """write result to JSON file
 
@@ -291,18 +274,9 @@ class Result:
             path (str or :class:`~pathlib.Path`): The path to the file
         """
         data = {
-=======
-    def _to_text_data(self):
-        """write result to JSON file"""
-        content = {
->>>>>>> b6a64fd Added first tests and fixed some bugs
             "model": simplify_data(self.model.attributes),
-<<<<<<< Upstream, based on main
             "state": simplify_data(self.state.attributes),
             "data": simplify_data(self.state.data),
-=======
-            "state": self.state._to_text_data(),
->>>>>>> b6a64fd Added first tests and fixed some bugs
         }
         if self.info:
             data["info"] = self.info

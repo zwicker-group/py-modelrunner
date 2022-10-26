@@ -4,6 +4,7 @@
         io.IOBase
         state.StateBase
         state.ArrayState
+        state.ArrayCollectionState
         state.ObjectState
         state.DictState
         results.Result
