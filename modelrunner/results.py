@@ -114,7 +114,7 @@ class Result(IOBase):
         """
         return cls.from_data(
             model_data=content.get("model", {}),
-            state=StateBase._from_text_data(content["state"], fmt=fmt),
+            state=StateBase._from_text_data(content["state"]),
             model=model,
             info=content.get("info"),
         )
