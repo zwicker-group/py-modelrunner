@@ -18,10 +18,14 @@ import copy
 import itertools
 import warnings
 <<<<<<< Upstream, based on main
+<<<<<<< Upstream, based on main
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
 =======
 from typing import Any, Dict, Tuple, Union
 >>>>>>> 5b3d6ac More restructuring
+=======
+from typing import Any, Dict, Sequence, Tuple, Union
+>>>>>>> 140ae3e Added ArrayCollectionState
 
 import numcodecs
 import numpy as np
@@ -52,11 +56,17 @@ def _equals(left: Any, right: Any) -> bool:
         return False
 
 <<<<<<< Upstream, based on main
+<<<<<<< Upstream, based on main
     if isinstance(left, str):
         return bool(left == right)
 
 =======
 >>>>>>> 4ebae4d Added first tests and fixed some bugs
+=======
+    if isinstance(left, str):
+        return bool(left == right)
+
+>>>>>>> 140ae3e Added ArrayCollectionState
     if isinstance(left, np.ndarray):
         return np.array_equal(left, right)
 
@@ -78,14 +88,22 @@ def _equals(left: Any, right: Any) -> bool:
         )
 =======
     if isinstance(left, dict):
-        return left.keys() == right.keys() and _equals(left.values(), right.values())
+        return left.keys() == right.keys() and all(
+            _equals(left[key], right[key]) for key in left
+        )
 
     if isinstance(left, StateBase):
         return left.attributes == right.attributes and _equals(left.data, right.data)
 
     if hasattr(left, "__iter__"):
+<<<<<<< Upstream, based on main
         return any(_equals(l, r) for l, r in zip(left, right))
 >>>>>>> 4ebae4d Added first tests and fixed some bugs
+=======
+        return len(left) == len(right) and all(
+            _equals(l, r) for l, r in zip(left, right)
+        )
+>>>>>>> 140ae3e Added ArrayCollectionState
 
     return bool(left == right)
 
@@ -114,8 +132,17 @@ class StateBase(IOBase):
     _state_classes: Dict[str, StateBase] = {}
 >>>>>>> 5b3d6ac More restructuring
 
+<<<<<<< Upstream, based on main
     _state_classes: Dict[str, StateBase] = {}
     """dict: class-level list of all subclasses of StateBase"""
+=======
+    def __init__(self, data: Any = None):
+        """
+        Args:
+            data: The data describing the state
+        """
+        self.data = data
+>>>>>>> 140ae3e Added ArrayCollectionState
 
     @property
     def attributes(self) -> Dict[str, Any]:
@@ -258,6 +285,7 @@ class StateBase(IOBase):
     @classmethod
 <<<<<<< Upstream, based on main
 <<<<<<< Upstream, based on main
+<<<<<<< Upstream, based on main
     def _from_simple_objects(
         cls, content, *, state_cls: Optional[StateBase] = None
     ) -> StateBase:
@@ -282,6 +310,9 @@ class StateBase(IOBase):
     def _from_text_data(
         cls, content, *, fmt="yaml", state_cls: StateBase = None
     ) -> StateBase:
+=======
+    def _from_text_data(cls, content, *, state_cls: StateBase = None) -> StateBase:
+>>>>>>> 140ae3e Added ArrayCollectionState
         """create state from text data
 >>>>>>> 4ebae4d Added first tests and fixed some bugs
 
@@ -290,11 +321,11 @@ class StateBase(IOBase):
         """
         if state_cls is None:
             state_cls = cls._state_classes[content["attributes"]["__class__"]]
-            return state_cls._from_text_data(content, fmt=fmt, state_cls=state_cls)
+            return state_cls._from_text_data(content, state_cls=state_cls)
         else:
             return state_cls.from_state(content["attributes"], content["data"])
 
-    def _to_text_data(self, *, fmt="yaml"):
+    def _to_text_data(self):
         """return object data suitable for encoding as text"""
         return {"attributes": self.attributes, "data": self.data}
 >>>>>>> 5b3d6ac More restructuring
@@ -567,12 +598,144 @@ class ArrayCollectionState(StateBase):
         }
         return {"attributes": self._attributes_store, "data": data}
 
+    @classmethod
+    def _from_text_data(cls, content, *, state_cls: StateBase = None) -> StateBase:
+        """create state from text data
+
+        Args:
+            content: The loaded data
+        """
+        if state_cls is None:
+            return super()._from_text_data(content)
+
+        return cls(np.asarray(content["data"]))
+
+
+class ArrayCollectionState(StateBase):
+    """State characterized by a multiple numpy array"""
+
+    data: Tuple[np.ndarray, ...]
+
+    def __init__(
+        self, data: Tuple[np.ndarray, ...] = None, *, labels: Sequence[str] = None
+    ):
+        """
+        Args:
+            data: The data describing the state
+        """
+        if data is None:
+            self.data = tuple()
+        else:
+            self.data = tuple(data)
+
+        if labels is None:
+            self.labels = tuple(str(i) for i in range(len(self.data)))
+        else:
+            assert len(self.data) == len(labels) == len(set(labels))
+            self.labels = tuple(labels)
+
+    def __eq__(self, other):
+        return len(self.data) == len(other.data) and all(
+            np.array_equal(s, o) for s, o in zip(self.data, other.data)
+        )
+
+    @property
+    def attributes(self) -> Dict[str, Any]:
+        """dict: Additional attributes, which are required to restore the state"""
+        attributes = super().attributes
+        attributes["labels"] = self.labels
+        return attributes
+
+    @classmethod
+    def from_state(cls, attributes: Dict[str, Any], data=None):
+        if data is not None:
+            data = tuple(np.asarray(subdata) for subdata in data)
+        labels = attributes.pop("labels")
+        return cls(data, labels=labels)
+
+    def __getitem__(self, index: Union[int, str]) -> np.ndarray:
+        if isinstance(index, str):
+            return self.data[self.labels.index(index)]
+        elif isinstance(index, int):
+            return self.data[index]
+        else:
+            raise TypeError()
+
+    @classmethod
+    def _read_zarr_data(
+        cls, zarr_element: zarr.Array, *, index=...
+    ) -> ArrayCollectionState:
+        return cls(
+            tuple(zarr_element[label][index] for label in zarr_element.attrs["labels"]),
+            labels=zarr_element.attrs["labels"],
+        )
+
+    def _update_from_zarr(self, element: zarrElement, *, index=...) -> None:
+        for label, data_arr in zip(self.labels, self.data):
+            data_arr[:] = element[label][index]
+
+    def _write_zarr_data(
+        self, zarr_group: zarr.Group, *, label: str = "data", **kwargs
+    ):
+        zarr_subgroup = zarr_group.create_group(label)
+        for sublabel, substate in zip(self.labels, self.data):
+            zarr_subgroup.array(sublabel, substate)
+        return zarr_subgroup
+
+    def _prepare_zarr_trajectory(
+        self,
+        zarr_group: zarr.Group,
+        attrs: Dict[str, Any] = None,
+        *,
+        label: str = "data",
+        **kwargs,
+    ) -> zarr.Group:
+        """prepare the zarr storage for this state"""
+        zarr_subgroup = zarr_group.create_group(label)
+        for sublabel, subdata in zip(self.labels, self.data):
+            zarr_subgroup.zeros(
+                sublabel,
+                shape=(0,) + subdata.shape,
+                chunks=(1,) + subdata.shape,
+                dtype=subdata.dtype,
+            )
+
+        self._write_zarr_attributes(zarr_subgroup, attrs)
+        return zarr_subgroup
+
+    def _append_to_zarr_trajectory(self, zarr_element: zarr.Group) -> None:
+        """append current data to a stored element"""
+        for label, subdata in zip(self.labels, self.data):
+            zarr_element[label].append([subdata])
+
+    @classmethod
+    def _from_text_data(cls, content, *, state_cls: StateBase = None) -> StateBase:
+        """create state from text data
+
+        Args:
+            content: The data loaded from text
+        """
+        if state_cls is None:
+            return super()._from_text_data(content)
+
+        data = tuple(
+            np.array(content["data"][label])
+            for label in content["attributes"]["labels"]
+        )
+        return state_cls.from_state(content["attributes"], data)
+
+    def _to_text_data(self):
+        """return object data suitable for encoding as JSON"""
+        data = {label: substate for label, substate in zip(self.labels, self.data)}
+        return {"attributes": self.attributes, "data": data}
+
 
 class DictState(StateBase):
     """State characterized by a dictionary of data"""
 
     data: Dict[str, StateBase]
 
+<<<<<<< Upstream, based on main
     def __init__(
         self, data: Optional[Union[Dict[str, StateBase], Tuple[StateBase]]] = None
     ):
@@ -582,6 +745,14 @@ class DictState(StateBase):
             self.data = {str(i): v for i, v in enumerate(data)}
         else:
             self.data = data
+=======
+    def __init__(self, data: Union[Dict[str, StateBase], Tuple[StateBase]] = None):
+        if data is None:
+            data = {}
+        elif not isinstance(data, dict):
+            data = {str(i): v for i, v in enumerate(data)}
+        super().__init__(data)
+>>>>>>> 140ae3e Added ArrayCollectionState
 
     @property
     def attributes(self) -> Dict[str, Any]:
@@ -690,20 +861,18 @@ class DictState(StateBase):
             substate._append_to_zarr_trajectory(zarr_element[label])
 
     @classmethod
-    def _from_text_data(
-        cls, content, *, fmt="yaml", state_cls: StateBase = None
-    ) -> StateBase:
+    def _from_text_data(cls, content, *, state_cls: StateBase = None) -> StateBase:
         """create state from JSON data
 
         Args:
             content: The data loaded from json
         """
         if state_cls is None:
-            return super()._from_text_data(content, fmt=fmt)
+            return super()._from_text_data(content)
 
         data = {}
         for label, substate in content["data"].items():
-            data[label] = StateBase._from_text_data(substate, fmt=fmt)
+            data[label] = StateBase._from_text_data(substate)
         return state_cls.from_state(content["attributes"], data)
 
     def _to_text_data(self):

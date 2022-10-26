@@ -246,6 +246,7 @@ class Result(IOBase):
 <<<<<<< Upstream, based on main
 <<<<<<< Upstream, based on main
 <<<<<<< Upstream, based on main
+<<<<<<< Upstream, based on main
     def from_file(cls, path, model: Optional[ModelBase] = None):
         """read result from file
 
@@ -293,6 +294,9 @@ class Result(IOBase):
 =======
     def _from_text_data(cls, content, model: ModelBase = None, *, fmt="yaml") -> Result:
 >>>>>>> 4ebae4d Added first tests and fixed some bugs
+=======
+    def _from_text_data(cls, content, model: ModelBase = None) -> Result:
+>>>>>>> 140ae3e Added ArrayCollectionState
         """read result from a JSON file
 
         Args:
@@ -307,6 +311,7 @@ class Result(IOBase):
             state=StateBase._from_text_data(content["state"]),
 =======
             model_data=content.get("model", {}),
+<<<<<<< Upstream, based on main
             state=StateBase._from_simple_objects(content["state"]),
 >>>>>>> 1e5cf15 Added more flexibility by defining generic interfaces
 =======
@@ -320,6 +325,9 @@ class Result(IOBase):
 =======
             state=StateBase._from_text_data(content["state"], fmt=fmt),
 >>>>>>> 4ebae4d Added first tests and fixed some bugs
+=======
+            state=StateBase._from_text_data(content["state"]),
+>>>>>>> 140ae3e Added ArrayCollectionState
             model=model,
             info=content.get("info"),
         )

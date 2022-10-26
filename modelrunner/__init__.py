@@ -7,6 +7,7 @@
         state.StateBase
         state.ArrayState
         state.ArrayCollectionState
+<<<<<<< Upstream, based on main
 =======
         _io.IOBase
 =======
@@ -15,6 +16,8 @@
         state.StateBase
         state.ArrayState
 >>>>>>> 5b3d6ac More restructuring
+=======
+>>>>>>> 140ae3e Added ArrayCollectionState
         state.ObjectState
         state.DictState
         results.Result

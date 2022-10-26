@@ -365,7 +365,7 @@ class IOBase:
     """
 
     @classmethod
-    def _from_text_data(cls, content, *, fmt: str = "yaml") -> IOBase:
+    def _from_text_data(cls, content) -> IOBase:
         raise NotImplementedError(f"{cls.__name__}: no text reading")
 
     def _to_text_data(self):
@@ -418,14 +418,14 @@ class IOBase:
         if fmt == "json":
             with open(store, "r") as fp:
                 content = json.load(fp)
-            return cls._from_text_data(content, fmt="json", **kwargs)
+            return cls._from_text_data(content, **kwargs)
 
         elif fmt == "yaml":
             import yaml
 
             with open(store, "r") as fp:
                 content = yaml.safe_load(fp)
-            return cls._from_text_data(content, fmt="yaml", **kwargs)
+            return cls._from_text_data(content, **kwargs)
 
         elif fmt == "hdf":
             import h5py
