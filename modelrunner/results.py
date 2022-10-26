@@ -100,7 +100,7 @@ class Result(IOBase):
         return self.model.parameters
 
     @classmethod
-    def _from_text_data(cls, content, model: ModelBase = None, *, fmt="yaml") -> Result:
+    def _from_text_data(cls, content, model: ModelBase = None) -> Result:
         """read result from a JSON file
 
         Args:
@@ -109,7 +109,7 @@ class Result(IOBase):
         """
         return cls.from_data(
             model_data=content.get("model", {}),
-            state=StateBase._from_text_data(content["state"], fmt=fmt),
+            state=StateBase._from_text_data(content["state"]),
             model=model,
             info=content.get("info"),
         )
