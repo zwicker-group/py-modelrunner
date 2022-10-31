@@ -21,7 +21,7 @@ from .state import StateBase
 
 
 class TrajectoryWriter:
-    """allows writing trajectories of states
+    """allows writing trajectories of states in a zarr file
 
     Example:
 
