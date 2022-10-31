@@ -206,7 +206,10 @@ class ObjectState(StateBase):
             return zarr_element[index]
 
     def _update_from_zarr(self, element: zarrElement, *, index=...) -> None:
-        self.data = element[index].item()
+        if element.shape == () and index is ...:
+            self.data = element[index].item()
+        else:
+            self.data = element[index]
 
     def _write_zarr_data(  # type: ignore
         self,

@@ -4,17 +4,13 @@ Main module allowing to use the package to wrap existing code
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-import importlib.util
-import inspect
-import logging
-import os.path
 import sys
 
-from modelrunner import ModelBase, run_function_with_cmd_args
+from modelrunner import Result, run_script
 
-if __name__ == "__main__":
-    logger = logging.getLogger("modelrunner")
 
+def run_script_from_command_line() -> Result:
+    """helper function that runs a model from flags specified at the command line"""
     # get the script name from the command line
     try:
         script_path = sys.argv[1]
@@ -22,17 +18,10 @@ if __name__ == "__main__":
         print("Require job script as first argument", file=sys.stderr)
         sys.exit(1)
 
-    model_args = sys.argv[2:]
+    return run_script(script_path, sys.argv[2:])
 
-    # load the script as a module
-    filename = os.path.basename(script_path)
-    spec = importlib.util.spec_from_file_location("model_code", script_path)
-    if spec is None:
-        print(f"Could not find job script `{script_path}`")
-        sys.exit(1)
-    model_code = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(model_code)  # type: ignore
 
+<<<<<<< Upstream, based on main
     # find all functions in the module
     logger.debug("Search for models in script")
     candidate_instance, candidate_classes, candidate_funcs = {}, {}, {}
@@ -84,3 +73,7 @@ if __name__ == "__main__":
     else:
         # we could not find any useful objects
         raise RuntimeError("Found neither a model class, instance, or function")
+=======
+if __name__ == "__main__":
+    run_script_from_command_line()
+>>>>>>> 60bd818 Added many tests and adjusted code
