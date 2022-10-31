@@ -64,29 +64,39 @@ def _equals(left: Any, right: Any) -> bool:
 
 
 class StateBase(IOBase):
-    """Base class for specifying degrees of freedom of a simulation
+    """Base class for specifying the state of a simulation
 
     A state contains values of all degrees of freedom of a physical system (stored in
     the `data` field) and potentially some additional information (stored in the
     `attributes` field). The `data` is mutable and often a numpy array or a collection
     of numpy arrays. Conversely, the `attributes` are a dictionary with immutable
-    values.
+    values. To allow flexible storage, we define the attributes `_attributes_store` and
+    `_data_store`, which by default return `attributes` and `data` directly, but may be
+    overwritten to process the data before storage (e.g., by additional serialization).
     """
 
+    _format_version = 1
+    """int: number indicating the version of the file format"""
+
     _state_classes: Dict[str, StateBase] = {}
+    """dict: class-level list of all subclasses of StateBase"""
 
     @property
     def attributes(self) -> Dict[str, Any]:
         """dict: Additional attributes, which are required to restore the state"""
-        return {"__class__": self.__class__.__name__}
+        return {}
 
     @property
     def _attributes_store(self) -> Dict[str, Any]:
         """dict: Attributes in the form in which they will be written to storage"""
-        return self.attributes
+        attrs = self.attributes.copy()
+        attrs["__class__"] = self.__class__.__name__
+        attrs["__version__"] = self._format_version
+        return attrs
 
     @property
     def _data_store(self) -> Any:
+        """attribute that determines what data is stored in this state"""
         if hasattr(self, "data"):
             return self.data  # type: ignore
         else:
@@ -117,7 +127,13 @@ class StateBase(IOBase):
 
         elif cls.__name__ == attributes["__class__"]:
             # simple version instantiating the current class with the given data
-            if len(attributes) > 1:
+            format_version = attributes.get("__version__", 0)
+            if format_version != cls._format_version:
+                warnings.warn(
+                    f"File format version mismatch ({format_version} != "
+                    f"{cls._format_version})"
+                )
+            if len(attributes) > 2:  # __class__ and __version__ expected
                 warnings.warn(
                     f"Unused attributes, but {cls.__name__} did not implemented custom "
                     "from_state"
@@ -139,8 +155,6 @@ class StateBase(IOBase):
 
         # write additional attributes provided as argument
         if attrs is not None:
-            if "__class__" in attrs:
-                raise ValueError("`class` attribute is reserved")
             element.attrs.update(attrs)
 
         return element

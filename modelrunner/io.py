@@ -1,4 +1,8 @@
 """
+Module defining a base class that handles writing and reading of objects (mostly to the 
+hard disk). The base class itself implements little logic, but provides general methods
+that are used by concrete classes.
+
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
