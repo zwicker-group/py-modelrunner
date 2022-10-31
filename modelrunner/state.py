@@ -51,7 +51,9 @@ def _equals(left: Any, right: Any) -> bool:
         )
 
     if isinstance(left, StateBase):
-        return left.attributes == right.attributes and _equals(left.data, right.data)
+        return left._attributes_store == right._attributes_store and _equals(
+            left._data_store, right._data_store
+        )
 
     if hasattr(left, "__iter__"):
         return len(left) == len(right) and all(
@@ -71,20 +73,24 @@ class StateBase(IOBase):
     values.
     """
 
-    data: Any
     _state_classes: Dict[str, StateBase] = {}
-
-    def __init__(self, data: Any = None):
-        """
-        Args:
-            data: The data describing the state
-        """
-        self.data = data
 
     @property
     def attributes(self) -> Dict[str, Any]:
         """dict: Additional attributes, which are required to restore the state"""
         return {"__class__": self.__class__.__name__}
+
+    @property
+    def _attributes_store(self) -> Dict[str, Any]:
+        """dict: Attributes in the form in which they will be written to storage"""
+        return self.attributes
+
+    @property
+    def _data_store(self) -> Any:
+        if hasattr(self, "data"):
+            return self.data  # type: ignore
+        else:
+            return None
 
     def __init_subclass__(cls, **kwargs):  # @NoSelf
         """register all subclassess to reconstruct them later"""
@@ -92,7 +98,7 @@ class StateBase(IOBase):
         cls._state_classes[cls.__name__] = cls
 
     def __eq__(self, other):
-        return _equals(self.data, other.data)
+        return _equals(self, other)
 
     @classmethod
     def from_state(cls, attributes: Dict[str, Any], data=None) -> StateBase:
@@ -116,7 +122,7 @@ class StateBase(IOBase):
                     f"Unused attributes, but {cls.__name__} did not implemented custom "
                     "from_state"
                 )
-            return cls(data)
+            return cls() if data is None else cls(data)  # type: ignore
 
         else:
             raise ValueError(f"Incompatible state class {attributes['class']}")
@@ -129,7 +135,7 @@ class StateBase(IOBase):
     ) -> zarrElement:
         """prepare the zarr element for this state"""
         # write the attributes of the state
-        element.attrs.update(self.attributes)
+        element.attrs.update(self._attributes_store)
 
         # write additional attributes provided as argument
         if attrs is not None:
@@ -176,7 +182,7 @@ class StateBase(IOBase):
         raise NotImplementedError
 
     @classmethod
-    def _from_text_data(cls, content, *, state_cls: StateBase = None) -> StateBase:
+    def _from_simple_objects(cls, content, *, state_cls: StateBase = None) -> StateBase:
         """create state from text data
 
         Args:
@@ -184,19 +190,26 @@ class StateBase(IOBase):
         """
         if state_cls is None:
             state_cls = cls._state_classes[content["attributes"]["__class__"]]
-            return state_cls._from_text_data(content, state_cls=state_cls)
+            return state_cls._from_simple_objects(content, state_cls=state_cls)
         else:
             return state_cls.from_state(content["attributes"], content["data"])
 
-    def _to_text_data(self):
+    def _to_simple_objects(self):
         """return object data suitable for encoding as text"""
-        return {"attributes": self.attributes, "data": self.data}
+        return {"attributes": self._attributes_store, "data": self._data_store}
 
 
 class ObjectState(StateBase):
     """State characterized by a serializable python object"""
 
     default_codec = numcodecs.Pickle()
+
+    def __init__(self, data: Any = None):
+        """
+        Args:
+            data: The data describing the state
+        """
+        self.data = data
 
     @classmethod
     def _read_zarr_data(cls, zarr_element: zarr.Array, *, index=...):
@@ -221,7 +234,7 @@ class ObjectState(StateBase):
         if codec is None:
             codec = self.default_codec
         return zarr_group.array(
-            label, self.data, shape=(0,), dtype=object, object_codec=codec
+            label, self._data_store, shape=(0,), dtype=object, object_codec=codec
         )
 
     def _prepare_zarr_trajectory(  # type: ignore
@@ -250,16 +263,18 @@ class ObjectState(StateBase):
     def _append_to_zarr_trajectory(self, zarr_element: zarr.Array) -> None:
         """append current data to a stored element"""
         zarr_element.resize(len(zarr_element) + 1)
-        zarr_element[-1] = self.data
+        zarr_element[-1] = self._data_store
 
 
 class ArrayState(StateBase):
     """State characterized by a single numpy array"""
 
-    data: np.ndarray
-
-    def __eq__(self, other):
-        return np.array_equal(self.data, other.data)
+    def __init__(self, data: np.ndarray = None):
+        """
+        Args:
+            data: The data describing the state
+        """
+        self.data = data
 
     @classmethod
     def from_state(cls, attributes: Dict[str, Any], data=None):
@@ -280,7 +295,7 @@ class ArrayState(StateBase):
         *,
         label: str = "data",
     ) -> zarr.Array:
-        return zarr_group.array(label, self.data)
+        return zarr_group.array(label, self._data_store)
 
     def _prepare_zarr_trajectory(
         self,
@@ -293,9 +308,9 @@ class ArrayState(StateBase):
         """prepare the zarr storage for this state"""
         zarr_element = zarr_group.zeros(
             label,
-            shape=(0,) + self.data.shape,
-            chunks=(1,) + self.data.shape,
-            dtype=self.data.dtype,
+            shape=(0,) + self._data_store.shape,
+            chunks=(1,) + self._data_store.shape,
+            dtype=self._data_store.dtype,
         )
         self._write_zarr_attributes(zarr_element, attrs)
 
@@ -303,17 +318,17 @@ class ArrayState(StateBase):
 
     def _append_to_zarr_trajectory(self, zarr_element: zarr.Array) -> None:
         """append current data to a stored element"""
-        zarr_element.append([self.data])
+        zarr_element.append([self._data_store])
 
     @classmethod
-    def _from_text_data(cls, content, *, state_cls: StateBase = None) -> StateBase:
+    def _from_simple_objects(cls, content, *, state_cls: StateBase = None) -> StateBase:
         """create state from text data
 
         Args:
             content: The loaded data
         """
         if state_cls is None:
-            return super()._from_text_data(content)
+            return super()._from_simple_objects(content)
 
         return cls(np.asarray(content["data"]))
 
@@ -342,8 +357,10 @@ class ArrayCollectionState(StateBase):
             self.labels = tuple(labels)
 
     def __eq__(self, other):
-        return len(self.data) == len(other.data) and all(
-            np.array_equal(s, o) for s, o in zip(self.data, other.data)
+        return (
+            self.__class__ == other.__class__
+            and len(self.data) == len(other.data)
+            and all(np.array_equal(s, o) for s, o in zip(self.data, other.data))
         )
 
     @property
@@ -385,7 +402,7 @@ class ArrayCollectionState(StateBase):
         self, zarr_group: zarr.Group, *, label: str = "data", **kwargs
     ):
         zarr_subgroup = zarr_group.create_group(label)
-        for sublabel, substate in zip(self.labels, self.data):
+        for sublabel, substate in zip(self.labels, self._data_store):
             zarr_subgroup.array(sublabel, substate)
         return zarr_subgroup
 
@@ -399,7 +416,7 @@ class ArrayCollectionState(StateBase):
     ) -> zarr.Group:
         """prepare the zarr storage for this state"""
         zarr_subgroup = zarr_group.create_group(label)
-        for sublabel, subdata in zip(self.labels, self.data):
+        for sublabel, subdata in zip(self.labels, self._data_store):
             zarr_subgroup.zeros(
                 sublabel,
                 shape=(0,) + subdata.shape,
@@ -412,18 +429,18 @@ class ArrayCollectionState(StateBase):
 
     def _append_to_zarr_trajectory(self, zarr_element: zarr.Group) -> None:
         """append current data to a stored element"""
-        for label, subdata in zip(self.labels, self.data):
+        for label, subdata in zip(self.labels, self._data_store):
             zarr_element[label].append([subdata])
 
     @classmethod
-    def _from_text_data(cls, content, *, state_cls: StateBase = None) -> StateBase:
+    def _from_simple_objects(cls, content, *, state_cls: StateBase = None) -> StateBase:
         """create state from text data
 
         Args:
             content: The data loaded from text
         """
         if state_cls is None:
-            return super()._from_text_data(content)
+            return super()._from_simple_objects(content)
 
         data = tuple(
             np.array(content["data"][label])
@@ -431,10 +448,12 @@ class ArrayCollectionState(StateBase):
         )
         return state_cls.from_state(content["attributes"], data)
 
-    def _to_text_data(self):
+    def _to_simple_objects(self):
         """return object data suitable for encoding as JSON"""
-        data = {label: substate for label, substate in zip(self.labels, self.data)}
-        return {"attributes": self.attributes, "data": data}
+        data = {
+            label: substate for label, substate in zip(self.labels, self._data_store)
+        }
+        return {"attributes": self._attributes_store, "data": data}
 
 
 class DictState(StateBase):
@@ -444,10 +463,11 @@ class DictState(StateBase):
 
     def __init__(self, data: Union[Dict[str, StateBase], Tuple[StateBase]] = None):
         if data is None:
-            data = {}
+            self.data = {}
         elif not isinstance(data, dict):
-            data = {str(i): v for i, v in enumerate(data)}
-        super().__init__(data)
+            self.data = {str(i): v for i, v in enumerate(data)}
+        else:
+            self.data = data
 
     @property
     def attributes(self) -> Dict[str, Any]:
@@ -493,7 +513,7 @@ class DictState(StateBase):
         self, zarr_group: zarr.Group, *, label: str = "data", **kwargs
     ):
         zarr_subgroup = zarr_group.create_group(label)
-        for label, substate in self.data.items():
+        for label, substate in self._data_store.items():
             substate._write_zarr(zarr_subgroup, label=label, **kwargs)
         return zarr_subgroup
 
@@ -507,7 +527,7 @@ class DictState(StateBase):
     ) -> zarr.Group:
         """prepare the zarr storage for this state"""
         zarr_subgroup = zarr_group.create_group(label)
-        for label, substate in self.data.items():
+        for label, substate in self._data_store.items():
             substate._prepare_zarr_trajectory(zarr_subgroup, label=label, **kwargs)
 
         self._write_zarr_attributes(zarr_subgroup, attrs)
@@ -515,30 +535,31 @@ class DictState(StateBase):
 
     def _append_to_zarr_trajectory(self, zarr_element: zarr.Group) -> None:
         """append current data to a stored element"""
-        for label, substate in self.data.items():
+        for label, substate in self._data_store.items():
             substate._append_to_zarr_trajectory(zarr_element[label])
 
     @classmethod
-    def _from_text_data(cls, content, *, state_cls: StateBase = None) -> StateBase:
+    def _from_simple_objects(cls, content, *, state_cls: StateBase = None) -> StateBase:
         """create state from JSON data
 
         Args:
             content: The data loaded from json
         """
         if state_cls is None:
-            return super()._from_text_data(content)
+            return super()._from_simple_objects(content)
 
         data = {}
         for label, substate in content["data"].items():
-            data[label] = StateBase._from_text_data(substate)
+            data[label] = StateBase._from_simple_objects(substate)
         return state_cls.from_state(content["attributes"], data)
 
-    def _to_text_data(self):
+    def _to_simple_objects(self):
         """return object data suitable for encoding as JSON"""
         data = {
-            label: substate._to_text_data() for label, substate in self.data.items()
+            label: substate._to_simple_objects()
+            for label, substate in self._data_store.items()
         }
-        return {"attributes": self.attributes, "data": data}
+        return {"attributes": self._attributes_store, "data": data}
 
 
 def make_state(data: Any) -> StateBase:

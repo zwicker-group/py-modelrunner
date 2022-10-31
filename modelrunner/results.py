@@ -106,7 +106,7 @@ class Result(IOBase):
         return self.model.parameters
 
     @classmethod
-    def _from_text_data(cls, content, model: ModelBase = None) -> Result:
+    def _from_simple_objects(cls, content, model: ModelBase = None) -> Result:
         """read result from a JSON file
 
         Args:
@@ -115,16 +115,21 @@ class Result(IOBase):
         """
         return cls.from_data(
             model_data=content.get("model", {}),
-            state=StateBase._from_text_data(content["state"]),
+            state=StateBase._from_simple_objects(content["state"]),
             model=model,
             info=content.get("info"),
         )
 
-    def _to_text_data(self):
+    def _to_simple_objects(self):
         """write result to JSON file"""
         content = {
+<<<<<<< Upstream, based on main
             "model": simplify_data(self.model.attributes),
             "state": self.state._to_text_data(),
+=======
+            "model": self.model.attributes,
+            "state": self.state._to_simple_objects(),
+>>>>>>> 6655c98 Added more flexibility by defining generic interfaces
         }
         if self.info:
             content["info"] = self.info
@@ -199,8 +204,8 @@ class Result(IOBase):
             root.attrs["__info__"] = json.dumps(self.info, cls=NumpyEncoder)
 
         # write the actual data
-        write_hdf_dataset(root, self.state.attributes, "state")
-        write_hdf_dataset(root, self.state.data, "data")
+        write_hdf_dataset(root, self.state._attributes_store, "state")
+        write_hdf_dataset(root, self.state._data_store, "data")
 
 
 class ResultCollection(List[Result]):
