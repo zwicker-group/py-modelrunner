@@ -120,17 +120,17 @@ zarrElement = Union[zarr.Group, zarr.Array]
 class IOBase:
     """base class for handling structured input and output
 
-    Subclasses need to define :meth:`_from_text_data` and :meth:`_to_text_data` methods
+    Subclasses need to define :meth:`_from_simple_objects` and :meth:`_to_simple_objects` methods
     to support the interface that store data in text files. However, the default method
     for storing data is using the :mod:`zarr` package, where the details are defined in
     the method :meth:`_write_zarr`, which needs to be implemented by subclasses.
     """
 
     @classmethod
-    def _from_text_data(cls, content) -> IOBase:
+    def _from_simple_objects(cls, content) -> IOBase:
         raise NotImplementedError(f"{cls.__name__}: no text reading")
 
-    def _to_text_data(self):
+    def _to_simple_objects(self):
         raise NotImplementedError(f"{self.__class__.__name__}: no text writing")
 
     @classmethod
@@ -180,14 +180,14 @@ class IOBase:
         if fmt == "json":
             with open(store, "r") as fp:
                 content = json.load(fp)
-            return cls._from_text_data(content, **kwargs)
+            return cls._from_simple_objects(content, **kwargs)
 
         elif fmt == "yaml":
             import yaml
 
             with open(store, "r") as fp:
                 content = yaml.safe_load(fp)
-            return cls._from_text_data(content, **kwargs)
+            return cls._from_simple_objects(content, **kwargs)
 
         elif fmt == "hdf":
             import h5py
@@ -218,7 +218,7 @@ class IOBase:
         """
         fmt = self._guess_format(store, fmt)
         if fmt == "json":
-            content = self._to_text_data()
+            content = self._to_simple_objects()
             kwargs.setdefault("cls", NumpyEncoder)
             with open(store, "w" if overwrite else "x") as fp:
                 json.dump(content, fp, **kwargs)
@@ -226,7 +226,7 @@ class IOBase:
         elif fmt == "yaml":
             import yaml
 
-            content = prepare_yaml(self._to_text_data())
+            content = prepare_yaml(self._to_simple_objects())
             kwargs.setdefault("sort_keys", False)
             with open(store, "w" if overwrite else "x") as fp:
                 yaml.dump(content, fp, **kwargs)
