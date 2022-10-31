@@ -154,7 +154,6 @@ class Result(IOBase):
         return cls.from_data(
             model_data=content.get("model", {}),
             state=StateBase._from_text_data(content["state"]),
-            state=StateBase._from_text_data(content["state"]),
             info=content.get("info"),
         )
 
@@ -208,8 +207,8 @@ class Result(IOBase):
             root.attrs[key] = json.dumps(value, cls=NumpyEncoder)
 
         # write the actual data
-        write_hdf_dataset(root, self.state.attributes, "state")
-        write_hdf_dataset(root, self.state.data, "data")
+        write_hdf_dataset(root, self.state._attributes_store, "state")
+        write_hdf_dataset(root, self.state._data_store, "data")
 
 
 class ResultCollection(List[Result]):
