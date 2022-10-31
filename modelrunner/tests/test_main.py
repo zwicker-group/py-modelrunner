@@ -2,7 +2,6 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-<<<<<<< Upstream, based on main
 import os
 import subprocess as sp
 import sys
@@ -22,15 +21,6 @@ def test_empty_main():
     proc = sp.Popen(cmd_args, env=env, stdout=sp.PIPE, stderr=sp.PIPE)
     _, errs = proc.communicate(timeout=30)
     assert b"Require job script as first argument" in errs
-=======
-
-import os
-import subprocess as sp
-import sys
-from pathlib import Path
-
-PACKAGEPATH = Path(__file__).parents[2].resolve()
-SCRIPT_PATH = Path(__file__).parent / "scripts"
 
 
 def test_main():
@@ -49,4 +39,3 @@ def test_main():
         print(errs)
         assert False
     return outs.strip()
->>>>>>> 45f8d0c Added many tests and adjusted code

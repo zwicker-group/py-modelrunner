@@ -5,11 +5,19 @@ Base class describing a model.
 """
 
 import argparse
+<<<<<<< Upstream, based on main
 import importlib
+=======
+import importlib.util
+>>>>>>> 60bd818 Added many tests and adjusted code
 import inspect
 import json
 import logging
+<<<<<<< Upstream, based on main
 import os
+=======
+import os.path
+>>>>>>> 60bd818 Added many tests and adjusted code
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Type, Union
@@ -342,6 +350,7 @@ def make_model(
 
 def run_function_with_cmd_args(
 <<<<<<< Upstream, based on main
+<<<<<<< Upstream, based on main
     func: Callable, args: Optional[Sequence[str]] = None, *, name: Optional[str] = None
 =======
     func: Callable, args: Optional[Sequence[str]] = None, name: Optional[str] = None
@@ -364,8 +373,13 @@ def run_function_with_cmd_args(
     """
 =======
 >>>>>>> 0c7ab76 Rebased to current main branch
+=======
+    func: Callable, args: Sequence[str] = None, name: str = None
+) -> "Result":
+>>>>>>> 60bd818 Added many tests and adjusted code
     """create model from a function and obtain parameters from command line"""
     model_class = make_model_class(func)
+<<<<<<< Upstream, based on main
     return model_class.run_from_command_line(args, name=name)
 
 
@@ -463,6 +477,80 @@ def run_script(script_path: str, model_args: Sequence[str]) -> "Result":
         # there are multiple functions and we do not know which one to run
         names = ", ".join(sorted(candidate_funcs.keys()))
         raise RuntimeError(f"Found many function, but no 'main' function: {names}")
+=======
+    return model_class.from_command_line(args, name=name)
+
+
+def run_script(script_path: str, model_args: Sequence[str]) -> "Result":
+    """helper function that runs a model script
+
+    Args:
+        script_path (str):
+            Path to the script that contains the model definition
+        model_args (sequence):
+            Additional arugments that define how the model is run
+
+    Returns:
+        :class:`~modelrunner.result.Result`: The result of the run
+    """
+    logger = logging.getLogger("modelrunner")
+
+    # load the script as a module
+    filename = os.path.basename(script_path)
+    spec = importlib.util.spec_from_file_location("model_code", script_path)
+    if spec is None:
+        raise IOError(f"Could not find job script `{script_path}`")
+    model_code = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(model_code)  # type: ignore
+
+    # find all functions in the module
+    logger.debug("Search for models in script")
+    candidate_instance, candidate_classes, candidate_funcs = {}, {}, {}
+    for name, member in inspect.getmembers(model_code):
+        if isinstance(member, ModelBase):
+            candidate_instance[name] = member
+        elif inspect.isclass(member):
+            if issubclass(member, ModelBase) and member is not ModelBase:
+                candidate_classes[name] = member
+        elif inspect.isfunction(member):
+            candidate_funcs[name] = member
+
+    if len(candidate_instance) == 1:
+        # there is a single instance of a model => use this
+        _, obj = candidate_instance.popitem()
+        logger.info("Run model instance `%s`", obj.__class__.__name__)
+        return obj.from_command_line(model_args, name=filename)
+
+    elif len(candidate_instance) > 1:
+        # there are multiple instance => we do not know which one do use
+        names = ", ".join(sorted(candidate_instance.keys()))
+        raise RuntimeError(f"Found multiple model instances: {names}")
+
+    elif len(candidate_classes) == 1:
+        # there is a single class of a model => use this
+        _, cls = candidate_classes.popitem()
+        logger.info("Run model class `%s`", cls.__name__)
+        return cls.from_command_line(model_args, name=filename)
+
+    elif len(candidate_classes) > 1:
+        # there are multiple instance => we do not know which one do use
+        names = ", ".join(sorted(candidate_classes.keys()))
+        raise RuntimeError(f"Found multiple model classes: {names}")
+
+    elif len(candidate_funcs) == 1 or "main" in candidate_funcs:
+        # there is a single function of a model => use this
+        if "main" in candidate_funcs:
+            func = candidate_funcs["main"]
+            logger.info("Run model function named `main`")
+        else:
+            _, func = candidate_funcs.popitem()
+            logger.info("Run model function named `%s`", func.__name__)
+        return run_function_with_cmd_args(func, args=model_args, name=filename)
+
+    elif len(candidate_funcs) > 1:
+        names = ", ".join(sorted(candidate_funcs.keys()))
+        raise RuntimeError(f"Found many function, but no 'main' function: {name}")
+>>>>>>> 60bd818 Added many tests and adjusted code
 
     else:
         # we could not find any useful objects

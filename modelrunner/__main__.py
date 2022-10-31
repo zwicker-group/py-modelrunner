@@ -4,13 +4,17 @@ Main module allowing to use the package to wrap existing code
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
+<<<<<<< Upstream, based on main
 
+=======
+>>>>>>> 60bd818 Added many tests and adjusted code
 import sys
 
 from modelrunner import Result, run_script
 
 
 def run_script_from_command_line() -> Result:
+<<<<<<< Upstream, based on main
     """helper function that runs a model from flags specified at the command line
 
     The function detects models automatically by trying several methods until one yields
@@ -25,6 +29,9 @@ def run_script_from_command_line() -> Result:
     Returns:
         :class:`Result`: The result of running the model
     """
+=======
+    """helper function that runs a model from flags specified at the command line"""
+>>>>>>> 60bd818 Added many tests and adjusted code
     # get the script name from the command line
     try:
         script_path = sys.argv[1]

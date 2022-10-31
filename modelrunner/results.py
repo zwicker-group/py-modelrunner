@@ -18,127 +18,11 @@ from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Type, Union
 import numpy as np
 from tqdm.auto import tqdm
 
-<<<<<<< Upstream, based on main
-<<<<<<< Upstream, based on main
-<<<<<<< Upstream, based on main
 from .io import IOBase, NumpyEncoder, read_hdf_data, write_hdf_dataset
-=======
-from ._io import IOBase, read_hdf_data, write_hdf_dataset, NumpyEncoder
->>>>>>> 5b3d6ac More restructuring
-=======
-from .io import IOBase, read_hdf_data, write_hdf_dataset, NumpyEncoder
->>>>>>> 58f9ab8 Renamed _io to io
-=======
-from .io import IOBase, NumpyEncoder, read_hdf_data, write_hdf_dataset
->>>>>>> 4ebae4d Added first tests and fixed some bugs
 from .model import ModelBase
-<<<<<<< Upstream, based on main
-<<<<<<< Upstream, based on main
+
 from .parameters import NoValueType
 from .state import make_state, StateBase
-
-
-def contains_array(data) -> bool:
-    """checks whether data contains a numpy array"""
-    if isinstance(data, np.ndarray):
-        return True
-    elif isinstance(data, dict):
-        return any(contains_array(d) for d in data.values())
-    elif isinstance(data, str):
-        return False
-    elif hasattr(data, "__iter__"):
-        return any(contains_array(d) for d in data)
-    else:
-        return False
-
-
-class NumpyEncoder(json.JSONEncoder):
-    """helper class for encoding python data in JSON"""
-
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        if isinstance(obj, np.generic):
-            return obj.item()
-        if isinstance(obj, NoValueType):
-            return None
-        return json.JSONEncoder.default(self, obj)
-
-
-def simplify_data(data):
-    """simplify data (e.g. for writing to yaml)"""
-    if isinstance(data, dict):
-        data = {key: simplify_data(value) for key, value in data.items()}
-
-    elif isinstance(data, (tuple, list)):
-        data = [simplify_data(item) for item in data]
-
-    elif isinstance(data, np.ndarray):
-        if np.isscalar(data):
-            data = data.item()
-        elif data.size <= 100:
-            # for less than ~100 items a list is actually more efficient to store
-            data = data.tolist()
-
-    elif isinstance(data, np.number):
-        data = data.tolist()
-
-    return data
-
-
-def write_hdf_dataset(node, data, name: str) -> None:
-    """writes data to an HDF node
-
-    Args:
-        node: the HDF node
-        data: the data to be written
-        name (str): name of the data in case a new dataset or group is created
-    """
-    if data is None:
-        return
-
-    if isinstance(data, np.ndarray):
-        node.create_dataset(name, data=data)
-
-    else:
-        if not contains_array(data):
-            # write everything as JSON encoded string
-            if isinstance(data, dict):
-                group = node.create_group(name)
-                for key, value in data.items():
-                    group.attrs[key] = json.dumps(value, cls=NumpyEncoder)
-            else:
-                node.attrs[name] = json.dumps(data, cls=NumpyEncoder)
-
-        elif isinstance(data, dict):
-            group = node.create_group(name)
-            for key, value in data.items():
-                write_hdf_dataset(group, value, key)
-
-        else:
-            group = node.create_group(name)
-            for n, value in enumerate(data):
-                write_hdf_dataset(group, value, str(n))
-
-
-def read_hdf_data(node):
-    """read structured data written with :func:`write_hdf_dataset` from an HDF node"""
-    import h5py
-
-    if isinstance(node, h5py.Dataset):
-        return np.array(node)
-    else:
-        # this must be a group
-        data = {key: json.loads(value) for key, value in node.attrs.items()}
-        for key, value in node.items():
-            data[key] = read_hdf_data(value)
-        return data
-=======
-from .state import StateBase, make_state
->>>>>>> 0c7ab76 Rebased to current main branch
-=======
-from .state import StateBase, make_state
->>>>>>> 5b3d6ac More restructuring
 
 
 class MockModel(ModelBase):
@@ -161,13 +45,9 @@ class MockModel(ModelBase):
 class Result(IOBase):
     """describes a model (with parameters) together with its result"""
 
-<<<<<<< Upstream, based on main
     def __init__(
         self, model: ModelBase, state: StateBase, info: Optional[Dict[str, Any]] = None
     ):
-=======
-    def __init__(self, model: ModelBase, state: StateBase, info: Dict[str, Any] = None):
->>>>>>> effedef Use State classes in rest of package
         """
         Args:
             model (:class:`ModelBase`):
@@ -186,25 +66,16 @@ class Result(IOBase):
     @property
     def data(self):
         """direct access to the underlying state data"""
-<<<<<<< Upstream, based on main
         assert self.state is not self
-=======
->>>>>>> effedef Use State classes in rest of package
         return self.state.data
 
     @classmethod
     def from_data(
         cls,
         model_data: Dict[str, Any],
-<<<<<<< Upstream, based on main
         state,
         model: Optional[ModelBase] = None,
         info: Optional[Dict[str, Any]] = None,
-=======
-        state: StateBase,
-        model: ModelBase = None,
-        info: Dict[str, Any] = None,
->>>>>>> effedef Use State classes in rest of package
     ) -> Result:
         """create result from data
 
@@ -217,12 +88,9 @@ class Result(IOBase):
                 The model from which the result was obtained
             info (dict):
                 Additional information for this result
-<<<<<<< Upstream, based on main
 
         Returns:
             :class:`Result`: The result object
-=======
->>>>>>> effedef Use State classes in rest of package
         """
         if model is None:
             model_cls: Type[ModelBase] = MockModel
@@ -242,11 +110,6 @@ class Result(IOBase):
         return self.model.parameters
 
     @classmethod
-<<<<<<< Upstream, based on main
-<<<<<<< Upstream, based on main
-<<<<<<< Upstream, based on main
-<<<<<<< Upstream, based on main
-<<<<<<< Upstream, based on main
     def from_file(cls, path, model: Optional[ModelBase] = None):
         """read result from file
 
@@ -281,22 +144,7 @@ class Result(IOBase):
             raise ValueError(f"Unknown file format `{ext}`")
 
     @classmethod
-    def from_json(cls, path, model: Optional[ModelBase] = None) -> Result:
-=======
-    def _from_simple_objects(cls, content, model: ModelBase = None) -> Result:
->>>>>>> 1e5cf15 Added more flexibility by defining generic interfaces
-=======
     def _from_simple_objects(cls, content, model: Optional[ModelBase] = None) -> Result:
->>>>>>> 0c7ab76 Rebased to current main branch
-=======
-    def _from_json_data(cls, content, model: ModelBase = None) -> Result:
->>>>>>> 5b3d6ac More restructuring
-=======
-    def _from_text_data(cls, content, model: ModelBase = None, *, fmt="yaml") -> Result:
->>>>>>> 4ebae4d Added first tests and fixed some bugs
-=======
-    def _from_text_data(cls, content, model: ModelBase = None) -> Result:
->>>>>>> 140ae3e Added ArrayCollectionState
         """read result from a JSON file
 
         Args:
@@ -304,153 +152,28 @@ class Result(IOBase):
             model (:class:`ModelBase`): The model from which the result was obtained
         """
         return cls.from_data(
-<<<<<<< Upstream, based on main
-<<<<<<< Upstream, based on main
-            model_data=data.get("model", {}),
-<<<<<<< Upstream, based on main
-            state=StateBase._from_text_data(content["state"]),
-=======
             model_data=content.get("model", {}),
-<<<<<<< Upstream, based on main
-            state=StateBase._from_simple_objects(content["state"]),
->>>>>>> 1e5cf15 Added more flexibility by defining generic interfaces
-=======
-            state=state,
->>>>>>> effedef Use State classes in rest of package
-=======
-            model_data=content.get("model", {}),
-<<<<<<< Upstream, based on main
-            state=StateBase._from_json_data(content["state"]),
->>>>>>> 5b3d6ac More restructuring
-=======
-            state=StateBase._from_text_data(content["state"], fmt=fmt),
->>>>>>> 4ebae4d Added first tests and fixed some bugs
-=======
             state=StateBase._from_text_data(content["state"]),
->>>>>>> 140ae3e Added ArrayCollectionState
-            model=model,
+            state=StateBase._from_text_data(content["state"]),
             info=content.get("info"),
         )
 
-<<<<<<< Upstream, based on main
-<<<<<<< Upstream, based on main
-<<<<<<< Upstream, based on main
-    def write_to_json(self, path) -> None:
+    def _to_simple_objects(self, path) -> None:
         """write result to JSON file
 
         Args:
             path (str or :class:`~pathlib.Path`): The path to the file
         """
         data = {
-<<<<<<< Upstream, based on main
-=======
-    def _to_simple_objects(self):
-        """write result to JSON file"""
-        content = {
-<<<<<<< Upstream, based on main
-<<<<<<< Upstream, based on main
->>>>>>> 1e5cf15 Added more flexibility by defining generic interfaces
             "model": simplify_data(self.model.attributes),
-<<<<<<< Upstream, based on main
-            "state": simplify_data(self.state.attributes),
             "data": simplify_data(self.state.data),
-=======
-            "state": self.state._to_text_data(),
-=======
-=======
->>>>>>> 0c7ab76 Rebased to current main branch
-            "model": self.model.attributes,
             "state": self.state._to_simple_objects(),
-<<<<<<< Upstream, based on main
->>>>>>> 6655c98 Added more flexibility by defining generic interfaces
->>>>>>> 1e5cf15 Added more flexibility by defining generic interfaces
-=======
->>>>>>> 0c7ab76 Rebased to current main branch
-=======
-=======
-    def _to_json_data(self):
-=======
-    def _to_text_data(self):
->>>>>>> 4ebae4d Added first tests and fixed some bugs
-        """write result to JSON file"""
-        content = {
->>>>>>> 5b3d6ac More restructuring
-            "model": self.model.attributes,
-<<<<<<< Upstream, based on main
-<<<<<<< Upstream, based on main
-            "state": self.state.attributes,
-            "data": self.state.data,
->>>>>>> effedef Use State classes in rest of package
-=======
-            "state": self.state._to_json_data(),
->>>>>>> 5b3d6ac More restructuring
         }
         if self.info:
             content["info"] = self.info
         return content
 
-    @classmethod
-<<<<<<< Upstream, based on main
-<<<<<<< Upstream, based on main
-    def from_yaml(cls, path, model: Optional[ModelBase] = None) -> Result:
-=======
-    def _from_yaml_data(cls, content, model: ModelBase = None) -> Result:
->>>>>>> 5b3d6ac More restructuring
-        """read result from a YAML file
-
-        Args:
-            path (str or :class:`~pathlib.Path`): The path to the file
-            model (:class:`ModelBase`): The model from which the result was obtained
-        """
-        return cls.from_data(
-            model_data=content.get("model", {}),
-            state=StateBase._from_yaml_data(content["state"]),
-            model=model,
-            info=content.get("info", {}),
-        )
-
-    def _to_yaml_data(self):
-        """write result to YAML file
-
-        Args:
-            path (str or :class:`~pathlib.Path`): The path to the file
-        """
-        # compile all data
-<<<<<<< Upstream, based on main
-        data = {
-<<<<<<< Upstream, based on main
-            "model": simplify_data(self.model.attributes),
-            "state": simplify_data(self.state.attributes),
-            "data": simplify_data(self.state.data),
-=======
-=======
-        content = {
->>>>>>> 5b3d6ac More restructuring
-            "model": self.model.attributes,
-<<<<<<< Upstream, based on main
-            "state": prepare_yaml(self.state.attributes),
-            "data": prepare_yaml(self.state.data),
->>>>>>> effedef Use State classes in rest of package
-=======
-            "state": self.state._to_yaml_data(),
->>>>>>> 5b3d6ac More restructuring
-=======
-            "state": self.state._to_text_data(),
->>>>>>> 4ebae4d Added first tests and fixed some bugs
-        }
-        if self.info:
-            content["info"] = self.info
-        return content
-
-    @classmethod
-<<<<<<< Upstream, based on main
-    def from_hdf(cls, path, model: Optional[ModelBase] = None) -> Result:
-=======
-    def _from_hdf(cls, hdf_element, model: Optional[ModelBase] = None) -> Result:
->>>>>>> 0c7ab76 Rebased to current main branch
-=======
     def _from_hdf(cls, hdf_element, model: ModelBase = None) -> Result:
->>>>>>> 5b3d6ac More restructuring
         """read result from a HDf file
 
         Args:
@@ -484,39 +207,9 @@ class Result(IOBase):
         for key, value in self.model.attributes.items():
             root.attrs[key] = json.dumps(value, cls=NumpyEncoder)
 
-<<<<<<< Upstream, based on main
-        with h5py.File(path, "w") as fp:
-            # write attributes
-            for key, value in self.model.attributes.items():
-                fp.attrs[key] = json.dumps(simplify_data(value), cls=NumpyEncoder)
-=======
-        if self.info:
-            root.attrs["__info__"] = json.dumps(self.info, cls=NumpyEncoder)
->>>>>>> 5b3d6ac More restructuring
-
-<<<<<<< Upstream, based on main
-<<<<<<< Upstream, based on main
-            if self.info:
-                fp.attrs["__info__"] = json.dumps(
-                    simplify_data(self.info), cls=NumpyEncoder
-                )
-
-            # write the actual data
-            write_hdf_dataset(fp, self.state.attributes, "state")
-            write_hdf_dataset(fp, self.state.data, "data")
-<<<<<<< Upstream, based on main
-=======
-        # write the actual data
-        write_hdf_dataset(root, self.state._attributes_store, "state")
-        write_hdf_dataset(root, self.state._data_store, "data")
->>>>>>> 1e5cf15 Added more flexibility by defining generic interfaces
-=======
->>>>>>> effedef Use State classes in rest of package
-=======
         # write the actual data
         write_hdf_dataset(root, self.state.attributes, "state")
         write_hdf_dataset(root, self.state.data, "data")
->>>>>>> 5b3d6ac More restructuring
 
 
 class ResultCollection(List[Result]):

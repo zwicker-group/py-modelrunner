@@ -7,6 +7,7 @@ import pytest
 
 from modelrunner.state import ArrayCollectionState, ArrayState, DictState, ObjectState
 from modelrunner.trajectory import Trajectory, TrajectoryWriter
+<<<<<<< Upstream, based on main
 
 EXTENSIONS = ["json", "yaml", "zarr"]
 
@@ -44,6 +45,8 @@ def test_trajectory(state, ext, tmp_path):
 
         for s in traj:
             assert s == state
+=======
+>>>>>>> 60bd818 Added many tests and adjusted code
 
 EXTENSIONS = ["json", "yaml", "zarr"]
 
@@ -63,11 +66,29 @@ def get_states():
 
 @pytest.mark.parametrize("state", get_states())
 @pytest.mark.parametrize("ext", EXTENSIONS)
-def test_state_io(state, ext, tmp_path):
+def test_trajectory(state, ext, tmp_path):
     """test simple state IO"""
     path = tmp_path / ("file." + ext)
+<<<<<<< Upstream, based on main
     state.to_file(path)
     state2 = StateBase.from_file(path)
     print(f"{state.data=}")
     print(f"{state2.data=}")
     assert state == state2
+=======
+
+    with TrajectoryWriter(path, attrs={"test": "yes"}) as write:
+        write(state, 1)
+        write(state)
+
+    for ret_copy in [True, False]:
+        traj = Trajectory(path, ret_copy=ret_copy)
+        assert len(traj) == 2
+        np.testing.assert_allclose(traj.times, [1, 2])
+        assert traj[1] == state
+        assert traj[-1] == state
+        assert traj.attributes == {"test": "yes"}
+
+        for s in traj:
+            assert s == state
+>>>>>>> 60bd818 Added many tests and adjusted code

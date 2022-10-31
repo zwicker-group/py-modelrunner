@@ -21,25 +21,8 @@ SCRIPT_PATH = Path(__file__).parent / "scripts"
 
 def run(script, *args):
     """run a script (with potential arguments) and collect stdout"""
-<<<<<<< Upstream, based on main
-    # prepare environment
-    env = os.environ.copy()
-    env["PYTHONPATH"] = str(PACKAGEPATH) + ":" + env.get("PYTHONPATH", "")
-
-    # run example in temporary folder since it might create data files
-    path = SCRIPT_PATH / script
-    cmd_args = (sys.executable, "-m", "modelrunner", path) + args
-    proc = sp.Popen(cmd_args, env=env, stdout=sp.PIPE, stderr=sp.PIPE)
-    outs, errs = proc.communicate(timeout=30)
-
-    if errs != b"":
-        print(errs)
-        assert False
-    return outs.strip()
-=======
     result = run_script(SCRIPT_PATH / script, args)
     return result.data
->>>>>>> 45f8d0c Added many tests and adjusted code
 
 
 def test_empty_script():
@@ -193,39 +176,23 @@ def test_argparse_boolean_arguments():
         return flag
 
     with pytest.raises(SystemExit):
-<<<<<<< Upstream, based on main
         f0.run_from_command_line()
     assert f0.run_from_command_line(["--flag"]).data
     assert not f0.run_from_command_line(["--no-flag"]).data
-=======
-        f0.from_command_line()
-    assert f0.from_command_line(["--flag"]).state.data
-    assert not f0.from_command_line(["--no-flag"]).state.data
->>>>>>> effedef Use State classes in rest of package
 
     @make_model
     def f1(flag: bool = False):
         return flag
 
-<<<<<<< Upstream, based on main
     assert not f1.run_from_command_line().data
     assert f1.run_from_command_line(["--flag"]).data
-=======
-    assert not f1.from_command_line().state.data
-    assert f1.from_command_line(["--flag"]).state.data
->>>>>>> effedef Use State classes in rest of package
 
     @make_model
     def f2(flag: bool = True):
         return flag
 
-<<<<<<< Upstream, based on main
     assert f2.run_from_command_line().data
     assert not f2.run_from_command_line(["--no-flag"]).data
-=======
-    assert f2.from_command_line().state.data
-    assert not f2.from_command_line(["--no-flag"]).state.data
->>>>>>> effedef Use State classes in rest of package
 
 
 def test_argparse_list_arguments():
@@ -236,23 +203,15 @@ def test_argparse_list_arguments():
         return flag
 
     with pytest.raises(TypeError):
-<<<<<<< Upstream, based on main
         assert f0.run_from_command_line()
     assert f0.run_from_command_line(["--flag"]).data == []
     assert f0.run_from_command_line(["--flag", "0"]).data == ["0"]
     assert f0.run_from_command_line(["--flag", "0", "1"]).data == ["0", "1"]
-=======
-        assert f0.from_command_line()
-    assert f0.from_command_line(["--flag"]).state.data == []
-    assert f0.from_command_line(["--flag", "0"]).state.data == ["0"]
-    assert f0.from_command_line(["--flag", "0", "1"]).state.data == ["0", "1"]
->>>>>>> effedef Use State classes in rest of package
 
     @make_model
     def f1(flag: list = [0, 1]):
         return flag
 
-<<<<<<< Upstream, based on main
     assert f1.run_from_command_line().data == [0, 1]
     assert f1.run_from_command_line(["--flag"]).data == []
     assert f1.run_from_command_line(["--flag", "0"]).data == ["0"]
@@ -292,9 +251,3 @@ def test_model_class_inheritence():
         B.run_from_command_line(["--b", "2"])
     assert B.run_from_command_line(["--c", "2"]).data == 8
     assert B.run_from_command_line(["--d", "6"]).data == 11
-=======
-    assert f1.from_command_line().state.data == [0, 1]
-    assert f1.from_command_line(["--flag"]).state.data == []
-    assert f1.from_command_line(["--flag", "0"]).state.data == ["0"]
-    assert f1.from_command_line(["--flag", "0", "1"]).state.data == ["0", "1"]
->>>>>>> effedef Use State classes in rest of package
