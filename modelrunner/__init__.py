@@ -19,7 +19,10 @@ from .model import (
     make_model_class,
     run_function_with_cmd_args,
     run_script,
+<<<<<<< Upstream, based on main
     set_default,
+=======
+>>>>>>> 45f8d0c Added many tests and adjusted code
 )
 from .parameters import Parameter
 from .results import Result, ResultCollection

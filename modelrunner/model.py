@@ -330,7 +330,9 @@ def run_function_with_cmd_args(
         :class:`ModelBase`: An instance of a subclass of ModelBase encompassing `func`
 
     """
-    return make_model_class(func).run_from_command_line(args, name=name)
+    """create model from a function and obtain parameters from command line"""
+    model_class = make_model_class(func)
+    return model_class.from_command_line(args, name=name)
 
 
 def run_script(script_path: str, model_args: Sequence[str]) -> "Result":

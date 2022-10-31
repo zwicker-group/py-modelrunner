@@ -161,6 +161,7 @@ class Result:
     @property
     def data(self):
         """direct access to the underlying state data"""
+        assert self.state is not self
         return self.state.data
 
     @classmethod

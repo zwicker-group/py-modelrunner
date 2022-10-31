@@ -2,23 +2,21 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-import os
-import subprocess as sp
-import sys
 from pathlib import Path
 from typing import List  # @UnusedImport
 
 import pytest
 
-from ..model import ModelBase, make_model, make_model_class
-from ..parameters import DeprecatedParameter, HideParameter, NoValue, Parameter
+from modelrunner.model import make_model, make_model_class, run_script
+from modelrunner.parameters import NoValue
 
 PACKAGEPATH = Path(__file__).parents[2].resolve()
 SCRIPT_PATH = Path(__file__).parent / "scripts"
 
 
-def run_script(script, *args):
+def run(script, *args):
     """run a script (with potential arguments) and collect stdout"""
+<<<<<<< Upstream, based on main
     # prepare environment
     env = os.environ.copy()
     env["PYTHONPATH"] = str(PACKAGEPATH) + ":" + env.get("PYTHONPATH", "")
@@ -33,26 +31,30 @@ def run_script(script, *args):
         print(errs)
         assert False
     return outs.strip()
+=======
+    result = run_script(SCRIPT_PATH / script, args)
+    return result.data
+>>>>>>> 45f8d0c Added many tests and adjusted code
 
 
 def test_empty_script():
     """test the empty.py script"""
-    with pytest.raises(AssertionError):
-        run_script("empty.py")
+    with pytest.raises(RuntimeError):
+        run("empty.py")
 
 
 def test_function_script():
     """test the function.py script"""
-    assert float(run_script("function.py")) == 2
-    assert float(run_script("function.py", "--a", "3")) == 6
-    assert float(run_script("function.py", "--a", "3", "--b", "4")) == 12
+    assert float(run("function.py")) == 2
+    assert float(run("function.py", "--a", "3")) == 6
+    assert float(run("function.py", "--a", "3", "--b", "4")) == 12
 
 
 def test_function_main_script():
     """test the function_main.py script"""
-    assert float(run_script("function_main.py")) == 2
-    assert float(run_script("function_main.py", "--a", "3")) == 6
-    assert float(run_script("function_main.py", "--a", "3", "--b", "4")) == 12
+    assert float(run("function_main.py")) == 2
+    assert float(run("function_main.py", "--a", "3")) == 6
+    assert float(run("function_main.py", "--a", "3", "--b", "4")) == 12
 
 
 def test_function_marked_script():
@@ -64,16 +66,16 @@ def test_function_marked_script():
 
 def test_make_model_script():
     """test the make_model.py script"""
-    assert run_script("make_model.py") == b"2"
-    assert run_script("make_model.py", "--a", "3") == b"6"
-    assert run_script("make_model.py", "--a", "3", "--b", "4") == b"12"
+    assert run("make_model.py") == 2
+    assert run("make_model.py", "--a", "3") == 6
+    assert run("make_model.py", "--a", "3", "--b", "4") == 12
 
 
 def test_make_model_class_script():
     """test the make_model_class.py script"""
-    assert run_script("make_model_class.py") == b"2"
-    assert run_script("make_model_class.py", "--a", "3") == b"6"
-    assert run_script("make_model_class.py", "--a", "3", "--b", "4") == b"12"
+    assert run("make_model_class.py") == 2
+    assert run("make_model_class.py", "--a", "3") == 6
+    assert run("make_model_class.py", "--a", "3", "--b", "4") == 12
 
 
 def test_make_model_marked_script():

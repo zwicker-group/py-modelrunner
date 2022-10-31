@@ -9,4 +9,4 @@ def do_not_calculate(a=1, b=2):
 @modelrunner.make_model
 def calculate(a=1, b=2):
     """This function has been marked as a model"""
-    print(a * b)
+    return a * b
