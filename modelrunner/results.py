@@ -210,6 +210,7 @@ class Result:
         return self.model.parameters
 
     @classmethod
+<<<<<<< Upstream, based on main
     def from_file(cls, path, model: Optional[ModelBase] = None):
         """read result from file
 
@@ -245,6 +246,9 @@ class Result:
 
     @classmethod
     def from_json(cls, path, model: Optional[ModelBase] = None) -> Result:
+=======
+    def _from_simple_objects(cls, content, model: ModelBase = None) -> Result:
+>>>>>>> 1e5cf15 Added more flexibility by defining generic interfaces
         """read result from a JSON file
 
         Args:
@@ -262,12 +266,18 @@ class Result:
         info.setdefault("name", Path(path).with_suffix("").stem)
 
         return cls.from_data(
+<<<<<<< Upstream, based on main
             model_data=data.get("model", {}),
             state=StateBase._from_text_data(content["state"]),
+=======
+            model_data=content.get("model", {}),
+            state=StateBase._from_simple_objects(content["state"]),
+>>>>>>> 1e5cf15 Added more flexibility by defining generic interfaces
             model=model,
             info=info,
         )
 
+<<<<<<< Upstream, based on main
     def write_to_json(self, path) -> None:
         """write result to JSON file
 
@@ -275,9 +285,23 @@ class Result:
             path (str or :class:`~pathlib.Path`): The path to the file
         """
         data = {
+=======
+    def _to_simple_objects(self):
+        """write result to JSON file"""
+        content = {
+<<<<<<< Upstream, based on main
+>>>>>>> 1e5cf15 Added more flexibility by defining generic interfaces
             "model": simplify_data(self.model.attributes),
+<<<<<<< Upstream, based on main
             "state": simplify_data(self.state.attributes),
             "data": simplify_data(self.state.data),
+=======
+            "state": self.state._to_text_data(),
+=======
+            "model": self.model.attributes,
+            "state": self.state._to_simple_objects(),
+>>>>>>> 6655c98 Added more flexibility by defining generic interfaces
+>>>>>>> 1e5cf15 Added more flexibility by defining generic interfaces
         }
         if self.info:
             data["info"] = self.info
@@ -373,6 +397,7 @@ class Result:
             for key, value in self.model.attributes.items():
                 fp.attrs[key] = json.dumps(simplify_data(value), cls=NumpyEncoder)
 
+<<<<<<< Upstream, based on main
             if self.info:
                 fp.attrs["__info__"] = json.dumps(
                     simplify_data(self.info), cls=NumpyEncoder
@@ -381,6 +406,11 @@ class Result:
             # write the actual data
             write_hdf_dataset(fp, self.state.attributes, "state")
             write_hdf_dataset(fp, self.state.data, "data")
+=======
+        # write the actual data
+        write_hdf_dataset(root, self.state._attributes_store, "state")
+        write_hdf_dataset(root, self.state._data_store, "data")
+>>>>>>> 1e5cf15 Added more flexibility by defining generic interfaces
 
 
 class ResultCollection(List[Result]):
