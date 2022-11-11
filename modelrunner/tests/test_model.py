@@ -10,8 +10,8 @@ from typing import List  # @UnusedImport
 
 import pytest
 
-from ..model import make_model, make_model_class
-from ..parameters import NoValue
+from ..model import ModelBase, make_model, make_model_class
+from ..parameters import DeprecatedParameter, HideParameter, NoValue, Parameter
 
 PACKAGEPATH = Path(__file__).parents[2].resolve()
 SCRIPT_PATH = Path(__file__).parent / "scripts"
@@ -213,3 +213,38 @@ def test_argparse_list_arguments():
     assert f1.from_command_line(["--flag"]).result == []
     assert f1.from_command_line(["--flag", "0"]).result == ["0"]
     assert f1.from_command_line(["--flag", "0", "1"]).result == ["0", "1"]
+
+
+def test_model_class_inheritence():
+    """test whether inheritence works as intended"""
+
+    class A(ModelBase):
+        parameters_default = [
+            Parameter("a", 1),
+            DeprecatedParameter("b", 2),
+            Parameter("c", 3),
+        ]
+
+        def __call__(self):
+            return self.parameters["a"] + self.parameters["c"]
+
+    class B(A):
+        parameters_default = [HideParameter("a"), Parameter("c", 4), Parameter("d", 5)]
+
+        def __call__(self):
+            return super().__call__() + self.parameters["d"]
+
+    assert A().parameters == {"a": 1, "b": 2, "c": 3}
+    assert A()() == 4
+    assert A.from_command_line(["--a", "2"]).result == 5
+    with pytest.raises(SystemExit):
+        A.from_command_line(["--b", "2"])
+
+    assert B().parameters == {"a": 1, "b": 2, "c": 4, "d": 5}
+    assert B()() == 10
+    with pytest.raises(SystemExit):
+        B.from_command_line(["--a", "2"])
+    with pytest.raises(SystemExit):
+        B.from_command_line(["--b", "2"])
+    assert B.from_command_line(["--c", "2"]).result == 8
+    assert B.from_command_line(["--d", "6"]).result == 11
