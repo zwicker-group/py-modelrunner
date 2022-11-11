@@ -38,7 +38,7 @@ def auto_type(value):
     """convert value to float or int if reasonable"""
     try:
         float_val = float(value)
-    except TypeError:
+    except (TypeError, ValueError):
         return value
 
     try:

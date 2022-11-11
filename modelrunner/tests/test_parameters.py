@@ -93,8 +93,10 @@ def test_parameters_simple():
     class Test(Parameterized):
         parameters_default = {"a": 1}
 
-    t = Test()
-    assert t.parameters["a"] == 1
+    assert Test().parameters["a"] == 1
+    assert Test({"a": 2}).parameters["a"] == 2
+    assert Test({"a": "2"}).parameters["a"] == 2
+    assert Test({"a": "two"}).parameters["a"] == "two"
 
 
 def test_parameter_help(capsys):

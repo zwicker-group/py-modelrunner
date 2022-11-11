@@ -87,6 +87,10 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
     def _prepare_argparser(cls, name: str = None) -> argparse.ArgumentParser:
         """create argument parser for setting parameters of this model
 
+        Args:
+            name (str):
+                Name of the program, which will be shown in the command line help
+
         Returns:
             :class:`~argparse.ArgumentParser`
         """
@@ -120,8 +124,15 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
     @classmethod
     def from_command_line(
         cls, args: Sequence[str] = None, name: str = None
-    ) -> "Result":
-        """create model from command line parameters"""
+    ) -> "ModelBase":
+        """create model from command line parameters
+
+        Args:
+            args (list):
+                Sequence of strings corresponding to the command line arguments
+            name (str):
+                Name of the program, which will be shown in the command line help
+        """
         if args is None:
             args = []
 
@@ -145,12 +156,27 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
             parameters.update(json.loads(parameters_json))
 
         # create the model
-        mdl = cls(parameters, output=output)
+        return cls(parameters, output=output)
+
+    @classmethod
+    def run_from_command_line(
+        cls, args: Sequence[str] = None, name: str = None
+    ) -> "Result":
+        """run model using command line parameters
+
+        Args:
+            args (list):
+                Sequence of strings corresponding to the command line arguments
+            name (str):
+                Name of the program, which will be shown in the command line help
+        """
+        # create model from command line parameters
+        mdl = cls.from_command_line(args, name)
         # run the model
         result = mdl.get_result()
 
         # write the results (if output file was specified)
-        if output:
+        if mdl.output:
             mdl.write_result(output=None, result=result)
 
         return result
@@ -215,4 +241,4 @@ def run_function_with_cmd_args(
     func: Callable, args: Sequence[str] = None, name: str = None
 ):
     """create model from a function and obtain parameters from command line"""
-    return make_model_class(func).from_command_line(args, name=name)
+    return make_model_class(func).run_from_command_line(args, name=name)
