@@ -12,7 +12,13 @@ from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Type
 
-from .parameters import NoValue, Parameter, Parameterized
+from .parameters import (
+    DeprecatedParameter,
+    HideParameter,
+    NoValue,
+    Parameter,
+    Parameterized,
+)
 
 if TYPE_CHECKING:
     from .results import Result  # @UnusedImport
@@ -90,10 +96,17 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
 
-        # add all model parameters
         group = parser.add_argument_group()
-        for p in cls.parameters_default:
-            p._argparser_add(group)
+        seen = set()
+        # iterate over all parent classes
+        for cls1 in cls.__mro__:
+            if hasattr(cls1, "parameters_default"):
+                # add all parameters of this class
+                for p in cls1.parameters_default:  # type: ignore
+                    if p.name not in seen:
+                        if not isinstance(p, (HideParameter, DeprecatedParameter)):
+                            p._argparser_add(group)
+                        seen.add(p.name)
 
         # add special parameters
         parser.add_argument(

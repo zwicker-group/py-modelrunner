@@ -258,7 +258,11 @@ class DeprecatedParameter(Parameter):
 
 
 class HideParameter:
-    """a helper class that allows hiding parameters of the parent classes"""
+    """a helper class that allows hiding parameters of the parent classes
+
+    This parameter will still appear in the :attr:`parameters` dictionary, but it will
+    typically not be visible to the user, e.g., when calling :meth:`show_parameters`.
+    """
 
     def __init__(self, name: str):
         """
