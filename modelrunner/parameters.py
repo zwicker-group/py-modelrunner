@@ -43,7 +43,7 @@ def auto_type(value):
 
     try:
         int_val = int(value)
-    except ValueError:
+    except (ValueError, OverflowError):
         return float_val
 
     if int_val == float_val:
