@@ -50,20 +50,13 @@ class NumpyEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-def prepare_yaml(data):
-    """prepare data for writing to yaml"""
+def simplify_data(data):
+    """simplify data (e.g. for writing to yaml)"""
     if isinstance(data, dict):
-        data = data.copy()  # shallow copy of result
-        for key, value in data.items():
-            if isinstance(value, dict):
-                data[key] = prepare_yaml(value)
-            elif isinstance(value, tuple):
-                data[key] = list(value)
-            elif isinstance(value, list) and value and not np.isscalar(value[0]):
-                data[key] = [prepare_yaml(a) for a in value]
-            elif isinstance(value, np.ndarray) and value.size <= 100:
-                # for less than ~100 items a list is actually more efficient to store
-                data[key] = value.tolist()
+        data = {key: simplify_data(value) for key, value in data.items()}
+
+    elif isinstance(data, (tuple, list)):
+        data = [simplify_data(item) for item in data]
 
     elif isinstance(data, np.ndarray):
         if np.isscalar(data):
@@ -255,7 +248,10 @@ class Result:
         Args:
             path (str or :class:`~pathlib.Path`): The path to the file
         """
-        data = {"model": self.model.attributes, "result": self.result}
+        data = {
+            "model": simplify_data(self.model.attributes),
+            "result": simplify_data(self.result),
+        }
         if self.info:
             data["info"] = self.info
 
@@ -294,7 +290,10 @@ class Result:
         import yaml
 
         # compile all data
-        data = {"model": self.model.attributes, "result": prepare_yaml(self.result)}
+        data = {
+            "model": simplify_data(self.model.attributes),
+            "result": simplify_data(self.result),
+        }
         if self.info:
             data["info"] = self.info
 
@@ -337,10 +336,12 @@ class Result:
         with h5py.File(path, "w") as fp:
             # write attributes
             for key, value in self.model.attributes.items():
-                fp.attrs[key] = json.dumps(value, cls=NumpyEncoder)
+                fp.attrs[key] = json.dumps(simplify_data(value), cls=NumpyEncoder)
 
             if self.info:
-                fp.attrs["__info__"] = json.dumps(self.info, cls=NumpyEncoder)
+                fp.attrs["__info__"] = json.dumps(
+                    simplify_data(self.info), cls=NumpyEncoder
+                )
 
             # write the actual data
             write_hdf_dataset(fp, self.result, "result")
