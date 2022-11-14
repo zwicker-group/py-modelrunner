@@ -66,7 +66,7 @@ def prepare_yaml(data):
                 data[key] = value.tolist()
 
     elif isinstance(data, np.ndarray):
-        if np.isscalar():
+        if np.isscalar(data):
             data = data.item()
         elif data.size <= 100:
             # for less than ~100 items a list is actually more efficient to store
