@@ -173,23 +173,23 @@ def test_argparse_boolean_arguments():
         return flag
 
     with pytest.raises(SystemExit):
-        f0.from_command_line()
-    assert f0.from_command_line(["--flag"]).result
-    assert not f0.from_command_line(["--no-flag"]).result
+        f0.run_from_command_line()
+    assert f0.run_from_command_line(["--flag"]).result
+    assert not f0.run_from_command_line(["--no-flag"]).result
 
     @make_model
     def f1(flag: bool = False):
         return flag
 
-    assert not f1.from_command_line().result
-    assert f1.from_command_line(["--flag"]).result
+    assert not f1.run_from_command_line().result
+    assert f1.run_from_command_line(["--flag"]).result
 
     @make_model
     def f2(flag: bool = True):
         return flag
 
-    assert f2.from_command_line().result
-    assert not f2.from_command_line(["--no-flag"]).result
+    assert f2.run_from_command_line().result
+    assert not f2.run_from_command_line(["--no-flag"]).result
 
 
 def test_argparse_list_arguments():
@@ -200,19 +200,19 @@ def test_argparse_list_arguments():
         return flag
 
     with pytest.raises(TypeError):
-        assert f0.from_command_line()
-    assert f0.from_command_line(["--flag"]).result == []
-    assert f0.from_command_line(["--flag", "0"]).result == ["0"]
-    assert f0.from_command_line(["--flag", "0", "1"]).result == ["0", "1"]
+        assert f0.run_from_command_line()
+    assert f0.run_from_command_line(["--flag"]).result == []
+    assert f0.run_from_command_line(["--flag", "0"]).result == ["0"]
+    assert f0.run_from_command_line(["--flag", "0", "1"]).result == ["0", "1"]
 
     @make_model
     def f1(flag: list = [0, 1]):
         return flag
 
-    assert f1.from_command_line().result == [0, 1]
-    assert f1.from_command_line(["--flag"]).result == []
-    assert f1.from_command_line(["--flag", "0"]).result == ["0"]
-    assert f1.from_command_line(["--flag", "0", "1"]).result == ["0", "1"]
+    assert f1.run_from_command_line().result == [0, 1]
+    assert f1.run_from_command_line(["--flag"]).result == []
+    assert f1.run_from_command_line(["--flag", "0"]).result == ["0"]
+    assert f1.run_from_command_line(["--flag", "0", "1"]).result == ["0", "1"]
 
 
 def test_model_class_inheritence():
@@ -236,15 +236,15 @@ def test_model_class_inheritence():
 
     assert A().parameters == {"a": 1, "b": 2, "c": 3}
     assert A()() == 4
-    assert A.from_command_line(["--a", "2"]).result == 5
+    assert A.run_from_command_line(["--a", "2"]).result == 5
     with pytest.raises(SystemExit):
-        A.from_command_line(["--b", "2"])
+        A.run_from_command_line(["--b", "2"])
 
     assert B().parameters == {"a": 1, "b": 2, "c": 4, "d": 5}
     assert B()() == 10
     with pytest.raises(SystemExit):
-        B.from_command_line(["--a", "2"])
+        B.run_from_command_line(["--a", "2"])
     with pytest.raises(SystemExit):
-        B.from_command_line(["--b", "2"])
-    assert B.from_command_line(["--c", "2"]).result == 8
-    assert B.from_command_line(["--d", "6"]).result == 11
+        B.run_from_command_line(["--b", "2"])
+    assert B.run_from_command_line(["--c", "2"]).result == 8
+    assert B.run_from_command_line(["--d", "6"]).result == 11

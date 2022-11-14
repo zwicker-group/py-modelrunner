@@ -16,8 +16,24 @@ from ..parameters import (
     HideParameter,
     Parameter,
     Parameterized,
+    auto_type,
     get_all_parameters,
 )
+
+
+def test_autotype():
+    """test automatic type conversion"""
+    assert auto_type(1) == 1
+    assert isinstance(auto_type(1), int)
+    assert isinstance(auto_type(1.0), int)
+    assert auto_type("1") == 1
+    assert auto_type(1.5) == 1.5
+    assert auto_type("1.5") == 1.5
+    assert isinstance(auto_type("1.0"), float)
+    assert auto_type("asdf") == "asdf"
+    assert np.isnan(auto_type(math.nan))
+    assert auto_type(math.inf) == math.inf
+    assert auto_type(-math.inf) == -math.inf
 
 
 def test_parameters():
@@ -93,8 +109,10 @@ def test_parameters_simple():
     class Test(Parameterized):
         parameters_default = {"a": 1}
 
-    t = Test()
-    assert t.parameters["a"] == 1
+    assert Test().parameters["a"] == 1
+    assert Test({"a": 2}).parameters["a"] == 2
+    assert Test({"a": "2"}).parameters["a"] == 2
+    assert Test({"a": "two"}).parameters["a"] == "two"
 
 
 def test_parameter_help(capsys):

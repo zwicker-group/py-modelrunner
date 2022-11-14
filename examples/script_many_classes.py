@@ -27,4 +27,4 @@ class MyDerivedModel(MyModel):
 
 
 if __name__ == "__main__":
-    MyDerivedModel.from_command_line(sys.argv[1:])
+    MyDerivedModel.run_from_command_line(sys.argv[1:])

@@ -49,7 +49,7 @@ if __name__ == "__main__":
         # there is a single instance of a model => use this
         _, obj = candidate_instance.popitem()
         logger.info("Run model instance `%s`", obj.__class__.__name__)
-        obj.from_command_line(model_args, name=filename)
+        obj.run_from_command_line(model_args, name=filename)
 
     elif len(candidate_instance) > 1:
         # there are multiple instance => we do not know which one do use
@@ -60,7 +60,7 @@ if __name__ == "__main__":
         # there is a single class of a model => use this
         _, cls = candidate_classes.popitem()
         logger.info("Run model class `%s`", cls.__name__)
-        cls.from_command_line(model_args, name=filename)
+        cls.run_from_command_line(model_args, name=filename)
 
     elif len(candidate_classes) > 1:
         # there are multiple instance => we do not know which one do use
