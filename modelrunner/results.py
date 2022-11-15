@@ -21,6 +21,7 @@ from tqdm.auto import tqdm
 
 from .io import IOBase, NumpyEncoder, read_hdf_data, write_hdf_dataset
 from .model import ModelBase
+<<<<<<< Upstream, based on main
 from .parameters import NoValueType
 from .state import ArrayState, ObjectState, StateBase
 
@@ -120,6 +121,9 @@ def read_hdf_data(node):
         for key, value in node.items():
             data[key] = read_hdf_data(value)
         return data
+=======
+from .state import StateBase, make_state
+>>>>>>> 0c7ab76 Rebased to current main branch
 
 
 class MockModel(ModelBase):
@@ -142,7 +146,9 @@ class MockModel(ModelBase):
 class Result:
     """describes a model (with parameters) together with its result"""
 
-    def __init__(self, model: ModelBase, state: StateBase, info: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self, model: ModelBase, state: StateBase, info: Optional[Dict[str, Any]] = None
+    ):
         """
         Args:
             model (:class:`ModelBase`):
@@ -211,6 +217,7 @@ class Result:
 
     @classmethod
 <<<<<<< Upstream, based on main
+<<<<<<< Upstream, based on main
     def from_file(cls, path, model: Optional[ModelBase] = None):
         """read result from file
 
@@ -249,6 +256,9 @@ class Result:
 =======
     def _from_simple_objects(cls, content, model: ModelBase = None) -> Result:
 >>>>>>> 1e5cf15 Added more flexibility by defining generic interfaces
+=======
+    def _from_simple_objects(cls, content, model: Optional[ModelBase] = None) -> Result:
+>>>>>>> 0c7ab76 Rebased to current main branch
         """read result from a JSON file
 
         Args:
@@ -290,6 +300,7 @@ class Result:
         """write result to JSON file"""
         content = {
 <<<<<<< Upstream, based on main
+<<<<<<< Upstream, based on main
 >>>>>>> 1e5cf15 Added more flexibility by defining generic interfaces
             "model": simplify_data(self.model.attributes),
 <<<<<<< Upstream, based on main
@@ -298,10 +309,15 @@ class Result:
 =======
             "state": self.state._to_text_data(),
 =======
+=======
+>>>>>>> 0c7ab76 Rebased to current main branch
             "model": self.model.attributes,
             "state": self.state._to_simple_objects(),
+<<<<<<< Upstream, based on main
 >>>>>>> 6655c98 Added more flexibility by defining generic interfaces
 >>>>>>> 1e5cf15 Added more flexibility by defining generic interfaces
+=======
+>>>>>>> 0c7ab76 Rebased to current main branch
         }
         if self.info:
             data["info"] = self.info
@@ -310,6 +326,7 @@ class Result:
             json.dump(data, fp, cls=NumpyEncoder)
 
     @classmethod
+<<<<<<< Upstream, based on main
     def from_yaml(cls, path, model: Optional[ModelBase] = None) -> Result:
         """read result from a YAML file
 
@@ -358,6 +375,9 @@ class Result:
 
     @classmethod
     def from_hdf(cls, path, model: Optional[ModelBase] = None) -> Result:
+=======
+    def _from_hdf(cls, hdf_element, model: Optional[ModelBase] = None) -> Result:
+>>>>>>> 0c7ab76 Rebased to current main branch
         """read result from a HDf file
 
         Args:

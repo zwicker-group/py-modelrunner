@@ -17,7 +17,7 @@ from __future__ import annotations
 import copy
 import itertools
 import warnings
-from typing import Any, Dict, Sequence, Tuple, Union
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 import numcodecs
 import numpy as np
@@ -98,7 +98,7 @@ class StateBase(IOBase):
     def _data_store(self) -> Any:
         """attribute that determines what data is stored in this state"""
         if hasattr(self, "data"):
-            return self.data  # type: ignore
+            return self.data
         else:
             return None
 
@@ -147,7 +147,7 @@ class StateBase(IOBase):
         return self.__class__.from_state(self.attributes, copy.deepcopy(self.data))
 
     def _write_zarr_attributes(
-        self, element: zarrElement, attrs: Dict[str, Any] = None
+        self, element: zarrElement, attrs: Optional[Dict[str, Any]] = None
     ) -> zarrElement:
         """prepare the zarr element for this state"""
         # write the attributes of the state
@@ -163,7 +163,7 @@ class StateBase(IOBase):
         raise NotImplementedError
 
     def _write_zarr(
-        self, zarr_group: zarr.Group, attrs: Dict[str, Any] = None, **kwargs
+        self, zarr_group: zarr.Group, attrs: Optional[Dict[str, Any]] = None, **kwargs
     ):
         element = self._write_zarr_data(zarr_group, **kwargs)
         self._write_zarr_attributes(element, attrs)
@@ -186,7 +186,7 @@ class StateBase(IOBase):
         raise NotImplementedError
 
     def _prepare_zarr_trajectory(
-        self, zarr_group: zarr.Group, attrs: Dict[str, Any] = None, **kwargs
+        self, zarr_group: zarr.Group, attrs: Optional[Dict[str, Any]] = None, **kwargs
     ) -> zarrElement:
         """prepare the zarr element for this state"""
         raise NotImplementedError
@@ -196,7 +196,9 @@ class StateBase(IOBase):
         raise NotImplementedError
 
     @classmethod
-    def _from_simple_objects(cls, content, *, state_cls: StateBase = None) -> StateBase:
+    def _from_simple_objects(
+        cls, content, *, state_cls: Optional[StateBase] = None
+    ) -> StateBase:
         """create state from text data
 
         Args:
@@ -218,7 +220,7 @@ class ObjectState(StateBase):
 
     default_codec = numcodecs.Pickle()
 
-    def __init__(self, data: Any = None):
+    def __init__(self, data: Optional[Any] = None):
         """
         Args:
             data: The data describing the state
@@ -243,7 +245,7 @@ class ObjectState(StateBase):
         zarr_group: zarr.Group,
         *,
         label: str = "data",
-        codec: numcodecs.abc.Codec = None,
+        codec: Optional[numcodecs.abc.Codec] = None,
     ):
         if codec is None:
             codec = self.default_codec
@@ -254,10 +256,10 @@ class ObjectState(StateBase):
     def _prepare_zarr_trajectory(  # type: ignore
         self,
         zarr_group: zarr.Group,
-        attrs: Dict[str, Any] = None,
+        attrs: Optional[Dict[str, Any]] = None,
         *,
         label: str = "data",
-        codec: numcodecs.abc.Codec = None,
+        codec: Optional[numcodecs.abc.Codec] = None,
     ) -> zarr.Array:
         """prepare the zarr storage for this state"""
         if codec is None:
@@ -283,7 +285,7 @@ class ObjectState(StateBase):
 class ArrayState(StateBase):
     """State characterized by a single numpy array"""
 
-    def __init__(self, data: np.ndarray = None):
+    def __init__(self, data: Optional[np.ndarray] = None):
         """
         Args:
             data: The data describing the state
@@ -314,7 +316,7 @@ class ArrayState(StateBase):
     def _prepare_zarr_trajectory(
         self,
         zarr_group: zarr.Group,
-        attrs: Dict[str, Any] = None,
+        attrs: Optional[Dict[str, Any]] = None,
         *,
         label: str = "data",
         **kwargs,
@@ -335,7 +337,9 @@ class ArrayState(StateBase):
         zarr_element.append([self._data_store])
 
     @classmethod
-    def _from_simple_objects(cls, content, *, state_cls: StateBase = None) -> StateBase:
+    def _from_simple_objects(
+        cls, content, *, state_cls: Optional[StateBase] = None
+    ) -> StateBase:
         """create state from text data
 
         Args:
@@ -353,7 +357,10 @@ class ArrayCollectionState(StateBase):
     data: Tuple[np.ndarray, ...]
 
     def __init__(
-        self, data: Tuple[np.ndarray, ...] = None, *, labels: Sequence[str] = None
+        self,
+        data: Optional[Tuple[np.ndarray, ...]] = None,
+        *,
+        labels: Optional[Sequence[str]] = None,
     ):
         """
         Args:
@@ -423,7 +430,7 @@ class ArrayCollectionState(StateBase):
     def _prepare_zarr_trajectory(
         self,
         zarr_group: zarr.Group,
-        attrs: Dict[str, Any] = None,
+        attrs: Optional[Dict[str, Any]] = None,
         *,
         label: str = "data",
         **kwargs,
@@ -447,7 +454,9 @@ class ArrayCollectionState(StateBase):
             zarr_element[label].append([subdata])
 
     @classmethod
-    def _from_simple_objects(cls, content, *, state_cls: StateBase = None) -> StateBase:
+    def _from_simple_objects(
+        cls, content, *, state_cls: Optional[StateBase] = None
+    ) -> StateBase:
         """create state from text data
 
         Args:
@@ -475,7 +484,9 @@ class DictState(StateBase):
 
     data: Dict[str, StateBase]
 
-    def __init__(self, data: Union[Dict[str, StateBase], Tuple[StateBase]] = None):
+    def __init__(
+        self, data: Optional[Union[Dict[str, StateBase], Tuple[StateBase]]] = None
+    ):
         if data is None:
             self.data = {}
         elif not isinstance(data, dict):
@@ -534,7 +545,7 @@ class DictState(StateBase):
     def _prepare_zarr_trajectory(
         self,
         zarr_group: zarr.Group,
-        attrs: Dict[str, Any] = None,
+        attrs: Optional[Dict[str, Any]] = None,
         *,
         label: str = "data",
         **kwargs,
@@ -553,7 +564,9 @@ class DictState(StateBase):
             substate._append_to_zarr_trajectory(zarr_element[label])
 
     @classmethod
-    def _from_simple_objects(cls, content, *, state_cls: StateBase = None) -> StateBase:
+    def _from_simple_objects(
+        cls, content, *, state_cls: Optional[StateBase] = None
+    ) -> StateBase:
         """create state from JSON data
 
         Args:

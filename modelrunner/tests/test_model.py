@@ -7,8 +7,13 @@ from typing import List  # @UnusedImport
 
 import pytest
 
-from modelrunner.model import make_model, make_model_class, run_script
-from modelrunner.parameters import NoValue
+from modelrunner.model import ModelBase, make_model, make_model_class, run_script
+from modelrunner.parameters import (
+    DeprecatedParameter,
+    HideParameter,
+    NoValue,
+    Parameter,
+)
 
 PACKAGEPATH = Path(__file__).parents[2].resolve()
 SCRIPT_PATH = Path(__file__).parent / "scripts"
@@ -189,29 +194,22 @@ def test_argparse_boolean_arguments():
 
     with pytest.raises(SystemExit):
         f0.run_from_command_line()
-    assert f0.run_from_command_line(["--flag"]).result
-    assert not f0.run_from_command_line(["--no-flag"]).result
-        f0.from_command_line()
-    assert f0.from_command_line(["--flag"]).state.data
-    assert not f0.from_command_line(["--no-flag"]).state.data
+    assert f0.run_from_command_line(["--flag"]).data
+    assert not f0.run_from_command_line(["--no-flag"]).data
 
     @make_model
     def f1(flag: bool = False):
         return flag
 
-    assert not f1.run_from_command_line().result
-    assert f1.run_from_command_line(["--flag"]).result
-    assert not f1.from_command_line().state.data
-    assert f1.from_command_line(["--flag"]).state.data
+    assert not f1.run_from_command_line().data
+    assert f1.run_from_command_line(["--flag"]).data
 
     @make_model
     def f2(flag: bool = True):
         return flag
 
-    assert f2.run_from_command_line().result
-    assert not f2.run_from_command_line(["--no-flag"]).result
-    assert f2.from_command_line().state.data
-    assert not f2.from_command_line(["--no-flag"]).state.data
+    assert f2.run_from_command_line().data
+    assert not f2.run_from_command_line(["--no-flag"]).data
 
 
 def test_argparse_list_arguments():
@@ -223,22 +221,18 @@ def test_argparse_list_arguments():
 
     with pytest.raises(TypeError):
         assert f0.run_from_command_line()
-    assert f0.run_from_command_line(["--flag"]).result == []
-    assert f0.run_from_command_line(["--flag", "0"]).result == ["0"]
-    assert f0.run_from_command_line(["--flag", "0", "1"]).result == ["0", "1"]
-        assert f0.from_command_line()
-    assert f0.from_command_line(["--flag"]).state.data == []
-    assert f0.from_command_line(["--flag", "0"]).state.data == ["0"]
-    assert f0.from_command_line(["--flag", "0", "1"]).state.data == ["0", "1"]
+    assert f0.run_from_command_line(["--flag"]).data == []
+    assert f0.run_from_command_line(["--flag", "0"]).data == ["0"]
+    assert f0.run_from_command_line(["--flag", "0", "1"]).data == ["0", "1"]
 
     @make_model
     def f1(flag: list = [0, 1]):
         return flag
 
-    assert f1.from_command_line().state.data == [0, 1]
-    assert f1.from_command_line(["--flag"]).state.data == []
-    assert f1.from_command_line(["--flag", "0"]).state.data == ["0"]
-    assert f1.from_command_line(["--flag", "0", "1"]).state.data == ["0", "1"]
+    assert f1.run_from_command_line().data == [0, 1]
+    assert f1.run_from_command_line(["--flag"]).data == []
+    assert f1.run_from_command_line(["--flag", "0"]).data == ["0"]
+    assert f1.run_from_command_line(["--flag", "0", "1"]).data == ["0", "1"]
 
 
 def test_model_class_inheritence():
@@ -262,7 +256,7 @@ def test_model_class_inheritence():
 
     assert A().parameters == {"a": 1, "b": 2, "c": 3}
     assert A()() == 4
-    assert A.run_from_command_line(["--a", "2"]).state.data == 5
+    assert A.run_from_command_line(["--a", "2"]).data == 5
     with pytest.raises(SystemExit):
         A.run_from_command_line(["--b", "2"])
 
@@ -272,5 +266,5 @@ def test_model_class_inheritence():
         B.run_from_command_line(["--a", "2"])
     with pytest.raises(SystemExit):
         B.run_from_command_line(["--b", "2"])
-    assert B.run_from_command_line(["--c", "2"]).state.data == 8
-    assert B.run_from_command_line(["--d", "6"]).state.data == 11
+    assert B.run_from_command_line(["--c", "2"]).data == 8
+    assert B.run_from_command_line(["--d", "6"]).data == 11

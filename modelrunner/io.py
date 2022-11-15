@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 import zarr
@@ -32,24 +32,23 @@ class NumpyEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-def prepare_yaml(data):
-    """prepare data for writing to yaml"""
+def simplify_data(data):
+    """simplify data (e.g. for writing to yaml)"""
     if isinstance(data, dict):
-        data = data.copy()  # shallow copy of result
-        for key, value in data.items():
-            if isinstance(value, dict):
-                data[key] = prepare_yaml(value)
-            elif isinstance(value, tuple):
-                data[key] = list(value)
-            elif isinstance(value, list) and value and not np.isscalar(value[0]):
-                data[key] = [prepare_yaml(a) for a in value]
-            elif isinstance(value, np.ndarray) and value.size <= 100:
-                # for less than ~100 items a list is actually more efficient to store
-                data[key] = value.tolist()
+        data = {key: simplify_data(value) for key, value in data.items()}
 
-    elif isinstance(data, np.ndarray) and data.size <= 100:
-        # for less than ~100 items a list is actually more efficient to store
-        data = data.tolist()
+    elif isinstance(data, (tuple, list)):
+        data = [simplify_data(item) for item in data]
+
+    elif isinstance(data, np.ndarray):
+        if np.isscalar(data):
+            data = data.item()
+        elif data.size <= 100:
+            # for less than ~100 items a list is actually more efficient to store
+            data = data.tolist()
+
+    elif isinstance(data, np.number):
+        data = data.item()
 
     return data
 
@@ -152,7 +151,7 @@ class IOBase:
         raise NotImplementedError(f"{self.__class__.__name__}: no zarr writing")
 
     @staticmethod
-    def _guess_format(store: Store, fmt: str = None):
+    def _guess_format(store: Store, fmt: Optional[str] = None):
         """guess the format"""
         if isinstance(fmt, str):
             return fmt
@@ -171,7 +170,7 @@ class IOBase:
         return "zarr"
 
     @classmethod
-    def from_file(cls, store: Store, *, fmt: str = None, **kwargs):
+    def from_file(cls, store: Store, *, fmt: Optional[str] = None, **kwargs):
         """load state from a file
 
         Args:
@@ -208,7 +207,12 @@ class IOBase:
             raise NotImplementedError(f"Format `{fmt}` not implemented")
 
     def to_file(
-        self, store: Store, *, fmt: str = None, overwrite: bool = False, **kwargs
+        self,
+        store: Store,
+        *,
+        fmt: Optional[str] = None,
+        overwrite: bool = False,
+        **kwargs,
     ) -> None:
         """write this state to a file
 
@@ -222,7 +226,7 @@ class IOBase:
         """
         fmt = self._guess_format(store, fmt)
         if fmt == "json":
-            content = self._to_simple_objects()
+            content = simplify_data(self._to_simple_objects())
             kwargs.setdefault("cls", NumpyEncoder)
             with open(store, "w" if overwrite else "x") as fp:
                 json.dump(content, fp, **kwargs)
@@ -230,7 +234,7 @@ class IOBase:
         elif fmt == "yaml":
             import yaml
 
-            content = prepare_yaml(self._to_simple_objects())
+            content = simplify_data(self._to_simple_objects())
             kwargs.setdefault("sort_keys", False)
             with open(store, "w" if overwrite else "x") as fp:
                 yaml.dump(content, fp, **kwargs)

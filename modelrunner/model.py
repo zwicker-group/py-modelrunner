@@ -5,11 +5,11 @@ Base class describing a model.
 """
 
 import argparse
-import importlib.util
+import importlib
 import inspect
 import json
 import logging
-import os.path
+import os
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Type, Union
@@ -57,7 +57,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         """main method calculating the result"""
         pass
 
-    def get_result(self, state: StateBase = None) -> "Result":
+    def get_result(self, state: Optional[StateBase] = None) -> "Result":
         """get the result as a :class:`~model.Result` object
 
         Args:
@@ -314,8 +314,13 @@ def make_model(
 
 
 def run_function_with_cmd_args(
+<<<<<<< Upstream, based on main
     func: Callable, args: Optional[Sequence[str]] = None, *, name: Optional[str] = None
+=======
+    func: Callable, args: Optional[Sequence[str]] = None, name: Optional[str] = None
+>>>>>>> 0c7ab76 Rebased to current main branch
 ) -> "Result":
+<<<<<<< Upstream, based on main
     """create model from a function and obtain parameters from command line
 
     Args:
@@ -330,9 +335,11 @@ def run_function_with_cmd_args(
         :class:`ModelBase`: An instance of a subclass of ModelBase encompassing `func`
 
     """
+=======
+>>>>>>> 0c7ab76 Rebased to current main branch
     """create model from a function and obtain parameters from command line"""
     model_class = make_model_class(func)
-    return model_class.from_command_line(args, name=name)
+    return model_class.run_from_command_line(args, name=name)
 
 
 def run_script(script_path: str, model_args: Sequence[str]) -> "Result":
