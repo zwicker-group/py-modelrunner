@@ -5,16 +5,15 @@ Base class describing a model.
 """
 
 import argparse
-import importlib.util
+import importlib
 import inspect
 import json
 import logging
-import os.path
+import os
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Type
 
-<<<<<<< Upstream, based on main
 from .parameters import (
     DeprecatedParameter,
     HideParameter,
@@ -22,10 +21,7 @@ from .parameters import (
     Parameter,
     Parameterized,
 )
-=======
-from .parameters import NoValue, Parameter, Parameterized
 from .state import ObjectState, StateBase
->>>>>>> effedef Use State classes in rest of package
 
 if TYPE_CHECKING:
     from .results import Result  # @UnusedImport
@@ -61,7 +57,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         """main method calculating the result"""
         pass
 
-    def get_result(self, state: StateBase = None) -> "Result":
+    def get_result(self, state: Optional[StateBase] = None) -> "Result":
         """get the result as a :class:`~model.Result` object
 
         Args:
@@ -76,11 +72,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         info = {"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
         return Result(self, state, info=info)
 
-<<<<<<< Upstream, based on main
     def write_result(self, output: Optional[str] = None, result=None) -> None:
-=======
-    def write_result(self, output: str = None, result: "Result" = None) -> None:
->>>>>>> effedef Use State classes in rest of package
         """write the result to the output file
 
         Args:
@@ -260,19 +252,11 @@ def make_model(
 
 
 def run_function_with_cmd_args(
-<<<<<<< Upstream, based on main
     func: Callable, args: Optional[Sequence[str]] = None, name: Optional[str] = None
-):
-=======
-    func: Callable, args: Sequence[str] = None, name: str = None
 ) -> "Result":
->>>>>>> 60bd818 Added many tests and adjusted code
     """create model from a function and obtain parameters from command line"""
-<<<<<<< Upstream, based on main
-    return make_model_class(func).run_from_command_line(args, name=name)
-=======
     model_class = make_model_class(func)
-    return model_class.from_command_line(args, name=name)
+    return model_class.run_from_command_line(args, name=name)
 
 
 def run_script(script_path: str, model_args: Sequence[str]) -> "Result":
@@ -313,7 +297,7 @@ def run_script(script_path: str, model_args: Sequence[str]) -> "Result":
         # there is a single instance of a model => use this
         _, obj = candidate_instance.popitem()
         logger.info("Run model instance `%s`", obj.__class__.__name__)
-        return obj.from_command_line(model_args, name=filename)
+        return obj.run_from_command_line(model_args, name=filename)
 
     elif len(candidate_instance) > 1:
         # there are multiple instance => we do not know which one do use
@@ -324,7 +308,7 @@ def run_script(script_path: str, model_args: Sequence[str]) -> "Result":
         # there is a single class of a model => use this
         _, cls = candidate_classes.popitem()
         logger.info("Run model class `%s`", cls.__name__)
-        return cls.from_command_line(model_args, name=filename)
+        return cls.run_from_command_line(model_args, name=filename)
 
     elif len(candidate_classes) > 1:
         # there are multiple instance => we do not know which one do use
@@ -348,4 +332,3 @@ def run_script(script_path: str, model_args: Sequence[str]) -> "Result":
     else:
         # we could not find any useful objects
         raise RuntimeError("Found neither a model class, instance, or function")
->>>>>>> 60bd818 Added many tests and adjusted code

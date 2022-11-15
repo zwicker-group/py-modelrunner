@@ -39,7 +39,9 @@ class TrajectoryWriter:
                     write(data, t)
     """
 
-    def __init__(self, store, *, attrs: Dict[str, Any] = None, overwrite: bool = False):
+    def __init__(
+        self, store, *, attrs: Optional[Dict[str, Any]] = None, overwrite: bool = False
+    ):
         """
         Args:
             store (MutableMapping or string):
@@ -55,7 +57,7 @@ class TrajectoryWriter:
             self._root.attrs.put(attrs)
         self.times = self._root.zeros("times", shape=(0,), chunks=(1,))
 
-    def append(self, data: StateBase, time: float = None) -> None:
+    def append(self, data: StateBase, time: Optional[float] = None) -> None:
         if "data" not in self._root:
             data._prepare_zarr_trajectory(self._root, label="data")
 

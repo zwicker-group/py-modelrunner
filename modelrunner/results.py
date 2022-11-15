@@ -20,10 +20,7 @@ from tqdm.auto import tqdm
 
 from .io import IOBase, NumpyEncoder, read_hdf_data, write_hdf_dataset
 from .model import ModelBase
-from .parameters import NoValueType
-from .state import make_state, StateBase
-
-
+from .state import StateBase, make_state
 
 
 class MockModel(ModelBase):
@@ -46,7 +43,9 @@ class MockModel(ModelBase):
 class Result(IOBase):
     """describes a model (with parameters) together with its result"""
 
-    def __init__(self, model: ModelBase, state: StateBase, info: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self, model: ModelBase, state: StateBase, info: Optional[Dict[str, Any]] = None
+    ):
         """
         Args:
             model (:class:`ModelBase`):
@@ -72,7 +71,7 @@ class Result(IOBase):
     def from_data(
         cls,
         model_data: Dict[str, Any],
-        result,
+        state,
         model: Optional[ModelBase] = None,
         info: Optional[Dict[str, Any]] = None,
     ) -> Result:
@@ -106,7 +105,7 @@ class Result(IOBase):
         return self.model.parameters
 
     @classmethod
-    def _from_simple_objects(cls, content, model: ModelBase = None) -> Result:
+    def _from_simple_objects(cls, content, model: Optional[ModelBase] = None) -> Result:
         """read result from a JSON file
 
         Args:
@@ -123,50 +122,15 @@ class Result(IOBase):
     def _to_simple_objects(self):
         """write result to JSON file"""
         content = {
-<<<<<<< Upstream, based on main
-            "model": simplify_data(self.model.attributes),
-            "state": self.state._to_text_data(),
-=======
             "model": self.model.attributes,
             "state": self.state._to_simple_objects(),
->>>>>>> 6655c98 Added more flexibility by defining generic interfaces
         }
         if self.info:
             content["info"] = self.info
         return content
 
     @classmethod
-    def _from_yaml_data(cls, content, model: ModelBase = None) -> Result:
-        """read result from a YAML file
-
-        Args:
-            path (str or :class:`~pathlib.Path`): The path to the file
-            model (:class:`ModelBase`): The model from which the result was obtained
-        """
-        return cls.from_data(
-            model_data=content.get("model", {}),
-            state=StateBase._from_yaml_data(content["state"]),
-            model=model,
-            info=content.get("info", {}),
-        )
-
-    def _to_yaml_data(self):
-        """write result to YAML file
-
-        Args:
-            path (str or :class:`~pathlib.Path`): The path to the file
-        """
-        # compile all data
-        data = {
-            "model": simplify_data(self.model.attributes),
-            "state": self.state._to_yaml_data(),
-        }
-        if self.info:
-            content["info"] = self.info
-        return content
-
-    @classmethod
-    def _from_hdf(cls, hdf_element, model: ModelBase = None) -> Result:
+    def _from_hdf(cls, hdf_element, model: Optional[ModelBase] = None) -> Result:
         """read result from a HDf file
 
         Args:
