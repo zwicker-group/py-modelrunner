@@ -206,6 +206,9 @@ class Result(IOBase):
         for key, value in self.model.attributes.items():
             root.attrs[key] = json.dumps(value, cls=NumpyEncoder)
 
+        if self.info:
+            root.attrs["__info__"] = json.dumps(self.info, cls=NumpyEncoder)
+
         # write the actual data
         write_hdf_dataset(root, self.state._attributes_store, "state")
         write_hdf_dataset(root, self.state._data_store, "data")

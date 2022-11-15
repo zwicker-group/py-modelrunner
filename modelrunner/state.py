@@ -75,19 +75,12 @@ class StateBase(IOBase):
     overwritten to process the data before storage (e.g., by additional serialization).
     """
 
-<<<<<<< Upstream, based on main
     _format_version = 1
     """int: number indicating the version of the file format"""
-=======
-    _state_classes: Dict[str, StateBase] = {}
->>>>>>> 6655c98 Added more flexibility by defining generic interfaces
 
-<<<<<<< Upstream, based on main
     _state_classes: Dict[str, StateBase] = {}
     """dict: class-level list of all subclasses of StateBase"""
 
-=======
->>>>>>> 6655c98 Added more flexibility by defining generic interfaces
     @property
     def attributes(self) -> Dict[str, Any]:
         """dict: Additional attributes, which are required to restore the state"""
@@ -215,7 +208,6 @@ class StateBase(IOBase):
         raise NotImplementedError
 
     @classmethod
-<<<<<<< Upstream, based on main
     def _from_simple_objects(
         cls, content, *, state_cls: Optional[StateBase] = None
     ) -> StateBase:
@@ -233,9 +225,6 @@ class StateBase(IOBase):
     def _to_simple_objects(self):
         """return object data suitable for encoding as text"""
         return {"attributes": self._attributes_store, "data": self._data_store}
-=======
-    def _from_simple_objects(cls, content, *, state_cls: StateBase = None) -> StateBase:
->>>>>>> 6655c98 Added more flexibility by defining generic interfaces
         """create state from text data
 
         Args:
@@ -247,24 +236,13 @@ class StateBase(IOBase):
         else:
             return state_cls.from_state(content["attributes"], content["data"])
 
-<<<<<<< Upstream, based on main
-=======
-    def _to_simple_objects(self):
-        """return object data suitable for encoding as text"""
-        return {"attributes": self._attributes_store, "data": self._data_store}
-
->>>>>>> 6655c98 Added more flexibility by defining generic interfaces
 
 class ObjectState(StateBase):
     """State characterized by a serializable python object"""
 
     default_codec = numcodecs.Pickle()
 
-<<<<<<< Upstream, based on main
     def __init__(self, data: Optional[Any] = None):
-=======
-    def __init__(self, data: Any = None):
->>>>>>> 6655c98 Added more flexibility by defining generic interfaces
         """
         Args:
             data: The data describing the state
@@ -329,11 +307,7 @@ class ObjectState(StateBase):
 class ArrayState(StateBase):
     """State characterized by a single numpy array"""
 
-<<<<<<< Upstream, based on main
     def __init__(self, data: Optional[np.ndarray] = None):
-=======
-    def __init__(self, data: np.ndarray = None):
->>>>>>> 6655c98 Added more flexibility by defining generic interfaces
         """
         Args:
             data: The data describing the state
@@ -383,7 +357,6 @@ class ArrayState(StateBase):
     def _append_to_zarr_trajectory(self, zarr_element: zarr.Array) -> None:
         """append current data to a stored element"""
         zarr_element.append([self._data_store])
-<<<<<<< Upstream, based on main
 
     @classmethod
     def _from_simple_objects(
@@ -502,144 +475,12 @@ class ArrayCollectionState(StateBase):
         for label, subdata in zip(self.labels, self._data_store):
             zarr_element[label].append([subdata])
 
-    @classmethod
-    def _from_simple_objects(
-        cls, content, *, state_cls: Optional[StateBase] = None
-    ) -> StateBase:
-        """create state from text data
-
-        Args:
-            content: The data loaded from text
-        """
-        if state_cls is None:
-            return super()._from_simple_objects(content)
-
-        data = tuple(
-            np.array(content["data"][label])
-            for label in content["attributes"]["labels"]
-        )
-        return state_cls.from_state(content["attributes"], data)
-
     def _to_simple_objects(self):
         """return object data suitable for encoding as JSON"""
         data = {
             label: substate for label, substate in zip(self.labels, self._data_store)
         }
         return {"attributes": self._attributes_store, "data": data}
-=======
->>>>>>> 6655c98 Added more flexibility by defining generic interfaces
-
-    @classmethod
-    def _from_simple_objects(cls, content, *, state_cls: StateBase = None) -> StateBase:
-        """create state from text data
-
-        Args:
-            content: The loaded data
-        """
-        if state_cls is None:
-            return super()._from_simple_objects(content)
-
-        return cls(np.asarray(content["data"]))
-
-
-class ArrayCollectionState(StateBase):
-    """State characterized by a multiple numpy array"""
-
-    data: Tuple[np.ndarray, ...]
-
-    def __init__(
-        self, data: Tuple[np.ndarray, ...] = None, *, labels: Sequence[str] = None
-    ):
-        """
-        Args:
-            data: The data describing the state
-        """
-        if data is None:
-            self.data = tuple()
-        else:
-            self.data = tuple(data)
-
-        if labels is None:
-            self.labels = tuple(str(i) for i in range(len(self.data)))
-        else:
-            assert len(self.data) == len(labels) == len(set(labels))
-            self.labels = tuple(labels)
-
-    def __eq__(self, other):
-        return (
-            self.__class__ == other.__class__
-            and len(self.data) == len(other.data)
-            and all(np.array_equal(s, o) for s, o in zip(self.data, other.data))
-        )
-
-    @property
-    def attributes(self) -> Dict[str, Any]:
-        """dict: Additional attributes, which are required to restore the state"""
-        attributes = super().attributes
-        attributes["labels"] = self.labels
-        return attributes
-
-    @classmethod
-    def from_state(cls, attributes: Dict[str, Any], data=None):
-        if data is not None:
-            data = tuple(np.asarray(subdata) for subdata in data)
-        labels = attributes.pop("labels")
-        return cls(data, labels=labels)
-
-    def __getitem__(self, index: Union[int, str]) -> np.ndarray:
-        if isinstance(index, str):
-            return self.data[self.labels.index(index)]
-        elif isinstance(index, int):
-            return self.data[index]
-        else:
-            raise TypeError()
-
-    @classmethod
-    def _read_zarr_data(
-        cls, zarr_element: zarr.Array, *, index=...
-    ) -> ArrayCollectionState:
-        return cls(
-            tuple(zarr_element[label][index] for label in zarr_element.attrs["labels"]),
-            labels=zarr_element.attrs["labels"],
-        )
-
-    def _update_from_zarr(self, element: zarrElement, *, index=...) -> None:
-        for label, data_arr in zip(self.labels, self.data):
-            data_arr[:] = element[label][index]
-
-    def _write_zarr_data(
-        self, zarr_group: zarr.Group, *, label: str = "data", **kwargs
-    ):
-        zarr_subgroup = zarr_group.create_group(label)
-        for sublabel, substate in zip(self.labels, self._data_store):
-            zarr_subgroup.array(sublabel, substate)
-        return zarr_subgroup
-
-    def _prepare_zarr_trajectory(
-        self,
-        zarr_group: zarr.Group,
-        attrs: Dict[str, Any] = None,
-        *,
-        label: str = "data",
-        **kwargs,
-    ) -> zarr.Group:
-        """prepare the zarr storage for this state"""
-        zarr_subgroup = zarr_group.create_group(label)
-        for sublabel, subdata in zip(self.labels, self._data_store):
-            zarr_subgroup.zeros(
-                sublabel,
-                shape=(0,) + subdata.shape,
-                chunks=(1,) + subdata.shape,
-                dtype=subdata.dtype,
-            )
-
-        self._write_zarr_attributes(zarr_subgroup, attrs)
-        return zarr_subgroup
-
-    def _append_to_zarr_trajectory(self, zarr_element: zarr.Group) -> None:
-        """append current data to a stored element"""
-        for label, subdata in zip(self.labels, self._data_store):
-            zarr_element[label].append([subdata])
 
     @classmethod
     def _from_simple_objects(cls, content, *, state_cls: StateBase = None) -> StateBase:
@@ -656,13 +497,6 @@ class ArrayCollectionState(StateBase):
             for label in content["attributes"]["labels"]
         )
         return state_cls.from_state(content["attributes"], data)
-
-    def _to_simple_objects(self):
-        """return object data suitable for encoding as JSON"""
-        data = {
-            label: substate for label, substate in zip(self.labels, self._data_store)
-        }
-        return {"attributes": self._attributes_store, "data": data}
 
 
 class DictState(StateBase):
@@ -750,13 +584,9 @@ class DictState(StateBase):
             substate._append_to_zarr_trajectory(zarr_element[label])
 
     @classmethod
-<<<<<<< Upstream, based on main
     def _from_simple_objects(
         cls, content, *, state_cls: Optional[StateBase] = None
     ) -> StateBase:
-=======
-    def _from_simple_objects(cls, content, *, state_cls: StateBase = None) -> StateBase:
->>>>>>> 6655c98 Added more flexibility by defining generic interfaces
         """create state from JSON data
 
         Args:
