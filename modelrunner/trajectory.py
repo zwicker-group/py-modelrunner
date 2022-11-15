@@ -39,7 +39,6 @@ class TrajectoryWriter:
                     write(data, t)
     """
 
-<<<<<<< HEAD
     def __init__(
         self, store, *, attrs: Optional[Dict[str, Any]] = None, overwrite: bool = False
     ):
@@ -59,25 +58,6 @@ class TrajectoryWriter:
         self.times = self._root.zeros("times", shape=(0,), chunks=(1,))
 
     def append(self, data: StateBase, time: Optional[float] = None) -> None:
-=======
-    def __init__(self, store, *, attrs: Dict[str, Any] = None, overwrite: bool = False):
-        """
-        Args:
-            store (MutableMapping or string):
-                Store or path to directory in file system or name of zip file.
-            attrs (dict):
-                Additional attributes stored in the trajectory. The attributes of the
-                state are also stored in any case.
-            overwrite (bool):
-                If True, delete all pre-existing data in store.
-        """
-        self._root = zarr.group(store, overwrite=overwrite)
-        if attrs is not None:
-            self._root.attrs.put(attrs)
-        self.times = self._root.zeros("times", shape=(0,), chunks=(1,))
-
-    def append(self, data: StateBase, time: float = None) -> None:
->>>>>>> branch 'state' of https://github.com/zwicker-group/py-modelrunner.git
         if "data" not in self._root:
             data._prepare_zarr_trajectory(self._root, label="data")
 
