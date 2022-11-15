@@ -202,6 +202,8 @@ def submit_jobs(
     output_folder: Union[str, Path],
     name_base: str = "job",
     parameters: Union[str, Dict[str, Any]] = None,
+    *,
+    keep_list=None,
     **kwargs,
 ) -> None:
     """submit many jobs of the same script with different parameters to the cluster
@@ -216,7 +218,11 @@ def submit_jobs(
         parameters (str or dict):
             Parameters for the script, either as a python dictionary or a string
             containing a JSON-encoded dictionary. All combinations of parameter values
-            that are iterable and not strings are submitted as separate jobs.
+            that are iterable and not strings and not part of `keep_list` are submitted
+            as separate jobs.
+        keep_list (list):
+            Parameter names that are submitted as individual parameters are not iterated
+            over to produce multiple jobs.
         **kwargs:
             All additional parameters are forwarded to :func:`submit_job`.
     """
@@ -226,11 +232,17 @@ def submit_jobs(
         parameter_dict = json.loads(parameters)
     else:
         parameter_dict = parameters
+    if keep_list is None:
+        keep_list = set()
 
     # detect varying parameters
     params, p_vary = {}, {}
     for name, value in parameter_dict.items():
-        if hasattr(value, "__iter__") and not isinstance(value, str):
+        if (
+            hasattr(value, "__iter__")
+            and not isinstance(value, str)
+            and name not in keep_list
+        ):
             p_vary[name] = value
         else:
             params[name] = value
