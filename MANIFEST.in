@@ -1,0 +1,2 @@
+include modelrunner/py.typed
+recursive-include modelrunner/**/templates *
