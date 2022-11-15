@@ -11,7 +11,7 @@ import pipes
 import subprocess as sp
 import warnings
 from pathlib import Path
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict, Iterable, Optional, Tuple, Union
 
 from tqdm.auto import tqdm
 
@@ -32,7 +32,9 @@ def ensure_directory_exists(folder):
             raise
 
 
-def get_job_name(base: str, args: Dict[str, Any] = None, length: int = 7) -> str:
+def get_job_name(
+    base: str, args: Optional[Dict[str, Any]] = None, length: int = 7
+) -> str:
     """create a suitable job name
 
     Args:
@@ -60,11 +62,11 @@ def submit_job(
     script: Union[str, Path],
     output: Union[str, Path],
     name: str = "job",
-    parameters: Union[str, Dict[str, Any]] = None,
+    parameters: Union[str, Dict[str, Any], None] = None,
     *,
     log_folder: Union[str, Path] = "logs",
     method: str = "qsub",
-    template: Union[str, Path] = None,
+    template: Union[str, Path, None] = None,
     overwrite_strategy: str = "error",
     **kwargs,
 ) -> Tuple[str, str]:
@@ -201,9 +203,9 @@ def submit_jobs(
     script: Union[str, Path],
     output_folder: Union[str, Path],
     name_base: str = "job",
-    parameters: Union[str, Dict[str, Any]] = None,
+    parameters: Union[str, Dict[str, Any], None] = None,
     *,
-    keep_list=None,
+    keep_list: Optional[Iterable[str]] = None,
     **kwargs,
 ) -> None:
     """submit many jobs of the same script with different parameters to the cluster

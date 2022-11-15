@@ -19,7 +19,7 @@ from __future__ import annotations
 import functools
 import importlib
 import logging
-from typing import Any, Dict, List, Sequence, Type, Union
+from typing import Any, Dict, List, Optional, Sequence, Type, Union
 
 import numpy as np
 
@@ -82,7 +82,7 @@ class Parameter:
         description: str = "",
         *,
         hidden: bool = False,
-        extra: Dict[str, Any] = None,
+        extra: Optional[Dict[str, Any]] = None,
     ):
         """initialize a parameter
 
@@ -378,7 +378,9 @@ class Parameterized:
     parameters_default: ParameterListType = []
     _subclasses: Dict[str, Type[Parameterized]] = {}
 
-    def __init__(self, parameters: Dict[str, Any] = None, *, strict: bool = True):
+    def __init__(
+        self, parameters: Optional[Dict[str, Any]] = None, *, strict: bool = True
+    ):
         """initialize the parameters of the object
 
         Args:
@@ -499,7 +501,7 @@ class Parameterized:
     @classmethod
     def _parse_parameters(
         cls,
-        parameters: Dict[str, Any] = None,
+        parameters: Optional[Dict[str, Any]] = None,
         check_validity: bool = True,
         allow_hidden: bool = True,
         include_deprecated: bool = False,
@@ -580,7 +582,7 @@ class Parameterized:
         sort: bool = False,
         show_hidden: bool = False,
         show_deprecated: bool = False,
-        parameter_values: Dict[str, Any] = None,
+        parameter_values: Optional[Dict[str, Any]] = None,
     ):
         """private method showing all parameters in human readable format
 

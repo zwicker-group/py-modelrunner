@@ -14,7 +14,7 @@ import logging
 import os.path
 import warnings
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Set, Tuple, Type, Union
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Type, Union
 
 import numpy as np
 from tqdm.auto import tqdm
@@ -123,7 +123,7 @@ def read_hdf_data(node):
 class MockModel(ModelBase):
     """helper class to store parameter values when the original model is not present"""
 
-    def __init__(self, parameters: Dict[str, Any] = None):
+    def __init__(self, parameters: Optional[Dict[str, Any]] = None):
         """
         Args:
             parameters (dict): A dictionary of parameters
@@ -140,7 +140,7 @@ class MockModel(ModelBase):
 class Result:
     """describes a model (with parameters) together with its result"""
 
-    def __init__(self, model: ModelBase, result, info: Dict[str, Any] = None):
+    def __init__(self, model: ModelBase, result, info: Optional[Dict[str, Any]] = None):
         """
         Args:
             model (:class:`ModelBase`): The model from which the result was obtained
@@ -159,8 +159,8 @@ class Result:
         cls,
         model_data: Dict[str, Any],
         result,
-        model: ModelBase = None,
-        info: Dict[str, Any] = None,
+        model: Optional[ModelBase] = None,
+        info: Optional[Dict[str, Any]] = None,
     ) -> Result:
         """create result from data
 
@@ -188,7 +188,7 @@ class Result:
         return self.model.parameters
 
     @classmethod
-    def from_file(cls, path, model: ModelBase = None):
+    def from_file(cls, path, model: Optional[ModelBase] = None):
         """read result from file
 
         Args:
@@ -222,7 +222,7 @@ class Result:
             raise ValueError(f"Unknown file format `{ext}`")
 
     @classmethod
-    def from_json(cls, path, model: ModelBase = None) -> Result:
+    def from_json(cls, path, model: Optional[ModelBase] = None) -> Result:
         """read result from a JSON file
 
         Args:
@@ -259,7 +259,7 @@ class Result:
             json.dump(data, fp, cls=NumpyEncoder)
 
     @classmethod
-    def from_yaml(cls, path, model: ModelBase = None) -> Result:
+    def from_yaml(cls, path, model: Optional[ModelBase] = None) -> Result:
         """read result from a YAML file
 
         Args:
@@ -301,7 +301,7 @@ class Result:
             yaml.dump(data, fp)
 
     @classmethod
-    def from_hdf(cls, path, model: ModelBase = None) -> Result:
+    def from_hdf(cls, path, model: Optional[ModelBase] = None) -> Result:
         """read result from a HDf file
 
         Args:
@@ -355,7 +355,7 @@ class ResultCollection(List[Result]):
         cls,
         folder: Union[str, Path],
         pattern: str = "*.*",
-        model: ModelBase = None,
+        model: Optional[ModelBase] = None,
         *,
         strict: bool = False,
         progress: bool = False,

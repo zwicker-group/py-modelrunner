@@ -30,7 +30,9 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
     name: Optional[str] = None
     description: Optional[str] = None
 
-    def __init__(self, parameters: Dict[str, Any] = None, output: str = None):
+    def __init__(
+        self, parameters: Optional[Dict[str, Any]] = None, output: Optional[str] = None
+    ):
         """initialize the parameters of the object
 
         Args:
@@ -65,7 +67,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         info = {"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
         return Result(self, result, info=info)
 
-    def write_result(self, output: str = None, result=None) -> None:
+    def write_result(self, output: Optional[str] = None, result=None) -> None:
         """write the result to the output file
 
         Args:
@@ -84,7 +86,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         result.write_to_file(output)
 
     @classmethod
-    def _prepare_argparser(cls, name: str = None) -> argparse.ArgumentParser:
+    def _prepare_argparser(cls, name: Optional[str] = None) -> argparse.ArgumentParser:
         """create argument parser for setting parameters of this model
 
         Args:
@@ -106,7 +108,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         for cls1 in cls.__mro__:
             if hasattr(cls1, "parameters_default"):
                 # add all parameters of this class
-                for p in cls1.parameters_default:  # type: ignore
+                for p in cls1.parameters_default:
                     if p.name not in seen:
                         if not isinstance(p, (HideParameter, DeprecatedParameter)):
                             p._argparser_add(group)
@@ -123,7 +125,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
 
     @classmethod
     def from_command_line(
-        cls, args: Sequence[str] = None, name: str = None
+        cls, args: Optional[Sequence[str]] = None, name: Optional[str] = None
     ) -> "ModelBase":
         """create model from command line parameters
 
@@ -160,7 +162,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
 
     @classmethod
     def run_from_command_line(
-        cls, args: Sequence[str] = None, name: str = None
+        cls, args: Optional[Sequence[str]] = None, name: Optional[str] = None
     ) -> "Result":
         """run model using command line parameters
 
@@ -231,14 +233,16 @@ def make_model_class(func: Callable) -> Type[ModelBase]:
     return newclass
 
 
-def make_model(func: Callable, parameters: Dict[str, Any] = None) -> ModelBase:
+def make_model(
+    func: Callable, parameters: Optional[Dict[str, Any]] = None
+) -> ModelBase:
     """create model from a function and a dictionary of parameters"""
     model_class = make_model_class(func)
     return model_class(parameters)
 
 
 def run_function_with_cmd_args(
-    func: Callable, args: Sequence[str] = None, name: str = None
+    func: Callable, args: Optional[Sequence[str]] = None, name: Optional[str] = None
 ):
     """create model from a function and obtain parameters from command line"""
     return make_model_class(func).run_from_command_line(args, name=name)
