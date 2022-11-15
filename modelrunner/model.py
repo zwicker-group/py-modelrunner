@@ -5,11 +5,11 @@ Base class describing a model.
 """
 
 import argparse
-import importlib
+import importlib.util
 import inspect
 import json
 import logging
-import os
+import os.path
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Type

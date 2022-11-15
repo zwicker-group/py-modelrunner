@@ -43,9 +43,13 @@ class MockModel(ModelBase):
 class Result(IOBase):
     """describes a model (with parameters) together with its result"""
 
+<<<<<<< HEAD
     def __init__(
         self, model: ModelBase, state: StateBase, info: Optional[Dict[str, Any]] = None
     ):
+=======
+    def __init__(self, model: ModelBase, state: StateBase, info: Dict[str, Any] = None):
+>>>>>>> branch 'state' of https://github.com/zwicker-group/py-modelrunner.git
         """
         Args:
             model (:class:`ModelBase`):
@@ -71,9 +75,15 @@ class Result(IOBase):
     def from_data(
         cls,
         model_data: Dict[str, Any],
+<<<<<<< HEAD
         state,
         model: Optional[ModelBase] = None,
         info: Optional[Dict[str, Any]] = None,
+=======
+        state: StateBase,
+        model: ModelBase = None,
+        info: Dict[str, Any] = None,
+>>>>>>> branch 'state' of https://github.com/zwicker-group/py-modelrunner.git
     ) -> Result:
         """create result from data
 
@@ -105,7 +115,11 @@ class Result(IOBase):
         return self.model.parameters
 
     @classmethod
+<<<<<<< HEAD
     def _from_simple_objects(cls, content, model: Optional[ModelBase] = None) -> Result:
+=======
+    def _from_simple_objects(cls, content, model: ModelBase = None) -> Result:
+>>>>>>> branch 'state' of https://github.com/zwicker-group/py-modelrunner.git
         """read result from a JSON file
 
         Args:
@@ -130,7 +144,11 @@ class Result(IOBase):
         return content
 
     @classmethod
+<<<<<<< HEAD
     def _from_hdf(cls, hdf_element, model: Optional[ModelBase] = None) -> Result:
+=======
+    def _from_hdf(cls, hdf_element, model: ModelBase = None) -> Result:
+>>>>>>> branch 'state' of https://github.com/zwicker-group/py-modelrunner.git
         """read result from a HDf file
 
         Args:
