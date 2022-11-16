@@ -60,12 +60,13 @@ def get_job_name(
 
 def submit_job(
     script: Union[str, Path],
-    output: Union[str, Path],
+    output: Union[str, Path, None] = None,
     name: str = "job",
     parameters: Union[str, Dict[str, Any], None] = None,
     *,
     log_folder: Union[str, Path] = "logs",
     method: str = "qsub",
+    use_modelrunner: bool = True,
     template: Union[str, Path, None] = None,
     overwrite_strategy: str = "error",
     **kwargs,
@@ -87,6 +88,9 @@ def submit_job(
         method (str):
             Specifies the submission method. Currently `background`, `foreground`, and
             `qsub` are supported.
+        use_modelrunner (bool):
+            If True, `script` is envoked with the modelrunner library, e.g. by calling
+            `python -m modelrunner {script}`.
         template (str of :class:`~pathlib.Path`):
             Jinja template file for submission script. If omitted, a standard template
             is chosen based on the submission method.
@@ -123,13 +127,14 @@ def submit_job(
         "LOG_FOLDER": log_folder,
         "JOB_NAME": name,
         "MODEL_FILE": escape_string(script),
+        "USE_MODELRUNNER": use_modelrunner,
     }
     for k, v in kwargs.items():
         script_args[k.upper()] = v
 
     # add the parameters to the job arguments
     job_args = []
-    if parameters is not None:
+    if parameters is not None and len(parameters) > 0:
         if isinstance(parameters, dict):
             parameters = json.dumps(parameters)
         elif not isinstance(parameters, str):
@@ -205,7 +210,7 @@ def submit_jobs(
     name_base: str = "job",
     parameters: Union[str, Dict[str, Any], None] = None,
     *,
-    keep_list: Optional[Iterable[str]] = None,
+    list_params: Optional[Iterable[str]] = None,
     **kwargs,
 ) -> None:
     """submit many jobs of the same script with different parameters to the cluster
@@ -222,9 +227,9 @@ def submit_jobs(
             containing a JSON-encoded dictionary. All combinations of parameter values
             that are iterable and not strings and not part of `keep_list` are submitted
             as separate jobs.
-        keep_list (list):
-            Parameter names that are submitted as individual parameters are not iterated
-            over to produce multiple jobs.
+        list_params (list):
+            List of parameters that are meant to be lists. They will be submitted as
+            individual parameters and not iterated over to produce multiple jobs.
         **kwargs:
             All additional parameters are forwarded to :func:`submit_job`.
     """
@@ -234,8 +239,8 @@ def submit_jobs(
         parameter_dict = json.loads(parameters)
     else:
         parameter_dict = parameters
-    if keep_list is None:
-        keep_list = set()
+    if list_params is None:
+        list_params = set()
 
     # detect varying parameters
     params, p_vary = {}, {}
@@ -243,7 +248,7 @@ def submit_jobs(
         if (
             hasattr(value, "__iter__")
             and not isinstance(value, str)
-            and name not in keep_list
+            and name not in list_params
         ):
             p_vary[name] = value
         else:

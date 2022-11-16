@@ -67,9 +67,30 @@ def test_submit_jobs(tmp_path):
     test2 = np.allclose(res[0], [3, 4]) and np.allclose(res[1], [1, 2])
     assert test1 or test2
 
-    res = run({"b": [1, 2]}, keep_list=["b"])
+    res = run({"b": [1, 2]}, list_params=["b"])
     # the order of the results might not be deterministic => test both variants
     assert len(res) == 1
     print(res)
     assert res["a"][0] == 1
     np.testing.assert_allclose(res["b"][0], [1, 2])
+
+
+def test_submit_job_no_modelrunner(tmp_path):
+    """test some basic usage of the submit_job function"""
+
+    def run(**p):
+        """helper submitting job locally"""
+        submit_job(
+            SCRIPT_PATH / "script.py",
+            parameters=p,
+            log_folder=tmp_path,
+            method="foreground",
+            use_modelrunner=False,
+            overwrite_strategy="silent_overwrite",
+        )
+        out = open(tmp_path / "job.out.txt").read()
+        err = open(tmp_path / "job.err.txt").read()
+        return out, err
+
+    assert run() == ("", "")
+    assert run(a=1) == ('--json{"a": 1}', "")

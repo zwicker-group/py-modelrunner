@@ -25,4 +25,8 @@ mkdir -p {{ OUTPUT_FOLDER }}
 {% endif %}
 
 # Run the program
+{% if USE_MODELRUNNER is defined and USE_MODELRUNNER %}
 python3 -m modelrunner {{ MODEL_FILE }} {{ JOB_ARGS }}
+{% else %}
+python3 {{ MODEL_FILE }} {{ JOB_ARGS }}
+{% endif %}
