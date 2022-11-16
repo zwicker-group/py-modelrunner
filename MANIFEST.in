@@ -1,2 +1,6 @@
+include LICENSE
+include README.md
+include requirements.txt
 include modelrunner/py.typed
+
 recursive-include modelrunner/**/templates *
