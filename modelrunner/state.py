@@ -1,6 +1,12 @@
 """
 Classes that describe the state of a simulation at a single point in time
 
+Each state is defined by :attr:`attributes` and :attr:`data`. Attributes describe
+general aspects about a state, which typically do not change, e.g., its `name`.
+These classes define how data is read and written and they contain methods that can be
+used to write multiple states of the same class to a file consecutively, e.g., to store
+a trajectory. Here, it is assumed that the `attributes` do not change over time.
+
 .. autosummary::
    :nosignatures:
 
@@ -23,7 +29,7 @@ import numcodecs
 import numpy as np
 import zarr
 
-from .io import IOBase, zarrElement
+from .io import IOBase, zarrElement, simplify_data
 
 
 def _equals(left: Any, right: Any) -> bool:
@@ -89,10 +95,19 @@ class StateBase(IOBase):
     @property
     def _attributes_store(self) -> Dict[str, Any]:
         """dict: Attributes in the form in which they will be written to storage"""
-        attrs = self.attributes.copy()
+        attrs = simplify_data(self.attributes)
         attrs["__class__"] = self.__class__.__name__
         attrs["__version__"] = self._format_version
         return attrs
+
+    @classmethod
+    def _read_attributes(cls, attributes: Dict[str, Any]) -> Dict[str, Any]:
+        """recreating stored attributes
+
+        This classmethod can be overwritten if attributes have been serialized by the
+        :meth:`_attributes_store` property.
+        """
+        return attributes
 
     @property
     def _data_store(self) -> Any:
@@ -127,7 +142,7 @@ class StateBase(IOBase):
         """create any state class from attributes and data
 
         Args:
-            attributes (dict): Additional attributes
+            attributes (dict): Additional (unserialized) attributes
             data: The data of the degerees of freedom of the physical system
         """
         if cls.__name__ == "StateBase":
@@ -156,18 +171,20 @@ class StateBase(IOBase):
             raise ValueError(f"Incompatible state class {attributes['class']}")
 
     def copy(self):
-        return self.__class__.from_state(self.attributes, copy.deepcopy(self.data))
+        return self.__class__.from_state(
+            copy.deepcopy(self.attributes), copy.deepcopy(self.data)
+        )
 
     def _write_zarr_attributes(
         self, element: zarrElement, attrs: Optional[Dict[str, Any]] = None
     ) -> zarrElement:
         """prepare the zarr element for this state"""
         # write the attributes of the state
-        element.attrs.update(self._attributes_store)
+        element.attrs.update(simplify_data(self._attributes_store))
 
         # write additional attributes provided as argument
         if attrs is not None:
-            element.attrs.update(attrs)
+            element.attrs.update(simplify_data(attrs))
 
         return element
 
@@ -183,7 +200,7 @@ class StateBase(IOBase):
     @classmethod
     def _from_zarr(cls, zarr_element: zarrElement, *, index=...) -> StateBase:
         """create instance of correct subclass from data stored in zarr"""
-        attributes = zarr_element.attrs.asdict()
+        attributes = cls._read_attributes(zarr_element.attrs.asdict())
         class_name = attributes["__class__"]
         state_cls = cls._state_classes[class_name]
         data = state_cls._read_zarr_data(zarr_element, index=index)
@@ -220,7 +237,8 @@ class StateBase(IOBase):
             state_cls = cls._state_classes[content["attributes"]["__class__"]]
             return state_cls._from_simple_objects(content, state_cls=state_cls)
         else:
-            return state_cls.from_state(content["attributes"], content["data"])
+            attributes = cls._read_attributes(content["attributes"])
+            return state_cls.from_state(attributes, content["data"])
 
     def _to_simple_objects(self):
         """return object data suitable for encoding as text"""

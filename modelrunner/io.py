@@ -1,7 +1,10 @@
 """
-Module defining a base class that handles writing and reading of objects (mostly to the 
-hard disk). The base class itself implements little logic, but provides general methods
-that are used by concrete classes.
+Module defining a base class that handles writing and reading of objects
+
+
+The base class itself implements little logic, but provides general methods that are
+used by concrete classes. However, it defines the interface methods `from_file` and
+`to_file`, which allow reading and writing data, respectively.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -123,10 +126,11 @@ zarrElement = Union[zarr.Group, zarr.Array]
 class IOBase:
     """base class for handling structured input and output
 
-    Subclasses need to define :meth:`_from_simple_objects` and :meth:`_to_simple_objects` methods
-    to support the interface that store data in text files. However, the default method
-    for storing data is using the :mod:`zarr` package, where the details are defined in
-    the method :meth:`_write_zarr`, which needs to be implemented by subclasses.
+    Subclasses need to define :meth:`_from_simple_objects` and
+    :meth:`_to_simple_objects` methods to support the interface that store data in text
+    files. However, the default method for storing data is using the :mod:`zarr`
+    package, where the details are defined in the method :meth:`_write_zarr`, which
+    needs to be implemented by subclasses.
     """
 
     @classmethod
