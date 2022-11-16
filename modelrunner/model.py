@@ -316,7 +316,7 @@ def run_script(script_path: str, model_args: Sequence[str]) -> "Result":
 
     elif len(candidate_funcs) > 1:
         names = ", ".join(sorted(candidate_funcs.keys()))
-        raise RuntimeError(f"Found many function, but no 'main' function: {name}")
+        raise RuntimeError(f"Found many function, but no 'main' function: {names}")
 
     else:
         # we could not find any useful objects
