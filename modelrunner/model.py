@@ -55,36 +55,42 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         """main method calculating the result"""
         pass
 
-    def get_result(self, result=None) -> "Result":
+    def get_result(self, result_data=None) -> "Result":
         """get the result as a :class:`~model.Result` object
 
         Args:
-            result: The result data. If omitted, the model is ran to obtain results
+            result_data:
+                The result data. If omitted, the model is run to obtain results
+
+        Returns:
+            :class:`Result`: The result after the model is run
         """
         from .results import Result  # @Reimport
 
-        if result is None:
-            result = self()
+        if result_data is None:
+            result_data = self()
+        elif isinstance(result_data, Result):
+            return result_data
 
         info = {"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-        return Result(self, result, info=info)
+        return Result(self, result_data, info=info)
 
-    def write_result(self, output: Optional[str] = None, result=None) -> None:
+    def write_result(self, output: Optional[str] = None, result_data=None) -> None:
         """write the result to the output file
 
         Args:
             output (str):
                 File where the output will be written to. If omitted self.output will be
                 used. If self.output is also None, an error will be thrown.
-            result:
-                The result data. If omitted, the model is ran to obtain results
+            result_data:
+                The result data. If omitted, the model is run to obtain results
         """
         if output is None:
             output = self.output
         if output is None:
             raise RuntimeError("output file needs to be specified")
 
-        result = self.get_result(result)
+        result = self.get_result(result_data)
         result.write_to_file(output)
 
     @classmethod
@@ -136,6 +142,9 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
                 Sequence of strings corresponding to the command line arguments
             name (str):
                 Name of the program, which will be shown in the command line help
+
+        Returns:
+            :class:`ModelBase`: An instance of this model with appropriate parameters
         """
         if args is None:
             args = []
@@ -173,6 +182,9 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
                 Sequence of strings corresponding to the command line arguments
             name (str):
                 Name of the program, which will be shown in the command line help
+
+        Returns:
+            :class:`Result`: The result of running the model
         """
         # create model from command line parameters
         mdl = cls.from_command_line(args, name)
@@ -181,7 +193,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
 
         # write the results (if output file was specified)
         if mdl.output:
-            mdl.write_result(output=None, result=result)
+            mdl.write_result(output=None, result_data=result)
 
         return result
 
@@ -196,8 +208,37 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         }
 
 
-def make_model_class(func: Callable) -> Type[ModelBase]:
-    """create a model from a function by interpreting its signature"""
+_DEFAULT_MODEL: Union[Callable, ModelBase, None] = None
+"""stores the default model that will be used automatically"""
+
+
+def set_default(func_or_model: Union[Callable, ModelBase, None]) -> None:
+    """sets the function or model as the default model
+
+    The last model that received this flag will be run automatically. This only affects
+    the behavior when the script is run using `modelrunner` from the command line, e.g.,
+    using :code:`python -m modelrunner script.py`.
+
+    Args:
+        func_or_model (callabel or :class:`ModelBase`, optional):
+            The function or model that should be called when the script is run.
+    """
+    global _DEFAULT_MODEL
+    _DEFAULT_MODEL = func_or_model
+
+
+def make_model_class(func: Callable, *, default: bool = False) -> Type[ModelBase]:
+    """create a model from a function by interpreting its signature
+
+    Args:
+        func (callable):
+            The function that will be turned into a Model
+        default (bool):
+            If True, set this model as the default one for the current script
+
+    Returns:
+        :class:`ModelBase`: A subclass of ModelBase, which encompasses `func`
+    """
     # determine the parameters of the function
     parameters_default = []
     for name, param in inspect.signature(func).parameters.items():
@@ -232,50 +273,72 @@ def make_model_class(func: Callable) -> Type[ModelBase]:
         "__call__": __call__,
     }
     newclass = type(func.__name__, (ModelBase,), args)
+    if default:
+        set_default(newclass)
     return newclass
 
 
 def make_model(
-    func: Callable, parameters: Optional[Dict[str, Any]] = None
+    func: Callable,
+    parameters: Optional[Dict[str, Any]] = None,
+    *,
+    default: bool = False,
 ) -> ModelBase:
-    """create model from a function and a dictionary of parameters"""
-    model_class = make_model_class(func)
+    """create model from a function and a dictionary of parameters
+
+    Args:
+        func (callable):
+            The function that will be turned into a Model
+        parameters (dict):
+            Paramter values with which the model is initialized
+        default (bool):
+            If True, set this model as the default one for the current script
+
+    Returns:
+        :class:`ModelBase`: An instance of a subclass of ModelBase encompassing `func`
+    """
+    model_class = make_model_class(func, default=default)
     return model_class(parameters)
 
 
-_DEFAULT_MODEL: Union[Callable, ModelBase, None] = None
-"""stores the default model that will be used automatically"""
-
-
-def set_default(func_or_model: Union[Callable, ModelBase, None]):
-    """sets the function or model as the default model
-
-    The last model that received this flag will be run automatically. This only affects
-    the behavior when the script is run using `modelrunner` from the command line, e.g.,
-    using :code:`python -m modelrunner script.py`.
+def run_function_with_cmd_args(
+    func: Callable, args: Optional[Sequence[str]] = None, *, name: Optional[str] = None
+) -> "Result":
+    """create model from a function and obtain parameters from command line
 
     Args:
-        func_or_model (callabel or :class:`ModelBase`, optional):
-            The function or model that should be called when the script is run.
+        func (callable):
+            The function that will be turned into a Model
+        args (list of str):
+            Command line arguments, typically :code:`sys.argv[1:]`
+        name (str):
+            Name of the program, which will be shown in the command line help
+
+    Returns:
+        :class:`ModelBase`: An instance of a subclass of ModelBase encompassing `func`
+
     """
-    global _DEFAULT_MODEL
-    _DEFAULT_MODEL = func_or_model
-
-
-def run_function_with_cmd_args(
-    func: Callable, args: Optional[Sequence[str]] = None, name: Optional[str] = None
-) -> "Result":
-    """create model from a function and obtain parameters from command line"""
     return make_model_class(func).run_from_command_line(args, name=name)
 
 
 def run_script(script_path: str, model_args: Sequence[str]) -> "Result":
     """helper function that runs a model script
+
+    The function detects models automatically by trying several methods until one yields
+    a unique model to run:
+
+    * A model that have been marked as default by :func:`set_default`
+    * A function named `main`
+    * A model instance if there is exactly one (throw error if there are many)
+    * A model class if there is exactly one (throw error if there are many)
+    * A function if there is exactly one (throw error if there are many)
+
     Args:
         script_path (str):
             Path to the script that contains the model definition
         model_args (sequence):
             Additional arugments that define how the model is run
+
     Returns:
         :class:`~modelrunner.result.Result`: The result of the run
     """
@@ -342,14 +405,10 @@ def run_script(script_path: str, model_args: Sequence[str]) -> "Result":
         names = ", ".join(sorted(candidate_classes.keys()))
         raise RuntimeError(f"Found multiple model classes: {names}")
 
-    elif len(candidate_funcs) == 1 or "main" in candidate_funcs:
+    elif len(candidate_funcs) == 1:
         # there is a single function of a model => use this
-        if "main" in candidate_funcs:
-            func = candidate_funcs["main"]
-            logger.info("Run model function named `main`")
-        else:
-            _, func = candidate_funcs.popitem()
-            logger.info("Run model function named `%s`", func.__name__)
+        _, func = candidate_funcs.popitem()
+        logger.info("Run model function named `%s`", func.__name__)
         return run_function_with_cmd_args(func, args=model_args, name=filename)
 
     elif len(candidate_funcs) > 1:
