@@ -140,25 +140,27 @@ class MockModel(ModelBase):
 class Result:
     """describes a model (with parameters) together with its result"""
 
-    def __init__(self, model: ModelBase, result, info: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self, model: ModelBase, result_data, info: Optional[Dict[str, Any]] = None
+    ):
         """
         Args:
             model (:class:`ModelBase`): The model from which the result was obtained
-            result: The actual result
+            result_data: The actual result data
             info (dict): Additional information for this result
         """
         self.model = model
         self.info = info
-        if isinstance(result, Result):
-            self.result: Any = result.result
+        if isinstance(result_data, Result):
+            self.result: Any = result_data.result
         else:
-            self.result = result
+            self.result = result_data
 
     @classmethod
     def from_data(
         cls,
         model_data: Dict[str, Any],
-        result,
+        result_data,
         model: Optional[ModelBase] = None,
         info: Optional[Dict[str, Any]] = None,
     ) -> Result:
@@ -166,9 +168,12 @@ class Result:
 
         Args:
             model_data (dict): The data identifying the model
-            result: The actual result
+            result_data: The actual result data
             model (:class:`ModelBase`): The model from which the result was obtained
             info (dict): Additional information for this result
+
+        Returns:
+            :class:`Result`: The result object
         """
         if model is None:
             model_cls: Type[ModelBase] = MockModel
@@ -181,7 +186,7 @@ class Result:
         obj.name = model_data.get("name")
         obj.description = model_data.get("description")
 
-        return cls(obj, result, info)
+        return cls(obj, result_data, info)
 
     @property
     def parameters(self) -> Dict[str, Any]:
@@ -237,7 +242,7 @@ class Result:
 
         return cls.from_data(
             model_data=data.get("model", {}),
-            result=data.get("result"),
+            result_data=data.get("result"),
             model=model,
             info=info,
         )
@@ -276,7 +281,7 @@ class Result:
 
         return cls.from_data(
             model_data=data.get("model", {}),
-            result=data.get("result"),
+            result_data=data.get("result"),
             model=model,
             info=info,
         )
@@ -322,7 +327,7 @@ class Result:
         info.setdefault("name", Path(path).with_suffix("").stem)
 
         return cls.from_data(
-            model_data=model_data, result=result, model=model, info=info
+            model_data=model_data, result_data=result, model=model, info=info
         )
 
     def write_to_hdf(self, path) -> None:
