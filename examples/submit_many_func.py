@@ -24,5 +24,5 @@ if __name__ == "__main__":
         __file__,  # submit this file as a job module
         output_folder="data",
         parameters={"a": [1, 2], "b": [4, 5]},
-        method="local",  # run job locally
+        method="foreground",  # run job locally
     )

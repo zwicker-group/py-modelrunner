@@ -12,7 +12,7 @@ import logging
 import os.path
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Type
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Type, Union
 
 from .parameters import (
     DeprecatedParameter,
@@ -243,6 +243,25 @@ def make_model(
     return model_class(parameters)
 
 
+_DEFAULT_MODEL: Union[Callable, ModelBase, None] = None
+"""stores the default model that will be used automatically"""
+
+
+def set_default(func_or_model: Union[Callable, ModelBase, None]):
+    """sets the function or model as the default model
+
+    The last model that received this flag will be run automatically. This only affects
+    the behavior when the script is run using `modelrunner` from the command line, e.g.,
+    using :code:`python -m modelrunner script.py`.
+
+    Args:
+        func_or_model (callabel or :class:`ModelBase`, optional):
+            The function or model that should be called when the script is run.
+    """
+    global _DEFAULT_MODEL
+    _DEFAULT_MODEL = func_or_model
+
+
 def run_function_with_cmd_args(
     func: Callable, args: Optional[Sequence[str]] = None, name: Optional[str] = None
 ) -> "Result":
@@ -260,6 +279,7 @@ def run_script(script_path: str, model_args: Sequence[str]) -> "Result":
     Returns:
         :class:`~modelrunner.result.Result`: The result of the run
     """
+    global _DEFAULT_MODEL
     logger = logging.getLogger("modelrunner")
 
     # load the script as a module
@@ -269,6 +289,18 @@ def run_script(script_path: str, model_args: Sequence[str]) -> "Result":
         raise IOError(f"Could not find job script `{script_path}`")
     model_code = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(model_code)  # type: ignore
+
+    # check whether a default model was set
+    if (
+        isinstance(_DEFAULT_MODEL, ModelBase)
+        or inspect.isclass(_DEFAULT_MODEL)
+        and issubclass(_DEFAULT_MODEL, ModelBase)
+    ):
+        return _DEFAULT_MODEL.run_from_command_line(model_args, name=filename)
+    elif callable(_DEFAULT_MODEL):
+        return run_function_with_cmd_args(
+            _DEFAULT_MODEL, args=model_args, name=filename
+        )
 
     # find all functions in the module
     logger.debug("Search for models in script")
@@ -282,6 +314,12 @@ def run_script(script_path: str, model_args: Sequence[str]) -> "Result":
         elif inspect.isfunction(member):
             candidate_funcs[name] = member
 
+    # run `main` function if there is one
+    if "main" in candidate_funcs:
+        func = candidate_funcs["main"]
+        return run_function_with_cmd_args(func, args=model_args, name=filename)
+
+    # search for instances, classes, and functions and run them if choice is unique
     if len(candidate_instance) == 1:
         # there is a single instance of a model => use this
         _, obj = candidate_instance.popitem()
@@ -315,6 +353,7 @@ def run_script(script_path: str, model_args: Sequence[str]) -> "Result":
         return run_function_with_cmd_args(func, args=model_args, name=filename)
 
     elif len(candidate_funcs) > 1:
+        # there are multiple functions and we do not know which one to run
         names = ", ".join(sorted(candidate_funcs.keys()))
         raise RuntimeError(f"Found many function, but no 'main' function: {names}")
 
