@@ -8,6 +8,7 @@ from .model import (
     make_model_class,
     run_function_with_cmd_args,
     run_script,
+    set_default,
 )
 from .parameters import Parameter
 from .results import Result, ResultCollection

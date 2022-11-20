@@ -19,7 +19,6 @@ SCRIPT_PATH = Path(__file__).parent / "scripts"
 
 def run_script(script, *args):
     """run a script (with potential arguments) and collect stdout"""
-
     # prepare environment
     env = os.environ.copy()
     env["PYTHONPATH"] = str(PACKAGEPATH) + ":" + env.get("PYTHONPATH", "")
@@ -56,6 +55,13 @@ def test_function_main_script():
     assert float(run_script("function_main.py", "--a", "3", "--b", "4")) == 12
 
 
+def test_function_marked_script():
+    """test the function_main.py script"""
+    assert float(run_script("function_marked.py")) == 3
+    assert float(run_script("function_marked.py", "--a", "3")) == 5
+    assert float(run_script("function_marked.py", "--a", "3", "--b", "4")) == 7
+
+
 def test_make_model_script():
     """test the make_model.py script"""
     assert run_script("make_model.py") == b"2"
@@ -68,6 +74,13 @@ def test_make_model_class_script():
     assert run_script("make_model_class.py") == b"2"
     assert run_script("make_model_class.py", "--a", "3") == b"6"
     assert run_script("make_model_class.py", "--a", "3", "--b", "4") == b"12"
+
+
+def test_make_model_marked_script():
+    """test the function_main.py script"""
+    assert float(run_script("make_model_marked.py")) == 3
+    assert float(run_script("make_model_marked.py", "--a", "3")) == 5
+    assert float(run_script("make_model_marked.py", "--a", "3", "--b", "4")) == 7
 
 
 def test_required_arguments_model():
