@@ -222,9 +222,13 @@ def set_default(func_or_model: Union[Callable, ModelBase, None]) -> None:
     Args:
         func_or_model (callabel or :class:`ModelBase`, optional):
             The function or model that should be called when the script is run.
+
+    Returns:
+        `func_or_model`, so the function can be used as a decorator
     """
     global _DEFAULT_MODEL
     _DEFAULT_MODEL = func_or_model
+    return func_or_model
 
 
 def make_model_class(func: Callable, *, default: bool = False) -> Type[ModelBase]:
