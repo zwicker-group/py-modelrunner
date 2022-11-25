@@ -47,9 +47,9 @@ def test_function_main_script():
 
 def test_function_marked_script():
     """test the function_main.py script"""
-    assert float(run_script("function_marked.py")) == 3
-    assert float(run_script("function_marked.py", "--a", "3")) == 5
-    assert float(run_script("function_marked.py", "--a", "3", "--b", "4")) == 7
+    assert float(run("function_marked.py")) == 3
+    assert float(run("function_marked.py", "--a", "3")) == 5
+    assert float(run("function_marked.py", "--a", "3", "--b", "4")) == 7
 
 
 def test_make_model_script():
@@ -68,9 +68,9 @@ def test_make_model_class_script():
 
 def test_make_model_marked_script():
     """test the function_main.py script"""
-    assert float(run_script("make_model_marked.py")) == 3
-    assert float(run_script("make_model_marked.py", "--a", "3")) == 5
-    assert float(run_script("make_model_marked.py", "--a", "3", "--b", "4")) == 7
+    assert float(run("make_model_marked.py")) == 3
+    assert float(run("make_model_marked.py", "--a", "3")) == 5
+    assert float(run("make_model_marked.py", "--a", "3", "--b", "4")) == 7
 
 
 def test_required_arguments_model():

@@ -19,7 +19,10 @@ from .model import (
     make_model_class,
     run_function_with_cmd_args,
     run_script,
+<<<<<<< HEAD
     set_default,
+=======
+>>>>>>> branch 'state' of https://github.com/zwicker-group/py-modelrunner.git
 )
 from .parameters import Parameter
 from .results import Result, ResultCollection

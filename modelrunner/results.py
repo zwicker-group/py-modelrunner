@@ -110,40 +110,6 @@ class Result(IOBase):
         return self.model.parameters
 
     @classmethod
-    def from_file(cls, path, model: Optional[ModelBase] = None):
-        """read result from file
-
-        Args:
-            path (str or :class:`~pathlib.Path`): The path to the file
-            model (:class:`ModelBase`): The model from which the result was obtained
-        """
-        ext = os.path.splitext(path)[1].lower()
-        if ext == ".json":
-            return cls.from_json(path, model)
-        elif ext in {".yml", ".yaml"}:
-            return cls.from_yaml(path, model)
-        elif ext in {".h5", ".hdf", ".hdf5"}:
-            return cls.from_hdf(path, model)
-        else:
-            raise ValueError(f"Unknown file format of `{path}`")
-
-    def write_to_file(self, path):
-        """write result to a file
-
-        Args:
-            path (str or :class:`~pathlib.Path`): The path to the file
-        """
-        ext = os.path.splitext(path)[1].lower()
-        if ext == ".json":
-            self.write_to_json(path)
-        elif ext in {".yml", ".yaml"}:
-            self.write_to_yaml(path)
-        elif ext in {".h5", ".hdf", ".hdf5"}:
-            self.write_to_hdf(path)
-        else:
-            raise ValueError(f"Unknown file format `{ext}`")
-
-    @classmethod
     def _from_simple_objects(cls, content, model: Optional[ModelBase] = None) -> Result:
         """read result from a JSON file
 

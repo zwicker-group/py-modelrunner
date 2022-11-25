@@ -17,13 +17,5 @@ if __name__ == "__main__":
     result = run_function_with_cmd_args(multiply)
     result.to_file("test.json")
 
-<<<<<<< Upstream, based on main
-<<<<<<< Upstream, based on main
     read = Result.from_file("test.json")
-=======
-    read = Result.from_json("test.json")
->>>>>>> effedef Use State classes in rest of package
-=======
-    read = Result.from_file("test.json")
->>>>>>> 5b3d6ac More restructuring
     print(read.parameters, "–– a * b =", read.state)

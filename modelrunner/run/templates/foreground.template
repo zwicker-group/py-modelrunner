@@ -6,36 +6,14 @@ export PYTHONPATH={{ PACKAGE_PATH }}:$PYTHONPATH
 mkdir -p {{ OUTPUT_FOLDER }}
 {% endif %}
 
-<<<<<<< Upstream, based on main
-<<<<<<< Upstream, based on main
 # Run the program
 {% if USE_MODELRUNNER is defined and USE_MODELRUNNER %}
 python3 -m modelrunner {{ MODEL_FILE }} \
-=======
-echo "Launching job"
-
-# Run the program and wait for the result
-python -m modelrunner {{ MODEL_FILE }} \
->>>>>>> 047a3c6 Use State classes in rest of package
-=======
-echo "Launching job"
-
-# Run the program and wait for the result
-python -m modelrunner {{ MODEL_FILE }} \
->>>>>>> effedef Use State classes in rest of package
     {{ JOB_ARGS }} \
     > {{ LOG_FOLDER }}/{{ JOB_NAME }}.out.txt \
     2> {{ LOG_FOLDER }}/{{ JOB_NAME }}.err.txt
-<<<<<<< Upstream, based on main
-<<<<<<< Upstream, based on main
 {% else %}
 python3 {{ MODEL_FILE }} \
     {{ JOB_ARGS }} \
     > {{ LOG_FOLDER }}/{{ JOB_NAME }}.out.txt \
     2> {{ LOG_FOLDER }}/{{ JOB_NAME }}.err.txt
-{% endif %}
-
-=======
->>>>>>> 047a3c6 Use State classes in rest of package
-=======
->>>>>>> effedef Use State classes in rest of package
