@@ -19,13 +19,10 @@ from .model import (
     make_model_class,
     run_function_with_cmd_args,
     run_script,
-<<<<<<< HEAD
     set_default,
-=======
->>>>>>> branch 'state' of https://github.com/zwicker-group/py-modelrunner.git
 )
 from .parameters import Parameter
 from .results import Result, ResultCollection
 from .run import submit_job, submit_jobs
-from .state import ArrayState, DictState, ObjectState
+from .state import ArrayCollectionState, ArrayState, DictState, ObjectState
 from .version import __version__

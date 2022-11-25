@@ -38,7 +38,7 @@ def test_submit_jobs(tmp_path):
 
     def run(parameters, **kwargs):
         """helper submitting job locally"""
-        submit_jobs(
+        num_jobs = submit_jobs(
             SCRIPT_PATH / "function.py",
             tmp_path,
             parameters=parameters.copy(),
@@ -50,6 +50,7 @@ def test_submit_jobs(tmp_path):
 
         # read result
         col = ResultCollection.from_folder(tmp_path).dataframe
+        assert len(col) == num_jobs
 
         # delete temporary files
         for path in tmp_path.iterdir():

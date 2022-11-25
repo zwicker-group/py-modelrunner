@@ -16,7 +16,7 @@ from modelrunner.parameters import (
 )
 
 PACKAGEPATH = Path(__file__).parents[2].resolve()
-SCRIPT_PATH = Path(__file__).parent / "scripts"
+SCRIPT_PATH = Path(__file__).parent.resolve() / "scripts"
 
 
 def run(script, *args):

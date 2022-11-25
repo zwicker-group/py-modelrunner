@@ -211,7 +211,7 @@ def submit_jobs(
     *,
     list_params: Optional[Iterable[str]] = None,
     **kwargs,
-) -> None:
+) -> int:
     """submit many jobs of the same script with different parameters to the cluster
 
     Args:
@@ -231,6 +231,9 @@ def submit_jobs(
             individual parameters and not iterated over to produce multiple jobs.
         **kwargs:
             All additional parameters are forwarded to :func:`submit_job`.
+
+    Returns:
+        int: The number of jobs that have been submitted
     """
     if parameters is None:
         parameter_dict = {}
@@ -265,3 +268,5 @@ def submit_jobs(
         name = get_job_name(name_base, p_job)
         output = Path(output_folder) / f"{name}.hdf5"
         submit_job(script, output=output, name=name, parameters=params, **kwargs)
+
+    return len(p_vary_list)

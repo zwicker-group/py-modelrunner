@@ -135,10 +135,7 @@ class Trajectory:
         else:
             # update the state with the data of the given index
             self._state._update_from_zarr(self._root["data"], index=t_index)
-<<<<<<< HEAD
 
-=======
->>>>>>> branch 'state' of https://github.com/zwicker-group/py-modelrunner.git
         return self._state
 
     def __getitem__(self, key: Union[int, slice]) -> Union[StateBase, Trajectory]:

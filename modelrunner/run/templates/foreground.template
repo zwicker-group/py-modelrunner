@@ -17,3 +17,4 @@ python3 {{ MODEL_FILE }} \
     {{ JOB_ARGS }} \
     > {{ LOG_FOLDER }}/{{ JOB_NAME }}.out.txt \
     2> {{ LOG_FOLDER }}/{{ JOB_NAME }}.err.txt
+{% endif %}

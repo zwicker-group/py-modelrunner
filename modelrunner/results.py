@@ -18,11 +18,10 @@ from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Type, Union
 import numpy as np
 from tqdm.auto import tqdm
 
-from .io import IOBase, NumpyEncoder, read_hdf_data, write_hdf_dataset
+from .io import IOBase, NumpyEncoder, read_hdf_data, simplify_data, write_hdf_dataset
 from .model import ModelBase
-
 from .parameters import NoValueType
-from .state import make_state, StateBase
+from .state import StateBase, make_state
 
 
 class MockModel(ModelBase):
@@ -119,26 +118,27 @@ class Result(IOBase):
         """
         return cls.from_data(
             model_data=content.get("model", {}),
-            state=StateBase._from_text_data(content["state"]),
+            state=StateBase._from_simple_objects(content["state"]),
             info=content.get("info"),
         )
 
-    def _to_simple_objects(self, path) -> None:
-        """write result to JSON file
+    def _to_simple_objects(self) -> Any:
+        """convert result to simple objects
 
         Args:
             path (str or :class:`~pathlib.Path`): The path to the file
         """
-        data = {
+        content = {
             "model": simplify_data(self.model.attributes),
-            "data": simplify_data(self.state.data),
+            "data": simplify_data(self.data),
             "state": self.state._to_simple_objects(),
         }
         if self.info:
             content["info"] = self.info
         return content
 
-    def _from_hdf(cls, hdf_element, model: ModelBase = None) -> Result:
+    @classmethod
+    def _from_hdf(cls, hdf_element, model: Optional[ModelBase] = None) -> Result:
         """read result from a HDf file
 
         Args:

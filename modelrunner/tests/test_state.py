@@ -8,7 +8,6 @@ import pytest
 from modelrunner.state import ArrayCollectionState, ArrayState, DictState, ObjectState
 from modelrunner.trajectory import Trajectory, TrajectoryWriter
 
-
 EXTENSIONS = ["json", "yaml", "zarr"]
 
 
