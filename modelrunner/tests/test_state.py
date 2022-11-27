@@ -5,8 +5,13 @@
 import numpy as np
 import pytest
 
-from modelrunner.state import ArrayCollectionState, ArrayState, DictState, ObjectState
-from modelrunner.trajectory import Trajectory, TrajectoryWriter
+from modelrunner.state import (
+    ArrayCollectionState,
+    ArrayState,
+    DictState,
+    ObjectState,
+    StateBase,
+)
 
 EXTENSIONS = ["json", "yaml", "zarr"]
 
@@ -26,21 +31,25 @@ def get_states():
 
 @pytest.mark.parametrize("state", get_states())
 @pytest.mark.parametrize("ext", EXTENSIONS)
-def test_trajectory(state, ext, tmp_path):
+def test_state_io(state, ext, tmp_path):
     """test simple state IO"""
     path = tmp_path / ("file." + ext)
 
-    with TrajectoryWriter(path, attrs={"test": "yes"}) as write:
-        write(state, 1)
-        write(state)
+    state.to_file(path)
+    with pytest.raises(FileExistsError):
+        state.to_file(path, overwrite=False)
+    state.to_file(path, overwrite=True)
 
-    for ret_copy in [True, False]:
-        traj = Trajectory(path, ret_copy=ret_copy)
-        assert len(traj) == 2
-        np.testing.assert_allclose(traj.times, [1, 2])
-        assert traj[1] == state
-        assert traj[-1] == state
-        assert traj.attributes == {"test": "yes"}
+    read = state.from_file(path)
+    assert state == read
 
-        for s in traj:
-            assert s == state
+
+@pytest.mark.parametrize("state_cls", [DictState, ObjectState, ArrayCollectionState])
+@pytest.mark.parametrize("ext", EXTENSIONS)
+def test_empty_state_io(state_cls, ext, tmp_path):
+    """test simple state IO"""
+    state = state_cls()
+    path = tmp_path / ("file." + ext)
+    state.to_file(path)
+    state2 = StateBase.from_file(path)
+    assert state == state2

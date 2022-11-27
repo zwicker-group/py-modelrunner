@@ -122,7 +122,7 @@ def read_hdf_data(node):
 Store = Union[str, Path, BaseStore]
 
 
-def normalize_zarr_store(store: Store) -> Store:
+def normalize_zarr_store(store: Store, mode: str = "a") -> Store:
     """determine best file format for zarr storage
 
     In particular, we use a :class:`~zarr.storage.ZipStore` when a path looking like a
@@ -130,13 +130,14 @@ def normalize_zarr_store(store: Store) -> Store:
 
     Args:
         store: User-provided store
+        mode (str): The mode with which the file will be opened
 
     Returns:
     """
     if isinstance(store, (str, Path)):
         store = Path(store)
         if store.suffix != "":
-            store = zarr.storage.ZipStore(store)
+            store = zarr.storage.ZipStore(store, mode=mode)
     return store
 
 
@@ -205,26 +206,26 @@ class IOBase:
         """
         fmt = cls._guess_format(store, fmt)
         if fmt == "json":
-            with open(store, "r") as fp:
+            with open(store, mode="r") as fp:
                 content = json.load(fp)
             return cls._from_simple_objects(content, **kwargs)
 
         elif fmt == "yaml":
             import yaml
 
-            with open(store, "r") as fp:
+            with open(store, mode="r") as fp:
                 content = yaml.safe_load(fp)
             return cls._from_simple_objects(content, **kwargs)
 
         elif fmt == "hdf":
             import h5py
 
-            with h5py.File(store, "r") as root:
+            with h5py.File(store, mode="r") as root:
                 return cls._from_hdf(root, **kwargs)
 
         elif fmt == "zarr":
             # fallback to the default storage method based on zarr
-            store = normalize_zarr_store(store)
+            store = normalize_zarr_store(store, mode="r")
             root = zarr.open_group(store, mode="r")
             return cls._from_zarr(root["data"], **kwargs)
 
@@ -250,31 +251,33 @@ class IOBase:
                 If True, overwrites files even if they already exist
         """
         fmt = self._guess_format(store, fmt)
+        mode = "w" if overwrite else "x"
         if fmt == "json":
-            # write file in JSON format
+            # write data in JSON format
             content = simplify_data(self._to_simple_objects())
             kwargs.setdefault("cls", NumpyEncoder)
-            with open(store, "w" if overwrite else "x") as fp:
+            with open(store, mode=mode) as fp:
                 json.dump(content, fp, **kwargs)
 
         elif fmt == "yaml":
-            # write file in YAML format
+            # write data in YAML format
             import yaml
 
             content = simplify_data(self._to_simple_objects())
             kwargs.setdefault("sort_keys", False)
-            with open(store, "w" if overwrite else "x") as fp:
+            with open(store, mode=mode) as fp:
                 yaml.dump(content, fp, **kwargs)
 
         elif fmt == "hdf":
+            # write data in HDF format
             import h5py
 
-            with h5py.File(store, "w" if overwrite else "x") as root:
+            with h5py.File(store, mode=mode) as root:
                 self._write_hdf(root, **kwargs)
 
         elif fmt == "zarr":
             # fallback to the default storage method based on zarr
-            store = normalize_zarr_store(store)
+            store = normalize_zarr_store(store, mode=mode)
             with zarr.group(store=store, overwrite=overwrite) as group:
                 self._write_zarr(group, **kwargs)
 

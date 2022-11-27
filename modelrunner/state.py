@@ -392,10 +392,10 @@ class ArrayCollectionState(StateBase):
             self.data = tuple(data)
 
         if labels is None:
-            self.labels = tuple(str(i) for i in range(len(self.data)))
+            self._labels = tuple(str(i) for i in range(len(self.data)))
         else:
             assert len(self.data) == len(labels) == len(set(labels))
-            self.labels = tuple(labels)
+            self._labels = tuple(labels)
 
     def __eq__(self, other):
         return (
@@ -403,6 +403,14 @@ class ArrayCollectionState(StateBase):
             and len(self.data) == len(other.data)
             and all(np.array_equal(s, o) for s, o in zip(self.data, other.data))
         )
+
+    @property
+    def labels(self) -> Sequence[str]:
+        """list: the label assigned to each array"""
+        labels = getattr(self, "_labels")
+        if labels is None:
+            labels = [str(i) for i in range(len(self.data))]
+        return labels  # type: ignore
 
     @property
     def attributes(self) -> Dict[str, Any]:
