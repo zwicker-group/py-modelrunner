@@ -176,8 +176,18 @@ class IOBase:
         raise NotImplementedError(f"{self.__class__.__name__}: no zarr writing")
 
     @staticmethod
-    def _guess_format(store: Store, fmt: Optional[str] = None):
-        """guess the format"""
+    def _guess_format(store: Store, fmt: Optional[str] = None) -> str:
+        """guess the format of a given store
+
+        Args:
+            store (str or :class:`zarr.Store`):
+                Path or instance describing the storage
+            fmt (str):
+                File format
+
+        Returns:
+            str: The store format
+        """
         if isinstance(fmt, str):
             return fmt
 
@@ -190,9 +200,14 @@ class IOBase:
                 return "yaml"
             elif ext in {".h5", ".hdf", ".hdf5"}:
                 return "hdf"
+            else:
+                return "zarr"  # fallback to the default storage method based on zarr
 
-        # fallback to the default storage method based on zarr
-        return "zarr"
+        elif isinstance(store, BaseStore):
+            return "zarr"
+
+        else:
+            raise TypeError(f"Unsupported store type {store.__class__.__name__}")
 
     @classmethod
     def from_file(cls, store: Store, *, fmt: Optional[str] = None, **kwargs):
@@ -224,7 +239,6 @@ class IOBase:
                 return cls._from_hdf(root, **kwargs)
 
         elif fmt == "zarr":
-            # fallback to the default storage method based on zarr
             store = normalize_zarr_store(store, mode="r")
             root = zarr.open_group(store, mode="r")
             return cls._from_zarr(root["data"], **kwargs)
@@ -246,21 +260,19 @@ class IOBase:
             store (str or :class:`zarr.Store`):
                 Where to write the data to
             fmt (str):
-                File format (guessed from extension of filename if None)
+                File format (guessed from extension of `store` if None)
             overwrite (bool):
                 If True, overwrites files even if they already exist
         """
         fmt = self._guess_format(store, fmt)
         mode = "w" if overwrite else "x"
         if fmt == "json":
-            # write data in JSON format
             content = simplify_data(self._to_simple_objects())
             kwargs.setdefault("cls", NumpyEncoder)
             with open(store, mode=mode) as fp:
                 json.dump(content, fp, **kwargs)
 
         elif fmt == "yaml":
-            # write data in YAML format
             import yaml
 
             content = simplify_data(self._to_simple_objects())
@@ -269,14 +281,12 @@ class IOBase:
                 yaml.dump(content, fp, **kwargs)
 
         elif fmt == "hdf":
-            # write data in HDF format
             import h5py
 
             with h5py.File(store, mode=mode) as root:
                 self._write_hdf(root, **kwargs)
 
         elif fmt == "zarr":
-            # fallback to the default storage method based on zarr
             store = normalize_zarr_store(store, mode=mode)
             with zarr.group(store=store, overwrite=overwrite) as group:
                 self._write_zarr(group, **kwargs)

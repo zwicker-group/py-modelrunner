@@ -11,6 +11,7 @@ from modelrunner.state import (
     DictState,
     ObjectState,
     StateBase,
+    _equals,
 )
 
 EXTENSIONS = ["json", "yaml", "zarr"]
@@ -40,7 +41,7 @@ def test_state_io(state, ext, tmp_path):
         state.to_file(path, overwrite=False)
     state.to_file(path, overwrite=True)
 
-    read = state.from_file(path)
+    read = StateBase.from_file(path)
     assert state == read
 
 
@@ -53,3 +54,17 @@ def test_empty_state_io(state_cls, ext, tmp_path):
     state.to_file(path)
     state2 = StateBase.from_file(path)
     assert state == state2
+
+
+@pytest.mark.parametrize("ext", EXTENSIONS)
+def test_array_collections(ext, tmp_path):
+    """test some specific behaviors of the ArrayCollectionState"""
+    a = np.arange(5)
+    b = np.random.random(size=3)
+    state = ArrayCollectionState((a, b), labels=["a", "b"])
+
+    path = tmp_path / ("file." + ext)
+    state.to_file(path)
+    state2 = StateBase.from_file(path)
+    assert _equals(state.data, state2.data)
+    assert state.labels == state2.labels

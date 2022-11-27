@@ -129,7 +129,7 @@ class StateBase(IOBase):
 
     @classmethod
     def from_state(cls, attributes: Dict[str, Any], data=None) -> StateBase:
-        """create any state class from attributes and data
+        """create instance of any state class from attributes and data
 
         Args:
             attributes (dict): Additional (unserialized) attributes
@@ -144,18 +144,29 @@ class StateBase(IOBase):
 
         elif cls.__name__ == attributes["__class__"]:
             # simple version instantiating the current class with the given data
-            format_version = attributes.get("__version__", 0)
+            num_attrs = 1  # __class__ was stored in attributes
+            if "__version__" in attributes:
+                format_version = attributes["__version__"]
+                num_attrs += 1
+            else:
+                format_version = 0
             if format_version != cls._format_version:
                 warnings.warn(
-                    f"File format version mismatch ({format_version} != "
-                    f"{cls._format_version})"
+                    f"File format version mismatch "
+                    f"({format_version} != {cls._format_version})"
                 )
-            if len(attributes) > 2:  # __class__ and __version__ expected
+            if len(attributes) > num_attrs:  # additional attributes given
                 warnings.warn(
                     f"Unused attributes, but {cls.__name__} did not implemented custom "
-                    "from_state"
+                    "from_state method"
                 )
-            return cls() if data is None else cls(data)  # type: ignore
+
+            # create a new object without calling __init__, which might be overwriten by
+            # the subclass and not follow our interface
+            obj = cls.__new__(cls)
+            if data is not None:
+                obj.data = data  # type: ignore
+            return obj
 
         else:
             raise ValueError(f"Incompatible state class {attributes['class']}")
@@ -224,9 +235,11 @@ class StateBase(IOBase):
             content: The loaded data
         """
         if state_cls is None:
+            # general branch that determines the state class to use to load the object
             state_cls = cls._state_classes[content["attributes"]["__class__"]]
             return state_cls._from_simple_objects(content, state_cls=state_cls)
         else:
+            # specific (basic) implementation that just reads the state
             attributes = cls._read_attributes(content["attributes"])
             return state_cls.from_state(attributes, content["data"])
 
@@ -236,7 +249,13 @@ class StateBase(IOBase):
 
 
 class ObjectState(StateBase):
-    """State characterized by a serializable python object"""
+    """State characterized by a serializable python object
+
+    The data needs to be accessible form the :attr:`data` property of the instance.
+    Additional attributes can be supplied via the :attr:`attribute` property, which will
+    then be stored in files. To support reading such augmented states, the method
+    :meth:`from_state` needs to be overwritten.
+    """
 
     default_codec = numcodecs.Pickle()
 
@@ -314,6 +333,12 @@ class ArrayState(StateBase):
 
     @classmethod
     def from_state(cls, attributes: Dict[str, Any], data=None):
+        """create instance from attributes and data
+
+        Args:
+            attributes (dict): Additional (unserialized) attributes
+            data: The data of the degerees of freedom of the physical system
+        """
         if data is not None:
             data = np.asarray(data)
         return super().from_state(attributes, data)
@@ -356,20 +381,6 @@ class ArrayState(StateBase):
         """append current data to a stored element"""
         zarr_element.append([self._data_store])
 
-    @classmethod
-    def _from_simple_objects(
-        cls, content, *, state_cls: Optional[StateBase] = None
-    ) -> StateBase:
-        """create state from text data
-
-        Args:
-            content: The loaded data
-        """
-        if state_cls is None:
-            return super()._from_simple_objects(content)
-
-        return cls(np.asarray(content["data"]))
-
 
 class ArrayCollectionState(StateBase):
     """State characterized by a multiple numpy array"""
@@ -409,8 +420,9 @@ class ArrayCollectionState(StateBase):
         """list: the label assigned to each array"""
         labels = getattr(self, "_labels")
         if labels is None:
-            labels = [str(i) for i in range(len(self.data))]
-        return labels  # type: ignore
+            return [str(i) for i in range(len(self.data))]
+        else:
+            return list(labels)
 
     @property
     def attributes(self) -> Dict[str, Any]:
@@ -421,10 +433,24 @@ class ArrayCollectionState(StateBase):
 
     @classmethod
     def from_state(cls, attributes: Dict[str, Any], data=None):
+        """create instance from attributes and data
+
+        Args:
+            attributes (dict): Additional (unserialized) attributes
+            data: The data of the degerees of freedom of the physical system
+        """
         if data is not None:
             data = tuple(np.asarray(subdata) for subdata in data)
-        labels = attributes.pop("labels")
-        return cls(data, labels=labels)
+        labels = attributes.get("labels")
+
+        # create a new object without calling __init__, which might be overwriten by
+        # the subclass and not follow our interface
+        obj = cls.__new__(cls)
+        if data is not None:
+            obj.data = data
+        if labels is not None:
+            obj._labels = labels
+        return obj
 
     def __getitem__(self, index: Union[int, str]) -> np.ndarray:
         if isinstance(index, str):
@@ -438,10 +464,10 @@ class ArrayCollectionState(StateBase):
     def _read_zarr_data(
         cls, zarr_element: zarr.Array, *, index=...
     ) -> ArrayCollectionState:
-        return cls(
-            tuple(zarr_element[label][index] for label in zarr_element.attrs["labels"]),
-            labels=zarr_element.attrs["labels"],
+        data = tuple(
+            zarr_element[label][index] for label in zarr_element.attrs["labels"]
         )
+        return cls.from_state(zarr_element.attrs.asdict(), data)  # type: ignore
 
     def _update_from_zarr(self, element: zarrElement, *, index=...) -> None:
         for label, data_arr in zip(self.labels, self.data):
@@ -508,7 +534,7 @@ class ArrayCollectionState(StateBase):
 
 
 class DictState(StateBase):
-    """State characterized by a dictionary of data"""
+    """State characterized by a dictionary of states"""
 
     data: Dict[str, StateBase]
 
@@ -531,12 +557,24 @@ class DictState(StateBase):
 
     @classmethod
     def from_state(cls, attributes: Dict[str, Any], data=None):
+        """create instance from attributes and data
+
+        Args:
+            attributes (dict): Additional (unserialized) attributes
+            data: The data of the degerees of freedom of the physical system
+        """
         if data is None or not isinstance(data, (dict, tuple, list)):
             raise TypeError("`data` must be a dictionary or sequence")
         assert cls.__name__ == attributes["__class__"]
         if not isinstance(data, dict) and "__keys__" in attributes:
             data = {k: v for k, v in zip(attributes["__keys__"], data)}
-        return cls(data)
+
+        # create a new object without calling __init__, which might be overwriten by
+        # the subclass and not follow our interface
+        obj = cls.__new__(cls)
+        if data is not None:
+            obj.data = data
+        return obj
 
     def copy(self):
         return self.__class__({k: v.copy() for k, v in self.data.items()})
