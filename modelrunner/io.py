@@ -120,6 +120,26 @@ def read_hdf_data(node):
 
 
 Store = Union[str, Path, BaseStore]
+
+
+def normalize_zarr_store(store: Store) -> Store:
+    """determine best file format for zarr storage
+
+    In particular, we use a :class:`~zarr.storage.ZipStore` when a path looking like a
+    file is given.
+
+    Args:
+        store: User-provided store
+
+    Returns:
+    """
+    if isinstance(store, (str, Path)):
+        store = Path(store)
+        if store.suffix != "":
+            store = zarr.storage.ZipStore(store)
+    return store
+
+
 zarrElement = Union[zarr.Group, zarr.Array]
 
 
@@ -204,6 +224,7 @@ class IOBase:
 
         elif fmt == "zarr":
             # fallback to the default storage method based on zarr
+            store = normalize_zarr_store(store)
             root = zarr.open_group(store, mode="r")
             return cls._from_zarr(root["data"], **kwargs)
 
@@ -230,12 +251,14 @@ class IOBase:
         """
         fmt = self._guess_format(store, fmt)
         if fmt == "json":
+            # write file in JSON format
             content = simplify_data(self._to_simple_objects())
             kwargs.setdefault("cls", NumpyEncoder)
             with open(store, "w" if overwrite else "x") as fp:
                 json.dump(content, fp, **kwargs)
 
         elif fmt == "yaml":
+            # write file in YAML format
             import yaml
 
             content = simplify_data(self._to_simple_objects())
@@ -251,6 +274,7 @@ class IOBase:
 
         elif fmt == "zarr":
             # fallback to the default storage method based on zarr
+            store = normalize_zarr_store(store)
             with zarr.group(store=store, overwrite=overwrite) as group:
                 self._write_zarr(group, **kwargs)
 
