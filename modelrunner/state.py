@@ -418,7 +418,7 @@ class ArrayCollectionState(StateBase):
     @property
     def labels(self) -> Sequence[str]:
         """list: the label assigned to each array"""
-        labels = getattr(self, "_labels")
+        labels = getattr(self, "_labels", None)
         if labels is None:
             return [str(i) for i in range(len(self.data))]
         else:
@@ -565,7 +565,6 @@ class DictState(StateBase):
         """
         if data is None or not isinstance(data, (dict, tuple, list)):
             raise TypeError("`data` must be a dictionary or sequence")
-        assert cls.__name__ == attributes["__class__"]
         if not isinstance(data, dict) and "__keys__" in attributes:
             data = {k: v for k, v in zip(attributes["__keys__"], data)}
 
@@ -575,9 +574,6 @@ class DictState(StateBase):
         if data is not None:
             obj.data = data
         return obj
-
-    def copy(self):
-        return self.__class__({k: v.copy() for k, v in self.data.items()})
 
     def __getitem__(self, index: Union[int, str]) -> StateBase:
         if isinstance(index, str):

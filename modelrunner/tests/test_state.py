@@ -68,3 +68,51 @@ def test_array_collections(ext, tmp_path):
     state2 = StateBase.from_file(path)
     assert _equals(state.data, state2.data)
     assert state.labels == state2.labels
+
+
+def test_array_collection_mixin(tmp_path):
+    """test whether the array collection can be used as a mixin"""
+
+    class MyCollection(ArrayCollectionState):
+        init_count = 0
+
+        def __init__(self):
+            self.data = (np.arange(2), np.arange(3))
+            self.__class__.init_count += 1
+
+    state = MyCollection()
+    assert MyCollection.init_count == 1
+
+    state2 = state.copy()
+    assert MyCollection.init_count == 1
+    assert state2 == state
+
+    path = tmp_path / "file.yaml"
+    state.to_file(path)
+    state3 = StateBase.from_file(path)
+    assert MyCollection.init_count == 1
+    assert state3 == state
+
+
+def test_dict_state_mixin(tmp_path):
+    """test whether the dict state can be used as a mixin"""
+
+    class MyDict(DictState):
+        init_count = 0
+
+        def __init__(self):
+            self.data = {"a": ObjectState({"set"}), "b": ArrayState(np.arange(3))}
+            self.__class__.init_count += 1
+
+    state = MyDict()
+    assert MyDict.init_count == 1
+
+    state2 = state.copy()
+    assert MyDict.init_count == 1
+    assert state2 == state
+
+    path = tmp_path / "file.yaml"
+    state.to_file(path)
+    state3 = StateBase.from_file(path)
+    assert MyDict.init_count == 1
+    assert state3 == state
