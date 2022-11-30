@@ -130,7 +130,7 @@ def run_unit_tests(
 
 
 def main():
-    """ the main program controlling the tests """
+    """the main program controlling the tests"""
     # parse the command line arguments
     parser = argparse.ArgumentParser(
         description=f"Run tests of the `{PACKAGE}` package.",
