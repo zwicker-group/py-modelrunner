@@ -1,0 +1,98 @@
+[project]
+name = "py-modelrunner"
+description = "Python classes for organizing (HPC) simulations"
+authors = [
+    {name = "David Zwicker", email="david.zwicker@ds.mpg.de"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.8"
+dynamic = ["version"]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Utilities",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+]
+
+# Requirements for setuptools
+dependencies = [
+    "jinja2>=3",
+    "h5py>=3.5",
+    "numpy>=1.18.0",
+    "pandas>=1.3",
+    "PyYAML>=5",
+    "tqdm>=4.45",
+]
+
+[project.urls]
+homepage = "https://github.com/zwicker-group/py-modelrunner"
+documentation = "http://py-modelrunner.readthedocs.io"
+repository = "https://github.com/zwicker-group/py-modelrunner"
+
+[build-system]
+requires = [
+    "setuptools>=61",
+    "setuptools_scm[toml]>=6.2",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true
+zip-safe = false  # required for mypy to find the py.typed file
+
+[tool.setuptools.packages.find]
+include = ["modelrunner*"]
+exclude = ["*.tests", "*.tests.*", "tests.*", "tests"]
+namespaces = false
+
+[tool.setuptools.exclude-package-data]
+"*" = ["*.tests", "*.tests.*", "tests.*", "tests"]
+
+[tool.setuptools_scm]
+write_to = "modelrunner/_version.py"
+
+[tool.black]
+target_version = ["py38"]
+
+[tool.isort]
+profile = "black"
+src_paths = ["modelrunner", "examples"]
+known_self = "modelrunner"
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "SELF", "LOCALFOLDER"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers"
+filterwarnings = [
+    'ignore:.*importing the ABCs from.*:DeprecationWarning',
+    'ignore:.*IPython.utils.signatures backport for Python 2 is deprecated.*:DeprecationWarning',
+]
+
+[tool.coverage.report]
+omit = ['*/test*']
+
+[tool.mypy]
+python_version = "3.8"
+plugins = "numpy.typing.mypy_plugin"
+warn_return_any = true
+warn_unused_configs = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = [
+    "h5py.*",
+    "IPython.*",
+    "ipywidgets.*",
+    "mpl_toolkits.*",
+    "numpy.*",
+    "pandas.*",
+    "pytest.*",
+]
+ignore_missing_imports = true

@@ -10,5 +10,5 @@ isort ..
 # format rest of the code
 for dir in modelrunner examples ; do
     echo "Formating files in ${dir}..."
-    black -t py38 ../${dir}
+    black ../${dir}
 done
