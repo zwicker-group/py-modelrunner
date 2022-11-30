@@ -24,7 +24,7 @@ def test_codestyle(*, verbose: bool = True):
         # format imports
         sp.check_call(["isort", "--profile", "black", "--diff", path])
         # format rest
-        sp.check_call(["black", "-t", "py37", "--check", path])
+        sp.check_call(["black", "--check", path])
 
 
 def test_types(*, report: bool = False, verbose: bool = True):
@@ -42,7 +42,7 @@ def test_types(*, report: bool = False, verbose: bool = True):
         "-m",
         "mypy",
         "--config-file",
-        PACKAGE_PATH / "tests" / "mypy.ini",
+        PACKAGE_PATH / "pyproject.toml",
     ]
 
     if report:
@@ -92,7 +92,7 @@ def run_unit_tests(
         "-m",
         "pytest",  # run pytest module
         "-c",
-        "tests/pytest.ini",  # locate the configuration file
+        "pyproject.toml",  # locate the configuration file
         "-rs",  # show summary of skipped tests
         "-rw",  # show summary of warnings raised during tests
     ]
@@ -115,7 +115,7 @@ def run_unit_tests(
     if coverage:
         args.extend(
             [
-                "--cov-config=tests/.coveragerc",
+                "--cov-config=pyproject.toml",
                 "--cov-report",
                 "html:tests/coverage",
                 f"--cov={PACKAGE}",
