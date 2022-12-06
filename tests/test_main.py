@@ -7,8 +7,8 @@ import subprocess as sp
 import sys
 from pathlib import Path
 
-PACKAGEPATH = Path(__file__).parents[2].resolve()
-SCRIPT_PATH = Path(__file__).parents[1].resolve() / "run" / "tests" / "scripts"
+PACKAGEPATH = Path(__file__).parents[1].resolve()
+assert PACKAGEPATH.is_dir()
 
 
 def test_empty_main():
@@ -31,7 +31,7 @@ def test_main():
     env["PYTHONPATH"] = str(PACKAGEPATH) + ":" + env.get("PYTHONPATH", "")
 
     # run example in temporary folder since it might create data files
-    path = SCRIPT_PATH / "function.py"
+    path = PACKAGEPATH / "tests" / "scripts" / "function.py"
     cmd_args = (sys.executable, "-m", "modelrunner", path)
     proc = sp.Popen(cmd_args, env=env, stdout=sp.PIPE, stderr=sp.PIPE)
     _, errs = proc.communicate(timeout=30)

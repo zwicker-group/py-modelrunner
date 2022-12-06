@@ -5,7 +5,7 @@
 import numpy as np
 import pytest
 
-from ..results import Result, ResultCollection
+from modelrunner.results import Result, ResultCollection
 
 
 @pytest.mark.parametrize("extension", [".hdf", ".yaml", ".json"])

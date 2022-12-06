@@ -16,7 +16,8 @@ from modelrunner.parameters import (
 )
 
 PACKAGEPATH = Path(__file__).parents[2].resolve()
-SCRIPT_PATH = Path(__file__).parent.resolve() / "scripts"
+SCRIPT_PATH = Path(__file__).parent / "scripts"
+assert SCRIPT_PATH.is_dir()
 
 
 def run(script, *args):
@@ -137,7 +138,7 @@ def test_make_model():
     assert f() == 4
     assert f(3) == 9
     assert f(a=4) == 16
-    assert f.get_result().state.data == 4
+    assert f.get_result().data == 4
 
     @make_model
     def g(a, b=2):
@@ -165,7 +166,7 @@ def test_make_model_class():
 
     assert model()() == 4
     assert model({"a": 3})() == 9
-    assert model({"a": 4}).get_result().state.data == 16
+    assert model({"a": 4}).get_result().data == 16
 
 
 def test_argparse_boolean_arguments():

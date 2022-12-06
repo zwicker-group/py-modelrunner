@@ -6,10 +6,11 @@ from pathlib import Path
 
 import numpy as np
 
-from ... import Result, ResultCollection
-from ..job import submit_job, submit_jobs
+from modelrunner import Result, ResultCollection
+from modelrunner.run.job import submit_job, submit_jobs
 
 SCRIPT_PATH = Path(__file__).parent / "scripts"
+assert SCRIPT_PATH.is_dir()
 
 
 def test_submit_job(tmp_path):
@@ -28,9 +29,9 @@ def test_submit_job(tmp_path):
         )
         return Result.from_file(output)
 
-    assert run().state.data["a"] == 1
-    assert run(a=2).state.data["a"] == 2
-    assert run(b=[1, 2, 3]).state.data["b"] == [1, 2, 3]
+    assert run().data["a"] == 1
+    assert run(a=2).data["a"] == 2
+    assert run(b=[1, 2, 3]).data["b"] == [1, 2, 3]
 
 
 def test_submit_jobs(tmp_path):
