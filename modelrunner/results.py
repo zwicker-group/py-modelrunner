@@ -20,7 +20,6 @@ from tqdm.auto import tqdm
 
 from .io import IOBase, NumpyEncoder, read_hdf_data, simplify_data, write_hdf_dataset
 from .model import ModelBase
-from .parameters import NoValueType
 from .state import StateBase, make_state
 
 
