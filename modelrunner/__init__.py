@@ -27,6 +27,6 @@ from .model import (
     run_script,
     set_default,
 )
-from .parameters import Parameter
+from .parameters import HideParameter, Parameter
 from .results import Result, ResultCollection
 from .run import submit_job, submit_jobs
