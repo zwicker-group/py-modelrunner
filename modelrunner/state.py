@@ -171,10 +171,10 @@ class StateBase(IOBase):
         else:
             raise ValueError(f"Incompatible state class {attributes['class']}")
 
-    def copy(self):
-        return self.__class__.from_state(
-            copy.deepcopy(self.attributes), copy.deepcopy(self.data)
-        )
+    def copy(self, data=None):
+        if data is None:
+            data = copy.deepcopy(self.data)
+        return self.__class__.from_state(copy.deepcopy(self.attributes), data)
 
     def _write_zarr_attributes(
         self, element: zarrElement, attrs: Optional[Dict[str, Any]] = None
