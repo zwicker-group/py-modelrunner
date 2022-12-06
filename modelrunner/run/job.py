@@ -98,7 +98,9 @@ def submit_job(
             Determines what to do when files already exist. Possible options include
             `error`, `warn_skip`, `silent_skip`, `overwrite`, and `silent_overwrite`.
         **kwargs:
-            Extra arguments are forwarded as template variables to the script
+            Extra arguments are forwarded as template variables to the script. A typical
+            use case is specifying the partition in a `qsub` script, which can be done
+            by giving the `partition` parameter here
 
     Returns:
         tuple: The result `(stdout, stderr)` of the submission call
