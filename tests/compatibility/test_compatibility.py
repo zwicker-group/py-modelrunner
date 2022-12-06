@@ -10,6 +10,7 @@ import pytest
 from modelrunner.results import Result
 
 CWD = Path(__file__).parent.resolve()
+assert CWD.is_dir()
 
 
 @pytest.mark.parametrize("path", glob.glob(str(CWD / "?/*.*")))
