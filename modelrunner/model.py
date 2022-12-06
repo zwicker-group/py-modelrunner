@@ -212,7 +212,9 @@ _DEFAULT_MODEL: Union[Callable, ModelBase, None] = None
 """stores the default model that will be used automatically"""
 
 
-def set_default(func_or_model: Union[Callable, ModelBase, None]) -> None:
+def set_default(
+    func_or_model: Union[Callable, ModelBase, None]
+) -> Union[Callable, ModelBase, None]:
     """sets the function or model as the default model
 
     The last model that received this flag will be run automatically. This only affects
