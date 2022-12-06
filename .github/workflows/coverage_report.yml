@@ -25,6 +25,7 @@ jobs:
     - name: Generate coverage report
       run: |
         export MPLBACKEND="agg"
+        export PYTHONPATH="${PYTHONPATH}:`pwd`"
         pytest --cov-config=pyproject.toml --cov-report xml:report_coverage.xml --cov=modelrunner tests/
 
     - name: Upload coverage to Codecov
