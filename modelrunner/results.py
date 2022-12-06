@@ -43,6 +43,9 @@ class MockModel(ModelBase):
 class Result(IOBase):
     """describes a model (with parameters) together with its result"""
 
+    _format_version = 1
+    """int: number indicating the version of the file format"""
+
     def __init__(
         self, model: ModelBase, state: StateBase, info: Optional[Dict[str, Any]] = None
     ):
@@ -108,6 +111,18 @@ class Result(IOBase):
         return self.model.parameters
 
     @classmethod
+    def _from_simple_objects_version0(
+        cls, content, model: Optional[ModelBase] = None
+    ) -> Result:
+        """old reader for backward compatible reading"""
+        return cls.from_data(
+            model_data=content.get("model", {}),
+            state=content.get("result"),
+            model=model,
+            info=content.get("info", {}),
+        )
+
+    @classmethod
     def _from_simple_objects(cls, content, model: Optional[ModelBase] = None) -> Result:
         """read result from a JSON file
 
@@ -115,6 +130,12 @@ class Result(IOBase):
             path (str or :class:`~pathlib.Path`): The path to the file
             model (:class:`ModelBase`): The model from which the result was obtained
         """
+        format_version = content.pop("__version__", None)
+        if format_version is None:
+            return cls._from_simple_objects_version0(content, model)
+        elif format_version != cls._format_version:
+            raise RuntimeError(f"Cannot read format version {format_version}")
+
         return cls.from_data(
             model_data=content.get("model", {}),
             state=StateBase._from_simple_objects(content["state"]),
@@ -128,6 +149,7 @@ class Result(IOBase):
             path (str or :class:`~pathlib.Path`): The path to the file
         """
         content = {
+            "__version__": self._format_version,
             "model": simplify_data(self.model.attributes),
             "data": simplify_data(self.data),
             "state": self.state._to_simple_objects(),
@@ -137,6 +159,26 @@ class Result(IOBase):
         return content
 
     @classmethod
+    def _from_hdf_version0(
+        cls, hdf_element, model: Optional[ModelBase] = None
+    ) -> Result:
+        """old reader for backward compatible reading"""
+        model_data = {
+            key: json.loads(value) for key, value in hdf_element.attrs.items()
+        }
+        if "result" in hdf_element:
+            result = read_hdf_data(hdf_element["result"])
+        else:
+            result = model_data.pop("result")
+        # check for other nodes, which might not be read
+
+        info = model_data.pop("__info__") if "__info__" in model_data else {}
+
+        return cls.from_data(
+            model_data=model_data, state=result, model=model, info=info
+        )
+
+    @classmethod
     def _from_hdf(cls, hdf_element, model: Optional[ModelBase] = None) -> Result:
         """read result from a HDf file
 
@@ -144,20 +186,24 @@ class Result(IOBase):
             hdf_element: The path to the file
             model (:class:`ModelBase`): The model from which the result was obtained
         """
-        model_data = {
+        attributes = {
             key: json.loads(value) for key, value in hdf_element.attrs.items()
         }
-        attributes = read_hdf_data(hdf_element["state"])
-        data = read_hdf_data(hdf_element["data"])
-        # else:
-        #     state = model_data.pop("result")
-        # # check for other nodes, which might not be read
+        # extract version information from attributes
+        format_version = attributes.pop("__version__", None)
+        if format_version is None:
+            return cls._from_hdf_version0(hdf_element, model)
+        elif format_version != cls._format_version:
+            raise RuntimeError(f"Cannot read format version {format_version}")
+        info = attributes.pop("__info__", {})  # load additional info
+
+        # the remaining attributes correspond to the model
+        model_data = attributes
 
         # load state
-        state = StateBase.from_state(attributes, data)
-
-        # load additional info
-        info = model_data.pop("__info__") if "__info__" in model_data else {}
+        state_attributes = read_hdf_data(hdf_element["state"])
+        state_data = read_hdf_data(hdf_element["data"])
+        state = StateBase.from_state(state_attributes, state_data)
 
         return cls.from_data(model_data=model_data, state=state, model=model, info=info)
 
@@ -173,6 +219,8 @@ class Result(IOBase):
 
         if self.info:
             root.attrs["__info__"] = json.dumps(self.info, cls=NumpyEncoder)
+
+        root.attrs["__version__"] = json.dumps(self._format_version)
 
         # write the actual data
         write_hdf_dataset(root, self.state._attributes_store, "state")
