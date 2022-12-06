@@ -7,7 +7,8 @@ import subprocess as sp
 import sys
 from pathlib import Path
 
-PACKAGEPATH = Path(__file__).parents[2].resolve()
+PACKAGEPATH = Path(__file__).parents[1].resolve()
+assert PACKAGEPATH.is_dir()
 
 
 def test_empty_main():

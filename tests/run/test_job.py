@@ -6,10 +6,11 @@ from pathlib import Path
 
 import numpy as np
 
-from ... import Result, ResultCollection
-from ..job import submit_job, submit_jobs
+from modelrunner import Result, ResultCollection
+from modelrunner.run.job import submit_job, submit_jobs
 
 SCRIPT_PATH = Path(__file__).parent / "scripts"
+assert SCRIPT_PATH.is_dir()
 
 
 def test_submit_job(tmp_path):

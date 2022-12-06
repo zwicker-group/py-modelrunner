@@ -10,11 +10,17 @@ from typing import List  # @UnusedImport
 
 import pytest
 
-from ..model import ModelBase, make_model, make_model_class
-from ..parameters import DeprecatedParameter, HideParameter, NoValue, Parameter
+from modelrunner.model import ModelBase, make_model, make_model_class
+from modelrunner.parameters import (
+    DeprecatedParameter,
+    HideParameter,
+    NoValue,
+    Parameter,
+)
 
 PACKAGEPATH = Path(__file__).parents[2].resolve()
 SCRIPT_PATH = Path(__file__).parent / "scripts"
+assert SCRIPT_PATH.is_dir()
 
 
 def run_script(script, *args):

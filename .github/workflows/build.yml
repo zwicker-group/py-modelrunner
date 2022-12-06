@@ -28,7 +28,7 @@ jobs:
         NUMBA_WARNINGS: 1
         MPLBACKEND: agg
       run: |
-        cd tests
+        cd scripts
         ./tests_run.sh
 
     - name: Test types with mypy

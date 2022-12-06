@@ -11,7 +11,7 @@ from typing import List  # @UnusedImport
 import numpy as np
 import pytest
 
-from ..parameters import (
+from modelrunner.parameters import (
     DeprecatedParameter,
     HideParameter,
     Parameter,

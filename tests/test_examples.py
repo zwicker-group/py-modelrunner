@@ -12,8 +12,9 @@ from typing import List  # @UnusedImport
 
 import pytest
 
-PACKAGEPATH = Path(__file__).parents[2].resolve()
+PACKAGEPATH = Path(__file__).parents[1].resolve()
 EXAMPLE_PATH = PACKAGEPATH / "examples"
+assert EXAMPLE_PATH.is_dir()
 
 
 @pytest.mark.no_cover

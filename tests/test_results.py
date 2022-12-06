@@ -5,7 +5,7 @@
 import numpy as np
 import pytest
 
-from ..results import Result, ResultCollection, simplify_data
+from modelrunner.results import Result, ResultCollection, simplify_data
 
 
 def test_simplify_data():

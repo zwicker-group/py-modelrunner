@@ -117,13 +117,13 @@ def run_unit_tests(
             [
                 "--cov-config=pyproject.toml",
                 "--cov-report",
-                "html:tests/coverage",
+                "html:scripts/coverage",
                 f"--cov={PACKAGE}",
             ]
         )
 
     # specify the package to run
-    args.append(PACKAGE)
+    args.append("tests")
 
     # actually run the test
     sp.check_call(args, env=env, cwd=PACKAGE_PATH)
