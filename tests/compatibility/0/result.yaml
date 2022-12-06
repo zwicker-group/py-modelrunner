@@ -1,0 +1,24 @@
+model:
+  class: MockModel
+  description: null
+  name: model
+  parameters: {}
+result:
+  array:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  list_1d:
+  - 0
+  - 1
+  - 2
+  list_2d:
+  - - 0
+    - 1
+  - - 2
+    - 3
+    - 4
+  number: -1
+  string: test
