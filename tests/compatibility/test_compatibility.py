@@ -13,15 +13,14 @@ from modelrunner.state import _equals, simplify_data
 CWD = Path(__file__).parent.resolve()
 assert CWD.is_dir()
 
+POSSIBLE_EXTENSIONS = {".yaml", ".json", ".hdf", ".zarr"}
+
 
 def get_compatibility_files():
     """find all files that need to be checked for compatibility"""
     for path in CWD.glob("**/*.*"):
-        if "__pycache__" in str(path):
-            continue
-        if path.suffix in {".pkl", ".py"} or path.name == ".DS_Store":
-            continue
-        yield path
+        if path.suffix in POSSIBLE_EXTENSIONS:
+            yield path
 
 
 @pytest.mark.parametrize("path", get_compatibility_files())

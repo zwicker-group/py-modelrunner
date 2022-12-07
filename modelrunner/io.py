@@ -241,7 +241,7 @@ class IOBase:
         elif fmt == "zarr":
             store = normalize_zarr_store(store, mode="r")
             root = zarr.open_group(store, mode="r")
-            return cls._from_zarr(root["data"], **kwargs)
+            return cls._from_zarr(root, **kwargs)
 
         else:
             raise NotImplementedError(f"Format `{fmt}` not implemented")

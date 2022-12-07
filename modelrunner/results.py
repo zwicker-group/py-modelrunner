@@ -16,9 +16,17 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Type, Union
 
 import numpy as np
+import zarr
 from tqdm.auto import tqdm
 
-from .io import IOBase, NumpyEncoder, read_hdf_data, simplify_data, write_hdf_dataset
+from .io import (
+    IOBase,
+    NumpyEncoder,
+    read_hdf_data,
+    simplify_data,
+    write_hdf_dataset,
+    zarrElement,
+)
 from .model import ModelBase
 from .state import StateBase, make_state
 
@@ -225,6 +233,44 @@ class Result(IOBase):
         # write the actual data
         write_hdf_dataset(root, self.state._attributes_store, "state")
         write_hdf_dataset(root, self.state._data_store, "data")
+
+    @classmethod
+    def _from_zarr(
+        cls, zarr_element: zarrElement, *, index=..., model: Optional[ModelBase] = None
+    ) -> Result:
+        """create result from data stored in zarr"""
+        attributes = {
+            key: json.loads(value) for key, value in zarr_element.attrs.items()
+        }
+        # extract version information from attributes
+        format_version = attributes.pop("__version__", None)
+        if format_version != cls._format_version:
+            raise RuntimeError(f"Cannot read format version {format_version}")
+        info = attributes.pop("__info__", {})  # load additional info
+
+        # the remaining attributes correspond to the model
+        model_data = attributes
+
+        # load state
+        state = StateBase._from_zarr(zarr_element["state"])
+
+        return cls.from_data(model_data=model_data, state=state, model=model, info=info)
+
+    def _write_zarr(
+        self, zarr_group: zarr.Group, attrs: Optional[Dict[str, Any]] = None, **kwargs
+    ) -> None:
+        # write attributes
+        attributes = {}
+        for key, value in self.model.attributes.items():
+            attributes[key] = json.dumps(value, cls=NumpyEncoder)
+
+        if self.info:
+            attributes["__info__"] = json.dumps(self.info, cls=NumpyEncoder)
+        attributes["__version__"] = json.dumps(self._format_version)
+
+        # write the actual data
+        zarr_group.attrs.update(attributes)
+        self.state._write_zarr(zarr_group, label="state")
 
 
 class ResultCollection(List[Result]):

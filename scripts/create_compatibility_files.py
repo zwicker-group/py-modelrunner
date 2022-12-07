@@ -3,8 +3,8 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-import sys
 import pickle
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -23,26 +23,43 @@ STORAGE_PATH = PACKAGE_PATH / "tests" / "compatibility" / str(FORMAT_VERSION)
 assert STORAGE_PATH.is_dir()
 
 
-def main():
-    """main function"""
-    # prepare test result
-    data = {
+DATASETS = {
+    "object": {
         "number": -1,
         "string": "test",
         "list_1d": [0, 1, 2],
         "list_2d": [[0, 1], [2, 3, 4]],
         "array": np.arange(5),
-    }
+    },
+    "array": np.arange(3),
+}
+
+
+def create_files(name, data, extensions=[".hdf", ".yaml", ".json", ".zarr"]):
+    """create example file
+
+    Args:
+        name (str): The name of the dataset
+        data: The data contained in the result
+        extensions: The extensions defining the file formats being used
+    """
+    # prepare test result
     result = Result.from_data({"name": "model"}, data)
 
     # write data
-    for extension in [".hdf", ".yaml", ".json"]:
-        path = STORAGE_PATH / ("result" + extension)
+    for extension in extensions:
+        path = STORAGE_PATH / (name + extension)
         result.to_file(path)
 
     # write the exact data to check later
-    with open(STORAGE_PATH / "result.pkl", "wb") as fp:
+    with open(STORAGE_PATH / (name + ".pkl"), "wb") as fp:
         pickle.dump(data, fp)
+
+
+def main():
+    """main function"""
+    for key, value in DATASETS.items():
+        create_files(key, value)
 
 
 if __name__ == "__main__":
