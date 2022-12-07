@@ -4,6 +4,7 @@
 """
 
 import sys
+import pickle
 from pathlib import Path
 
 import numpy as np
@@ -38,6 +39,10 @@ def main():
     for extension in [".hdf", ".yaml", ".json"]:
         path = STORAGE_PATH / ("result" + extension)
         result.to_file(path)
+
+    # write the exact data to check later
+    with open(STORAGE_PATH / "result.pkl", "wb") as fp:
+        pickle.dump(data, fp)
 
 
 if __name__ == "__main__":
