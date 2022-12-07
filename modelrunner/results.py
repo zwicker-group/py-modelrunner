@@ -257,8 +257,11 @@ class Result(IOBase):
         return cls.from_data(model_data=model_data, state=state, model=model, info=info)
 
     def _write_zarr(
-        self, zarr_group: zarr.Group, attrs: Optional[Dict[str, Any]] = None, **kwargs
-    ) -> None:
+        self, zarr_group: zarr.Group, *, label: str = "data", **kwargs
+    ) -> zarrElement:
+        # write the actual data
+        result_group = zarr_group.create_group(label)
+
         # write attributes
         attributes = {}
         for key, value in self.model.attributes.items():
@@ -268,9 +271,9 @@ class Result(IOBase):
             attributes["__info__"] = json.dumps(self.info, cls=NumpyEncoder)
         attributes["__version__"] = json.dumps(self._format_version)
 
-        # write the actual data
-        zarr_group.attrs.update(attributes)
-        self.state._write_zarr(zarr_group, label="state")
+        self.state._write_zarr(result_group, label="state")
+        result_group.attrs.update(attributes)
+        return result_group
 
 
 class ResultCollection(List[Result]):

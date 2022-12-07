@@ -64,11 +64,12 @@ target_version = ["py38"]
 
 [tool.isort]
 profile = "black"
-known_self = "modelrunner"
+known_self = ["modelrunner", "utils"]
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "SELF", "LOCALFOLDER"]
 
 [tool.pytest.ini_options]
 addopts = "--strict-markers"
+norecursedirs = "tests/utils"
 filterwarnings = [
     'ignore:.*importing the ABCs from.*:DeprecationWarning',
     'ignore:.*IPython.utils.signatures backport for Python 2 is deprecated.*:DeprecationWarning',

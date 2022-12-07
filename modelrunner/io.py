@@ -156,23 +156,37 @@ class IOBase:
 
     @classmethod
     def _from_simple_objects(cls, content) -> IOBase:
+        """create object from content given as simple python objects"""
         raise NotImplementedError(f"{cls.__name__}: no text reading")
 
     def _to_simple_objects(self):
+        """convert object to representation using simple python objects"""
         raise NotImplementedError(f"{self.__class__.__name__}: no text writing")
 
     @classmethod
     def _from_hdf(cls, hdf_element) -> IOBase:
+        """create object from a node in an HDF file"""
         raise NotImplementedError(f"{cls.__name__}: no HDF reading")
 
     def _write_hdf(self, hdf_element):
+        """write object to the node of an HDF file"""
         raise NotImplementedError(f"{self.__class__.__name__}: no HDF writing")
 
     @classmethod
     def _from_zarr(cls, zarr_element: zarrElement) -> IOBase:
+        """create object from a node in an zarr file"""
         raise NotImplementedError(f"{cls.__name__}: no zarr reading")
 
-    def _write_zarr(self, zarr_group: zarr.Group, **kwargs):
+    def _write_zarr(
+        self, zarr_group: zarr.Group, *, label: str = "data", **kwargs
+    ) -> zarrElement:
+        """write object to the node of an zarr file
+
+        The implementation needs to add and return an element with the name `label` to
+        the zarr group, which contains all the data. This zarr element can either be an
+        array or a group to store additional data. Attributes, which allow identifying
+        the written element need to be written as attributes into the element.
+        """
         raise NotImplementedError(f"{self.__class__.__name__}: no zarr writing")
 
     @staticmethod
@@ -181,9 +195,10 @@ class IOBase:
 
         Args:
             store (str or :class:`zarr.Store`):
-                Path or instance describing the storage
+                Path or instance describing the storage, which is either a file path or
+                a :class:`zarr.Storage`.
             fmt (str):
-                File format
+                Explicit file format. Determined from `store` if omitted.
 
         Returns:
             str: The store format
@@ -215,9 +230,10 @@ class IOBase:
 
         Args:
             store (str or :class:`zarr.Store`):
-                Where to read the data from
+                Path or instance describing the storage, which is either a file path or
+                a :class:`zarr.Storage`.
             fmt (str):
-                File format (guessed from extension of filename if None)
+                Explicit file format. Determined from `store` if omitted.
         """
         fmt = cls._guess_format(store, fmt)
         if fmt == "json":
@@ -241,7 +257,7 @@ class IOBase:
         elif fmt == "zarr":
             store = normalize_zarr_store(store, mode="r")
             root = zarr.open_group(store, mode="r")
-            return cls._from_zarr(root, **kwargs)
+            return cls._from_zarr(root["data"], **kwargs)
 
         else:
             raise NotImplementedError(f"Format `{fmt}` not implemented")
@@ -288,8 +304,8 @@ class IOBase:
 
         elif fmt == "zarr":
             store = normalize_zarr_store(store, mode=mode)
-            with zarr.group(store=store, overwrite=overwrite) as group:
-                self._write_zarr(group, **kwargs)
+            with zarr.group(store=store, overwrite=overwrite) as root:
+                self._write_zarr(root, **kwargs)
 
         else:
             raise NotImplementedError(f"Format `{fmt}` not implemented")
