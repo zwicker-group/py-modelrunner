@@ -43,6 +43,9 @@ def simplify_data(data):
     elif isinstance(data, (tuple, list)):
         data = [simplify_data(item) for item in data]
 
+    elif isinstance(data, (set, frozenset)):
+        data = sorted([simplify_data(item) for item in data])
+
     elif isinstance(data, np.ndarray):
         if np.isscalar(data):
             data = data.item()
@@ -225,7 +228,9 @@ class IOBase:
             raise TypeError(f"Unsupported store type {store.__class__.__name__}")
 
     @classmethod
-    def from_file(cls, store: Store, *, fmt: Optional[str] = None, **kwargs):
+    def from_file(
+        cls, store: Store, *, fmt: Optional[str] = None, label: str = "data", **kwargs
+    ):
         """load state from a file
 
         Args:
@@ -234,6 +239,9 @@ class IOBase:
                 a :class:`zarr.Storage`.
             fmt (str):
                 Explicit file format. Determined from `store` if omitted.
+            label (str):
+                Name of the node in which the data was stored. This applies to some
+                hierarchical storage formats.
         """
         fmt = cls._guess_format(store, fmt)
         if fmt == "json":
@@ -257,7 +265,11 @@ class IOBase:
         elif fmt == "zarr":
             store = normalize_zarr_store(store, mode="r")
             root = zarr.open_group(store, mode="r")
-            return cls._from_zarr(root["data"], **kwargs)
+            return cls._from_zarr(root[label], **kwargs)
+
+        elif hasattr(cls, f"_from_{fmt}"):
+            with open(store, mode="r") as fp:
+                return getattr(cls, f"_from_{fmt}")(fp)
 
         else:
             raise NotImplementedError(f"Format `{fmt}` not implemented")
@@ -279,9 +291,13 @@ class IOBase:
                 File format (guessed from extension of `store` if None)
             overwrite (bool):
                 If True, overwrites files even if they already exist
+            **kwargs:
+                Additional arguments are passed on to the method that implements the
+                writing of the specific format (_write_**).
         """
         fmt = self._guess_format(store, fmt)
         mode = "w" if overwrite else "x"
+
         if fmt == "json":
             content = simplify_data(self._to_simple_objects())
             kwargs.setdefault("cls", NumpyEncoder)
@@ -306,6 +322,10 @@ class IOBase:
             store = normalize_zarr_store(store, mode=mode)
             with zarr.group(store=store, overwrite=overwrite) as root:
                 self._write_zarr(root, **kwargs)
+
+        elif hasattr(self, f"_write_{fmt}"):
+            with open(store, mode=mode) as fp:
+                return getattr(self, f"_write_{fmt}")(fp)
 
         else:
             raise NotImplementedError(f"Format `{fmt}` not implemented")

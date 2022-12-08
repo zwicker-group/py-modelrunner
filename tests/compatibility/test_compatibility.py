@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from modelrunner.results import Result
+from modelrunner.results import Result, StateBase
 from modelrunner.state import _equals, simplify_data
 
 CWD = Path(__file__).parent.resolve()
@@ -31,5 +31,12 @@ def test_reading_compatibility(path):
     with open(path.with_suffix(".pkl"), "rb") as fp:
         data = pickle.load(fp)
 
-    for key in data:
-        assert _equals(simplify_data(result.data[key]), simplify_data(data[key]))
+    if isinstance(data, StateBase):
+        # newer data
+        assert simplify_data(result.state._to_simple_objects()) == simplify_data(
+            data._to_simple_objects()
+        )
+    else:
+        # older formats
+        for key in data:
+            assert _equals(simplify_data(result.data[key]), simplify_data(data[key]))

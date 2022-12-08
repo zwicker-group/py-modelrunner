@@ -6,9 +6,16 @@ model:
   parameters: {}
 state:
   attributes:
-    __class__: ArrayState
+    labels:
+    - a
+    - b
+    __class__: ArrayCollectionState
     __version__: 1
   data:
-  - 0
-  - 1
-  - 2
+    a:
+    - 0
+    - 1
+    b:
+    - 0
+    - 1
+    - 2

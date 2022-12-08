@@ -159,7 +159,6 @@ class Result(IOBase):
         content = {
             "__version__": self._format_version,
             "model": simplify_data(self.model.attributes),
-            "data": simplify_data(self.data),
             "state": self.state._to_simple_objects(),
         }
         if self.info:
@@ -221,6 +220,10 @@ class Result(IOBase):
         Args:
             path (str or :class:`~pathlib.Path`): The path to the file
         """
+        warnings.warn(
+            "The HDF format is deprecated. Use `zarr` instead", DeprecationWarning
+        )
+
         # write attributes
         for key, value in self.model.attributes.items():
             root.attrs[key] = json.dumps(value, cls=NumpyEncoder)
