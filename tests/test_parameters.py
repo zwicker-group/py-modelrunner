@@ -64,7 +64,8 @@ def test_parameters():
     with pytest.raises(ValueError):
         t = Test1(parameters={"b": 3})
     t = Test1()
-    ps = t._parse_parameters({"b": 3}, check_validity=False)
+    Test1.extra_parameter_behavior = "add"
+    ps = t._parse_parameters({"b": 3}, strict_conversion=False)
     assert ps["a"] == 1
     assert ps["b"] == 3
 
@@ -156,7 +157,7 @@ def test_hidden_parameter():
         assert t2.parameters == {"a": 1, "b": 2}
         assert t2.get_parameter_default("b") == 2
         with pytest.raises(ValueError):
-            t2._parse_parameters({"b": 2}, check_validity=True, allow_hidden=False)
+            t2._parse_parameters({"b": 2}, strict_conversion=True, allow_hidden=False)
 
     class Test3(Test1):
         parameters_default = [Parameter("b", 3)]

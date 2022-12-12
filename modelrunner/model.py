@@ -31,6 +31,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
 
     name: Optional[str] = None
     description: Optional[str] = None
+    extra_parameter_behavior = "raise"
 
     def __init__(
         self, parameters: Optional[Dict[str, Any]] = None, output: Optional[str] = None
@@ -45,6 +46,10 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
                 :meth:`~Parameterized.show_parameters`.
             output (str):
                 Path to write the output file
+            strict (bool):
+                Flag indicating whether parameters are strictly interpreted. If `True`,
+                only parameters listed in `parameters_default` can be set and their type
+                will be enforced.
         """
         super().__init__(parameters)
         self.output = output

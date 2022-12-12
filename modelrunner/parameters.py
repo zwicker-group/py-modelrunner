@@ -19,6 +19,7 @@ from __future__ import annotations
 import functools
 import importlib
 import logging
+import warnings
 from typing import Any, Dict, List, Optional, Sequence, Type, Union
 
 import numpy as np
@@ -375,12 +376,19 @@ ParameterListType = Sequence[Union[Parameter, HideParameter]]
 class Parameterized:
     """a mixin that manages the parameters of a class"""
 
+    extra_parameter_behavior: str = "raise"
+    """str: Determines what to do with extra parameters that are not defined in the
+    model. Possible options are `raise` (raises a ValueError), `warn` (add the
+    parameter, but emit a warning), `silent` (adds the parameters silently), or `ignore`
+    (ignore extra parameters)"""
+    strict_parameter_conversion: bool = True
+    """bool: If `True`, conversion to the type indicated by `cls` is enforced. If
+    `False`, the original value is returned when conversion fails."""
+
     parameters_default: ParameterListType = []
     _subclasses: Dict[str, Type[Parameterized]] = {}
 
-    def __init__(
-        self, parameters: Optional[Dict[str, Any]] = None, *, strict: bool = True
-    ):
+    def __init__(self, parameters: Optional[Dict[str, Any]] = None):
         """initialize the parameters of the object
 
         Args:
@@ -389,10 +397,6 @@ class Parameterized:
                 parameters can be obtained from
                 :meth:`~Parameterized.get_parameters` or displayed by calling
                 :meth:`~Parameterized.show_parameters`.
-            strict (bool):
-                Flag indicating whether parameters are strictly interpreted. If `True`,
-                only parameters listed in `parameters_default` can be set and their type
-                will be enforced.
         """
         # set logger if this has not happened, yet
         if not hasattr(self, "_logger"):
@@ -401,7 +405,7 @@ class Parameterized:
         # set parameters if they have not been initialized, yet
         if not hasattr(self, "parameters"):
             self.parameters = self._parse_parameters(
-                parameters, include_deprecated=True, check_validity=strict
+                parameters, include_deprecated=True
             )
 
     def __init_subclass__(cls, **kwargs):  # @NoSelf
@@ -502,24 +506,30 @@ class Parameterized:
     def _parse_parameters(
         cls,
         parameters: Optional[Dict[str, Any]] = None,
-        check_validity: bool = True,
+        *,
         allow_hidden: bool = True,
         include_deprecated: bool = False,
+        strict_conversion: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """parse parameters
 
         Args:
             parameters (dict):
                 A dictionary of parameters that will be parsed.
-            check_validity (bool):
-                Determines whether a `ValueError` is raised if there are keys in
-                parameters that are not in the defaults. If `False`, additional
-                items are simply stored in `self.parameters`
             allow_hidden (bool):
                 Allow setting hidden parameters
             include_deprecated (bool):
-                Include deprecated parameters
+                Flag determining whether deprecated parameters are included
+            strict_conversion (bool):
+                If `True`, conversion to the type indicated by `cls` is enforced. If
+                `False`, the original value is returned when conversion fails. If `None`
+                the class attribute `strict_parameter_conversion` is used
+
+        Returns:
+            dict: A dictionary with the converted and filtered parameter values
         """
+        if strict_conversion is None:
+            strict_conversion = cls.strict_parameter_conversion
         if parameters is None:
             parameters = {}
         else:
@@ -538,16 +548,30 @@ class Parameterized:
             # take value from parameters or set default value
             value = parameters.pop(name, NoValue)
             # convert parameter to correct type
-            result[name] = param_obj.convert(value, strict=check_validity)
+            result[name] = param_obj.convert(value, strict=strict_conversion)
 
-        # update parameters with the supplied ones
-        if check_validity and parameters:
-            raise ValueError(
-                f"Parameters `{sorted(parameters.keys())}` were provided for an "
-                f"instance but are not defined for the class `{cls.__name__}`"
-            )
-        else:
-            result.update(parameters)  # add remaining parameters
+        # decide what to do with parameters not defined on the class
+        if parameters:
+            if cls.extra_parameter_behavior == "raise":
+                # raise an error
+                raise ValueError(
+                    f"Parameters `{sorted(parameters.keys())}` were provided for an "
+                    f"instance but are not defined for the class `{cls.__name__}`"
+                )
+            elif cls.extra_parameter_behavior == "warn":
+                # emit a warning
+                warnings.warn(
+                    f"Parameters `{sorted(parameters.keys())}` were provided for an "
+                    f"instance but are not defined for the class `{cls.__name__}`"
+                )
+            elif cls.extra_parameter_behavior == "add":
+                # include them in the result
+                result.update(parameters)
+            elif cls.extra_parameter_behavior != "ignore":
+                # ignore extra parameters
+                raise ValueError(
+                    "`extra_parameters` must be `raise`, `add`, or `ignore`"
+                )
 
         return result
 

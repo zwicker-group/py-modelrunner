@@ -183,6 +183,11 @@ def test_make_model_class():
     assert model({"a": 3})() == 9
     assert model({"a": 4}).get_result().result == 16
 
+    with pytest.raises(ValueError):
+        model({"a": 5, "b": 1})
+    model.extra_parameter_behavior = "ignore"
+    assert model({"a": 5, "b": 1}).get_result().result == 25
+
 
 def test_argparse_boolean_arguments():
     """test boolean parameters"""

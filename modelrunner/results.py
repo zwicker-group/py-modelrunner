@@ -123,12 +123,14 @@ def read_hdf_data(node):
 class MockModel(ModelBase):
     """helper class to store parameter values when the original model is not present"""
 
+    extra_parameter_behavior = "add"
+
     def __init__(self, parameters: Optional[Dict[str, Any]] = None):
         """
         Args:
             parameters (dict): A dictionary of parameters
         """
-        self.parameters = self._parse_parameters(parameters, check_validity=False)
+        self.parameters = self._parse_parameters(parameters, strict_conversion=False)
 
     def __call__(self):
         raise RuntimeError(f"{self.__class__.__name__} cannot be called")
