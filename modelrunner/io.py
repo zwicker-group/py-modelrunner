@@ -36,7 +36,10 @@ class NumpyEncoder(json.JSONEncoder):
 
 
 def simplify_data(data):
-    """simplify data (e.g. for writing to yaml)"""
+    """simplify data (e.g. for writing to json or yaml)
+
+    This function for instance turns sets and numpy arrays into lists.
+    """
     if isinstance(data, dict):
         data = {key: simplify_data(value) for key, value in data.items()}
 
@@ -185,10 +188,13 @@ class IOBase:
     ) -> zarrElement:
         """write object to the node of an zarr file
 
-        The implementation needs to add and return an element with the name `label` to
-        the zarr group, which contains all the data. This zarr element can either be an
-        array or a group to store additional data. Attributes, which allow identifying
-        the written element need to be written as attributes into the element.
+        The implementation needs to add and return an element with the name given by
+        the arugment `label` to the `zarr_group`, which contains all the data. This zarr
+        element can either be an array or a group to store additional data and it needs
+        to be returned by the method. Attributes, which allow identifying the written
+        element, need to be written as attributes into the element, so that it is
+        possible to completely restore the object by calling
+        :code:`cls._from_zarr(zarr_group[label])`.
         """
         raise NotImplementedError(f"{self.__class__.__name__}: no zarr writing")
 
