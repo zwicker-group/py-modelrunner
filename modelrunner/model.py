@@ -4,6 +4,8 @@ Base class describing a model.
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
+from __future__ import annotations
+
 import argparse
 import importlib.util
 import inspect
@@ -46,10 +48,6 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
                 :meth:`~Parameterized.show_parameters`.
             output (str):
                 Path to write the output file
-            strict (bool):
-                Flag indicating whether parameters are strictly interpreted. If `True`,
-                only parameters listed in `parameters_default` can be set and their type
-                will be enforced.
         """
         super().__init__(parameters)
         self.output = output
@@ -139,7 +137,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
     @classmethod
     def from_command_line(
         cls, args: Optional[Sequence[str]] = None, name: Optional[str] = None
-    ) -> "ModelBase":
+    ) -> ModelBase:
         """create model from command line parameters
 
         Args:

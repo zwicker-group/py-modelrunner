@@ -95,10 +95,10 @@ class Parameter:
             cls:
                 The type of the parameter, which is used for conversion
             description (str):
-                A string describing the impact of this parameter. This
-                description appears in the parameter help
+                A string describing the parameter, which appears in the help
             hidden (bool):
-                Whether the parameter is hidden in the description summary
+                Whether the parameter is hidden in the description summary. This can be
+                useful to support parameter that can only be set programmatically.
             extra (dict):
                 Extra arguments that are stored with the parameter
         """
@@ -146,7 +146,7 @@ class Parameter:
 
     __str__ = __repr__
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, Any]:
         # replace the object class by its class path
         return {
             "name": str(self.name),
@@ -157,13 +157,13 @@ class Parameter:
             "extra": self.extra,
         }
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Dict[str, Any]) -> None:
         # restore the object from the class path
         state["cls"] = import_class(state["cls"])
         # restore the state
         self.__dict__.update(state)
 
-    def convert(self, value=NoValue, *, strict: bool = True):
+    def convert(self, value=NoValue, *, strict: bool = True) -> Any:
         """converts a `value` into the correct type for this parameter. If
         `value` is not given, the default value is converted.
 
@@ -376,6 +376,11 @@ ParameterListType = Sequence[Union[Parameter, HideParameter]]
 class Parameterized:
     """a mixin that manages the parameters of a class"""
 
+    parameters_default: ParameterListType = []
+    """list of :class:`Parameter`: All the parameters defined for this class. Subclasses
+    inhert all entries from `parameters_default` of their parent classes, but parameters
+    can be redefined. In particular, defining `HideParameter` allows hiding parameters
+    of parent classes."""
     extra_parameter_behavior: str = "raise"
     """str: Determines what to do with extra parameters that are not defined in the
     model. Possible options are `raise` (raises a ValueError), `warn` (add the
@@ -385,11 +390,13 @@ class Parameterized:
     """bool: If `True`, conversion to the type indicated by `cls` is enforced. If
     `False`, the original value is returned when conversion fails."""
 
-    parameters_default: ParameterListType = []
     _subclasses: Dict[str, Type[Parameterized]] = {}
 
     def __init__(self, parameters: Optional[Dict[str, Any]] = None):
         """initialize the parameters of the object
+
+        The class attribute `extra_parameter_behavior` determines how entries that are
+        not defined in `parameters_default` are treated.
 
         Args:
             parameters (dict):
@@ -485,7 +492,7 @@ class Parameterized:
                         parameters[p.name] = p
 
         # filter parameters based on hidden and deprecated flags
-        def show(p):
+        def show(p: Parameter) -> bool:
             """helper function to decide whether parameter will be shown"""
             # show based on hidden flag?
             show1 = include_hidden or not p.hidden
@@ -576,7 +583,7 @@ class Parameterized:
         return result
 
     @hybridmethod
-    def get_parameter_default(cls, name):  # @NoSelf
+    def get_parameter_default(cls, name: str) -> Any:  # @NoSelf
         """return the default value for the parameter with `name`
 
         Args:
@@ -591,7 +598,7 @@ class Parameterized:
         raise KeyError(f"Parameter `{name}` is not defined")
 
     @get_parameter_default.instancemethod  # type: ignore
-    def get_parameter_default(self, name):
+    def get_parameter_default(self, name: str) -> Any:
         """return the default value for the parameter with `name`
 
         Args:
@@ -607,7 +614,7 @@ class Parameterized:
         show_hidden: bool = False,
         show_deprecated: bool = False,
         parameter_values: Optional[Dict[str, Any]] = None,
-    ):
+    ) -> None:
         """private method showing all parameters in human readable format
 
         Args:
@@ -663,7 +670,7 @@ class Parameterized:
         sort: bool = False,
         show_hidden: bool = False,
         show_deprecated: bool = False,
-    ):
+    ) -> None:
         """show all parameters in human readable format
 
         Args:
@@ -688,7 +695,7 @@ class Parameterized:
         show_hidden: bool = False,
         show_deprecated: bool = False,
         default_value: bool = False,
-    ):
+    ) -> None:
         """show all parameters in human readable format
 
         Args:
