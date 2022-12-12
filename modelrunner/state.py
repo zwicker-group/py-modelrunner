@@ -189,14 +189,17 @@ class StateBase(IOBase):
 
         return element
 
-    def _write_zarr_data(self, zarr_group: zarr.Group, **kwargs) -> zarrElement:
+    def _write_zarr_data(
+        self, zarr_group: zarr.Group, *, name: str = "data", **kwargs
+    ) -> zarrElement:
         raise NotImplementedError
 
     def _write_zarr(
         self, zarr_group: zarr.Group, attrs: Optional[Dict[str, Any]] = None, **kwargs
-    ):
+    ) -> zarrElement:
         element = self._write_zarr_data(zarr_group, **kwargs)
         self._write_zarr_attributes(element, attrs)
+        return element
 
     @classmethod
     def _from_zarr(cls, zarr_element: zarrElement, *, index=...) -> StateBase:
@@ -285,7 +288,7 @@ class ObjectState(StateBase):
         *,
         label: str = "data",
         codec: Optional[numcodecs.abc.Codec] = None,
-    ):
+    ) -> zarrElement:
         if codec is None:
             codec = self.default_codec
         return zarr_group.array(
@@ -475,7 +478,7 @@ class ArrayCollectionState(StateBase):
 
     def _write_zarr_data(
         self, zarr_group: zarr.Group, *, label: str = "data", **kwargs
-    ):
+    ) -> zarr.Group:
         zarr_subgroup = zarr_group.create_group(label)
         for sublabel, substate in zip(self.labels, self._data_store):
             zarr_subgroup.array(sublabel, substate)
@@ -598,7 +601,7 @@ class DictState(StateBase):
 
     def _write_zarr_data(
         self, zarr_group: zarr.Group, *, label: str = "data", **kwargs
-    ):
+    ) -> zarr.Group:
         zarr_subgroup = zarr_group.create_group(label)
         for label, substate in self._data_store.items():
             substate._write_zarr(zarr_subgroup, label=label, **kwargs)
