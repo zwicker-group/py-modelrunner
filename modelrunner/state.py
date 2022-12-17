@@ -7,6 +7,11 @@ These classes define how data is read and written and they contain methods that 
 used to write multiple states of the same class to a file consecutively, e.g., to store
 a trajectory. Here, it is assumed that the `attributes` do not change over time.
 
+TODO:
+- document the succession of calls for storing fields (to get a better idea of the
+  available hooks)
+- do the same for loading data
+
 .. autosummary::
    :nosignatures:
 
@@ -30,6 +35,12 @@ import numpy as np
 import zarr
 
 from .io import IOBase, simplify_data, zarrElement
+
+
+class DoNotStore(Exception):
+    """helper exception to signal that an attribute should not be stored"""
+
+    ...
 
 
 def _equals(left: Any, right: Any) -> bool:
@@ -99,13 +110,48 @@ class StateBase(IOBase):
         """dict: Additional attributes, which are required to restore the state"""
         return {}
 
+    def _pack_attribute(self, name: str, value) -> Any:
+        """convert an attribute into a form that can be stored
+
+        If this function raises :class:`DoNotStore`, the attribute will not be stored
+
+        Args:
+            name (str): Name of the attribute
+            value: The value of the attribute
+
+        Returns:
+            A simplified form of the attribute that can be restored
+        """
+        return simplify_data(value)
+
+    @classmethod
+    def _unpack_attribute(cls, name: str, value) -> Any:
+        """convert an attribute from a form that was stored
+
+        Args:
+            name (str): Name of the attribute
+            value: The value of the attribute
+
+        Returns:
+            A restored form of the attribute
+        """
+        return value
+
     @property
     def _attributes_store(self) -> Dict[str, Any]:
         """dict: Attributes in the form in which they will be written to storage"""
-        attrs = simplify_data(self.attributes)
+        # pack all attributes for storage
+        attrs = {}
+        for name, value in self.attributes.items():
+            try:
+                attrs[name] = self._pack_attribute(name, value)
+            except DoNotStore:
+                pass
+
+        # add some additional information
         attrs["__class__"] = self.__class__.__name__
         attrs["__version__"] = self._format_version
-        return attrs  # type: ignore
+        return attrs
 
     @classmethod
     def _read_attributes(cls, attributes: Dict[str, Any]) -> Dict[str, Any]:
@@ -114,7 +160,10 @@ class StateBase(IOBase):
         This classmethod can be overwritten if attributes have been serialized by the
         :meth:`_attributes_store` property.
         """
-        return attributes
+        return {
+            name: cls._unpack_attribute(name, value)
+            for name, value in attributes.items()
+        }
 
     @property
     def _data_store(self) -> Any:
@@ -128,7 +177,7 @@ class StateBase(IOBase):
         return _equals(self, other)
 
     @classmethod
-    def from_state(cls, attributes: Dict[str, Any], data=None) -> StateBase:
+    def from_data(cls, attributes: Dict[str, Any], data=None) -> StateBase:
         """create instance of any state class from attributes and data
 
         Args:
@@ -140,7 +189,7 @@ class StateBase(IOBase):
             if attributes["__class__"] == "StateBase":
                 raise RuntimeError("Cannot create StateBase instances")
             state_cls = cls._state_classes[attributes["__class__"]]
-            return state_cls.from_state(attributes, data)
+            return state_cls.from_data(attributes, data)
 
         elif cls.__name__ == attributes["__class__"]:
             # simple version instantiating the current class with the given data
@@ -158,7 +207,7 @@ class StateBase(IOBase):
             if len(attributes) > num_attrs:  # additional attributes given
                 warnings.warn(
                     f"Unused attributes, but {cls.__name__} did not implemented custom "
-                    "from_state method"
+                    "from_data method"
                 )
 
             # create a new object without calling __init__, which might be overwriten by
@@ -174,7 +223,7 @@ class StateBase(IOBase):
     def copy(self, data=None):
         if data is None:
             data = copy.deepcopy(self.data)
-        return self.__class__.from_state(copy.deepcopy(self.attributes), data)
+        return self.__class__.from_data(copy.deepcopy(self.attributes), data)
 
     def _write_zarr_attributes(
         self, element: zarrElement, attrs: Optional[Dict[str, Any]] = None
@@ -204,11 +253,16 @@ class StateBase(IOBase):
     @classmethod
     def _from_zarr(cls, zarr_element: zarrElement, *, index=...) -> StateBase:
         """create instance of correct subclass from data stored in zarr"""
-        attributes = cls._read_attributes(zarr_element.attrs.asdict())
-        class_name = attributes["__class__"]
+        # determine the class that knows how to read this data
+        class_name = zarr_element.attrs["__class__"]
         state_cls = cls._state_classes[class_name]
+
+        # read the attributes and the data using this class
+        attributes = state_cls._read_attributes(zarr_element.attrs.asdict())
         data = state_cls._read_zarr_data(zarr_element, index=index)
-        return state_cls.from_state(attributes, data)
+
+        # create an instance of this class
+        return state_cls.from_data(attributes, data)
 
     @classmethod
     def _read_zarr_data(cls, zarr_element: zarrElement, *, index=...) -> Any:
@@ -244,7 +298,7 @@ class StateBase(IOBase):
         else:
             # specific (basic) implementation that just reads the state
             attributes = cls._read_attributes(content["attributes"])
-            return state_cls.from_state(attributes, content["data"])
+            return state_cls.from_data(attributes, content["data"])
 
     def _to_simple_objects(self):
         """return object data suitable for encoding as text"""
@@ -254,10 +308,10 @@ class StateBase(IOBase):
 class ObjectState(StateBase):
     """State characterized by a serializable python object
 
-    The data needs to be accessible form the :attr:`data` property of the instance.
+    The data needs to be accessible from the :attr:`data` property of the instance.
     Additional attributes can be supplied via the :attr:`attribute` property, which will
     then be stored in files. To support reading such augmented states, the method
-    :meth:`from_state` needs to be overwritten.
+    :meth:`from_data` needs to be overwritten.
     """
 
     default_codec = numcodecs.Pickle()
@@ -327,7 +381,7 @@ class ObjectState(StateBase):
 class ArrayState(StateBase):
     """State characterized by a single numpy array"""
 
-    def __init__(self, data: Optional[np.ndarray] = None):
+    def __init__(self, data: np.ndarray):
         """
         Args:
             data: The data describing the state
@@ -335,7 +389,7 @@ class ArrayState(StateBase):
         self.data = data
 
     @classmethod
-    def from_state(cls, attributes: Dict[str, Any], data=None):
+    def from_data(cls, attributes: Dict[str, Any], data=None):
         """create instance from attributes and data
 
         Args:
@@ -344,14 +398,14 @@ class ArrayState(StateBase):
         """
         if data is not None:
             data = np.asarray(data)
-        return super().from_state(attributes, data)
+        return super().from_data(attributes, data)
 
     @classmethod
     def _read_zarr_data(cls, zarr_element: zarr.Array, *, index=...):
         return zarr_element[index]
 
     def _update_from_zarr(self, element: zarrElement, *, index=...) -> None:
-        self.data = element[index]
+        self.data[:] = element[index]
 
     def _write_zarr_data(  # type: ignore
         self,
@@ -386,7 +440,13 @@ class ArrayState(StateBase):
 
 
 class ArrayCollectionState(StateBase):
-    """State characterized by a multiple numpy array"""
+    """State characterized by a multiple numpy array
+
+    The arrays are given as a tuple of :class:`~numpy.ndarray`. Optionally, a sequence
+    of labels can be supplied to refer to the arrays by convenient names. If the labels
+    are omitted, default labels using a string of the respective index of the array in
+    the sequence are generated.
+    """
 
     data: Tuple[np.ndarray, ...]
 
@@ -435,7 +495,7 @@ class ArrayCollectionState(StateBase):
         return attributes
 
     @classmethod
-    def from_state(cls, attributes: Dict[str, Any], data=None):
+    def from_data(cls, attributes: Dict[str, Any], data=None):
         """create instance from attributes and data
 
         Args:
@@ -470,7 +530,7 @@ class ArrayCollectionState(StateBase):
         data = tuple(
             zarr_element[label][index] for label in zarr_element.attrs["labels"]
         )
-        return cls.from_state(zarr_element.attrs.asdict(), data)  # type: ignore
+        return cls.from_data(zarr_element.attrs.asdict(), data)  # type: ignore
 
     def _update_from_zarr(self, element: zarrElement, *, index=...) -> None:
         for label, data_arr in zip(self.labels, self.data):
@@ -526,7 +586,7 @@ class ArrayCollectionState(StateBase):
             np.array(content["data"][label])
             for label in content["attributes"]["labels"]
         )
-        return state_cls.from_state(content["attributes"], data)
+        return state_cls.from_data(content["attributes"], data)
 
     def _to_simple_objects(self):
         """return object data suitable for encoding as JSON"""
@@ -544,12 +604,17 @@ class DictState(StateBase):
     def __init__(
         self, data: Optional[Union[Dict[str, StateBase], Tuple[StateBase]]] = None
     ):
-        if data is None:
-            self.data = {}
-        elif not isinstance(data, dict):
-            self.data = {str(i): v for i, v in enumerate(data)}
-        else:
-            self.data = data
+        try:
+            if data is None:
+                self.data = {}
+            elif not isinstance(data, dict):
+                self.data = {str(i): v for i, v in enumerate(data)}
+            else:
+                self.data = data
+        except AttributeError:
+            # this can happen if `data` is a read-only attribute, i.e., if the data
+            # attribute is managed by the child class
+            pass
 
     @property
     def attributes(self) -> Dict[str, Any]:
@@ -559,7 +624,7 @@ class DictState(StateBase):
         return attributes
 
     @classmethod
-    def from_state(cls, attributes: Dict[str, Any], data=None):
+    def from_data(cls, attributes: Dict[str, Any], data=None):
         """create instance from attributes and data
 
         Args:
@@ -643,7 +708,7 @@ class DictState(StateBase):
         data = {}
         for label, substate in content["data"].items():
             data[label] = StateBase._from_simple_objects(substate)
-        return state_cls.from_state(content["attributes"], data)
+        return state_cls.from_data(content["attributes"], data)
 
     def _to_simple_objects(self):
         """return object data suitable for encoding as JSON"""

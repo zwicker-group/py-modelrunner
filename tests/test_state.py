@@ -53,3 +53,30 @@ def test_array_collections(ext, tmp_path):
     state2 = StateBase.from_file(path)
     assert _equals(state.data, state2.data)
     assert state.labels == state2.labels
+
+
+def test_attribute_packing():
+    """test whether attribute packing is properly called"""
+
+    class MyState(ObjectState):
+        @property
+        def attributes(self):
+            return {"a": 1, "b": 2}
+
+        def _pack_attribute(self, name, value):
+            if name == "a":
+                return "PACKED"
+            else:
+                return super()._pack_attribute(name, value)
+
+        @classmethod
+        def _unpack_attribute(cls, name, value):
+            if name == "a":
+                return value.lower()
+            else:
+                return super()._unpack_attribute(name, value)
+
+    state = MyState({"a"})
+    assert state.attributes == {"a": 1, "b": 2}
+    # test whether the packed attributes contain everything on the right
+    assert state._attributes_store.items() >= {"a": "PACKED", "b": 2}.items()
