@@ -207,6 +207,7 @@ def submit_jobs(
     name_base: str = "job",
     parameters: Union[str, Dict[str, Any], None] = None,
     *,
+    output_format: str = "hdf",
     list_params: Optional[Iterable[str]] = None,
     **kwargs,
 ) -> None:
@@ -224,6 +225,8 @@ def submit_jobs(
             containing a JSON-encoded dictionary. All combinations of parameter values
             that are iterable and not strings and not part of `keep_list` are submitted
             as separate jobs.
+        output_format (str):
+            File extension determining the output format
         list_params (list):
             List of parameters that are meant to be lists. They will be submitted as
             individual parameters and not iterated over to produce multiple jobs.
@@ -257,9 +260,12 @@ def submit_jobs(
         for values in itertools.product(*p_vary.values())
     ]
 
+    if not output_format.startswith("."):
+        output_format = "." + output_format
+
     # submit jobs with all parameter variations
     for p_job in tqdm(p_vary_list):
         params.update(p_job)
         name = get_job_name(name_base, p_job)
-        output = Path(output_folder) / f"{name}.hdf5"
+        output = Path(output_folder) / f"{name}{output_format}"
         submit_job(script, output=output, name=name, parameters=params, **kwargs)
