@@ -418,6 +418,10 @@ class ResultCollection(List[Result]):
 
     __str__ = __repr__
 
+    def __add__(self, other: ResultCollection) -> ResultCollection:  # type: ignore
+        if isinstance(other, ResultCollection):
+            return ResultCollection(super().__add__(other))
+
     @property
     def same_model(self) -> bool:
         """bool: flag determining whether all results are from the same model"""
