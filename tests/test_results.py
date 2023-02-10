@@ -67,6 +67,14 @@ def test_result_collections():
     rc2 = rc.remove_duplicates()
     assert len(rc2) == 1
 
+    # test addition of result collections
+    rc1 = ResultCollection([r1, r2])
+    rc2 = ResultCollection([r3])
+    assert rc1 + rc2 == ResultCollection([r1, r2, r3])
+    assert len(rc1) == 2
+    rc1 += rc2
+    assert rc1 == ResultCollection([r1, r2, r3])
+
 
 def test_collection_groupby():
     """test grouping of result collections"""
