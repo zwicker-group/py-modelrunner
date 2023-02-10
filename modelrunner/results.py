@@ -210,7 +210,7 @@ class Result(IOBase):
         # load state
         state_attributes = read_hdf_data(hdf_element["state"])
         state_data = read_hdf_data(hdf_element["data"])
-        state = StateBase.from_state(state_attributes, state_data)
+        state = StateBase.from_data(state_attributes, state_data)
 
         return cls.from_data(model_data=model_data, state=state, model=model, info=info)
 

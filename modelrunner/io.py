@@ -331,7 +331,7 @@ class IOBase:
 
         elif hasattr(self, f"_write_{fmt}"):
             with open(store, mode=mode) as fp:
-                return getattr(self, f"_write_{fmt}")(fp)
+                getattr(self, f"_write_{fmt}")(fp)
 
         else:
             raise NotImplementedError(f"Format `{fmt}` not implemented")
