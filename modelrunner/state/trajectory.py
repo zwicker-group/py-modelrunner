@@ -17,7 +17,7 @@ from typing import Any, Dict, Iterator, Optional, Union
 import numpy as np
 import zarr
 
-from .state import StateBase
+from .base import StateBase
 
 
 class TrajectoryWriter:

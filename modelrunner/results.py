@@ -19,7 +19,9 @@ import numpy as np
 import zarr
 from tqdm.auto import tqdm
 
-from .io import (
+from .model import ModelBase
+from .state import StateBase, make_state
+from .state.io import (
     IOBase,
     NumpyEncoder,
     read_hdf_data,
@@ -27,8 +29,6 @@ from .io import (
     write_hdf_dataset,
     zarrElement,
 )
-from .model import ModelBase
-from .state import StateBase, make_state
 
 
 class MockModel(ModelBase):

@@ -5,7 +5,7 @@
 import numpy as np
 import pytest
 
-from modelrunner.trajectory import Trajectory, TrajectoryWriter
+from modelrunner.state.trajectory import Trajectory, TrajectoryWriter
 from utils.states import EXTENSIONS, get_states
 
 

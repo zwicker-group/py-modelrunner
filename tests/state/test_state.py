@@ -5,13 +5,8 @@
 import numpy as np
 import pytest
 
-from modelrunner.state import (
-    ArrayCollectionState,
-    DictState,
-    ObjectState,
-    StateBase,
-    _equals,
-)
+from modelrunner.state import ArrayCollectionState, DictState, ObjectState, StateBase
+from modelrunner.state.base import _equals
 from utils.states import EXTENSIONS, get_states
 
 

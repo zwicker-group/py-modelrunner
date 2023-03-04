@@ -19,7 +19,7 @@ import numpy as np
 import zarr
 from zarr.storage import BaseStore
 
-from .parameters import NoValueType
+from ..parameters import NoValueType
 
 
 class NumpyEncoder(json.JSONEncoder):
