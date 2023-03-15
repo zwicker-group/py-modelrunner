@@ -1,24 +1,5 @@
 """
-Classes that describe the state of a simulation at a single point in time
-
-Each state is defined by :attr:`attributes` and :attr:`data`. Attributes describe
-general aspects about a state, which typically do not change, e.g., its `name`.
-These classes define how data is read and written and they contain methods that can be
-used to write multiple states of the same class to a file consecutively, e.g., to store
-a trajectory. Here, it is assumed that the `attributes` do not change over time.
-
-TODO:
-- document the succession of calls for storing fields (to get a better idea of the
-  available hooks)
-- do the same for loading data
-
-.. autosummary::
-   :nosignatures:
-
-   ObjectState
-   ArrayState
-   ArrayCollectionState
-   DictState
+Classes that describe the state of a simulation as a single python object
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -50,7 +31,7 @@ class ObjectState(StateBase):
         Args:
             data: The data describing the state
         """
-        self.data = data
+        setattr(self, self._data_attribute, data)
 
     @classmethod
     def _read_zarr_data(cls, zarr_element: zarr.Array, *, index=...):
@@ -61,9 +42,9 @@ class ObjectState(StateBase):
 
     def _update_from_zarr(self, element: zarrElement, *, index=...) -> None:
         if element.shape == () and index is ...:
-            self.data = element[index].item()
+            setattr(self, self._data_attribute, element[index].item())
         else:
-            self.data = element[index]
+            setattr(self, self._data_attribute, element[index])
 
     def _write_zarr_data(  # type: ignore
         self,

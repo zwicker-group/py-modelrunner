@@ -1,12 +1,12 @@
 """
 
 .. inheritance-diagram::
-        io.IOBase
-        state.StateBase
-        state.ArrayState
-        state.ArrayCollectionState
-        state.ObjectState
-        state.DictState
+        state.io.IOBase
+        state.base.StateBase
+        state.array.ArrayState
+        state.array_collection.ArrayCollectionState
+        state.object.ObjectState
+        state.dict.DictState
         results.Result
    :parts: 1
 

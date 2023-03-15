@@ -1,24 +1,5 @@
 """
-Classes that describe the state of a simulation at a single point in time
-
-Each state is defined by :attr:`attributes` and :attr:`data`. Attributes describe
-general aspects about a state, which typically do not change, e.g., its `name`.
-These classes define how data is read and written and they contain methods that can be
-used to write multiple states of the same class to a file consecutively, e.g., to store
-a trajectory. Here, it is assumed that the `attributes` do not change over time.
-
-TODO:
-- document the succession of calls for storing fields (to get a better idea of the
-  available hooks)
-- do the same for loading data
-
-.. autosummary::
-   :nosignatures:
-
-   ObjectState
-   ArrayState
-   ArrayCollectionState
-   DictState
+Classes that describe the state of a simulation using a dictionary of states
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -42,13 +23,13 @@ class DictState(StateBase):
     def __init__(
         self, data: Optional[Union[Dict[str, StateBase], Tuple[StateBase]]] = None
     ):
+        if data is None:
+            data = {}
+        elif not isinstance(data, dict):
+            data = {str(i): v for i, v in enumerate(data)}
+
         try:
-            if data is None:
-                self.data = {}
-            elif not isinstance(data, dict):
-                self.data = {str(i): v for i, v in enumerate(data)}
-            else:
-                self.data = data
+            setattr(self, self._data_attribute, data)
         except AttributeError:
             # this can happen if `data` is a read-only attribute, i.e., if the data
             # attribute is managed by the child class
@@ -58,7 +39,7 @@ class DictState(StateBase):
     def attributes(self) -> Dict[str, Any]:
         """dict: Additional attributes, which are required to restore the state"""
         attributes = super().attributes
-        attributes["__keys__"] = list(self.data.keys())
+        attributes["__keys__"] = list(getattr(self, self._data_attribute).keys())
         return attributes
 
     @classmethod
@@ -78,14 +59,18 @@ class DictState(StateBase):
         # the subclass and not follow our interface
         obj = cls.__new__(cls)
         if data is not None:
-            obj.data = data
+            setattr(obj, obj._data_attribute, data)
         return obj
 
+    def __len__(self) -> int:
+        return len(getattr(self, self._data_attribute))
+
     def __getitem__(self, index: Union[int, str]) -> StateBase:
+        data = getattr(self, self._data_attribute)
         if isinstance(index, str):
-            return self.data[index]
+            return data[index]  # type: ignore
         elif isinstance(index, int):
-            return next(itertools.islice(self.data.values(), index, None))
+            return next(itertools.islice(data.values(), index, None))  # type: ignore
         else:
             raise TypeError()
 
@@ -99,7 +84,8 @@ class DictState(StateBase):
         }
 
     def _update_from_zarr(self, element: zarrElement, *, index=...) -> None:
-        for key, substate in self.data.items():
+        data = getattr(self, self._data_attribute)
+        for key, substate in data.items():
             substate._update_from_zarr(element[key], index=index)
 
     def _write_zarr_data(

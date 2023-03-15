@@ -1,7 +1,6 @@
 """
 Module defining a base class that handles writing and reading of objects
 
-
 The base class itself implements little logic, but provides general methods that are
 used by concrete classes. However, it defines the interface methods `from_file` and
 `to_file`, which allow reading and writing data, respectively.

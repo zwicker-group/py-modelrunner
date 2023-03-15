@@ -76,7 +76,7 @@ class Result(IOBase):
     def data(self):
         """direct access to the underlying state data"""
         assert self.state is not self
-        return self.state.data
+        return getattr(self.state, self.state._data_attribute)
 
     @classmethod
     def from_data(
@@ -480,19 +480,20 @@ class ResultCollection(List[Result]):
 
         def get_data(result):
             """helper function to extract the data"""
-            data = result.parameters.copy()
+            df_data = result.parameters.copy()
             if result.info.get("name"):
-                data.setdefault("name", result.info["name"])
-            if np.isscalar(result.state.data):
-                data["result"] = result.state.data
-            elif isinstance(result.state.data, dict):
-                for key, value in result.state.data.items():
+                df_data.setdefault("name", result.info["name"])
+            data = getattr(result.state, result.state._data_attribute)
+            if np.isscalar(data):
+                df_data["result"] = data
+            elif isinstance(data, dict):
+                for key, value in data.items():
                     if np.isscalar(value):
-                        data[key] = value
+                        df_data[key] = value
                     elif isinstance(value, (list, tuple, np.ndarray)):
-                        data[key] = np.asarray(value)
+                        df_data[key] = np.asarray(value)
             else:
                 raise RuntimeError("Do not know how to interpret result")
-            return data
+            return df_data
 
         return pd.DataFrame([get_data(result) for result in self])

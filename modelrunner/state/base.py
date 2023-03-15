@@ -1,24 +1,5 @@
 """
-Classes that describe the state of a simulation at a single point in time
-
-Each state is defined by :attr:`attributes` and :attr:`data`. Attributes describe
-general aspects about a state, which typically do not change, e.g., its `name`.
-These classes define how data is read and written and they contain methods that can be
-used to write multiple states of the same class to a file consecutively, e.g., to store
-a trajectory. Here, it is assumed that the `attributes` do not change over time.
-
-TODO:
-- document the succession of calls for storing fields (to get a better idea of the
-  available hooks)
-- do the same for loading data
-
-.. autosummary::
-   :nosignatures:
-
-   ObjectState
-   ArrayState
-   ArrayCollectionState
-   DictState
+Base classes that describe the state of a simulation at a single point in time
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -96,6 +77,9 @@ class StateBase(IOBase):
     _state_classes: Dict[str, StateBase] = {}
     """dict: class-level list of all subclasses of StateBase"""
 
+    _data_attribute: str = "data"
+    """str: name of the attribute where the data is stored"""
+
     def __init_subclass__(cls, **kwargs):  # @NoSelf
         """register all subclasses to reconstruct them later"""
         # register the subclasses
@@ -166,9 +150,9 @@ class StateBase(IOBase):
     @property
     def _data_store(self) -> Any:
         """attribute that determines what data is stored in this state"""
-        if hasattr(self, "data"):
-            return self.data
-        else:
+        try:
+            return getattr(self, self._data_attribute)
+        except AttributeError:
             return None
 
     def __eq__(self, other):
@@ -212,7 +196,7 @@ class StateBase(IOBase):
             # the subclass and not follow our interface
             obj = cls.__new__(cls)
             if data is not None:
-                obj.data = data  # type: ignore
+                setattr(obj, obj._data_attribute, data)
             return obj
 
         else:
@@ -220,7 +204,7 @@ class StateBase(IOBase):
 
     def copy(self, data=None):
         if data is None:
-            data = copy.deepcopy(self.data)
+            data = copy.deepcopy(getattr(self, self._data_attribute))
         return self.__class__.from_data(copy.deepcopy(self.attributes), data)
 
     def _write_zarr_attributes(
