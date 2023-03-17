@@ -84,8 +84,9 @@ class StateBase(IOBase):
     _state_classes: Dict[str, StateBase] = {}
     """dict: class-level list of all subclasses of StateBase"""
 
-    _data_attribute: str = "data"
-    """str: name of the attribute where the data is stored"""
+    _state_data_attribute: str = "data"
+    """str: name of the attribute where the data is stored. This is only used if the
+    subclass does not overwrite the `_state_data` attribute."""
 
     def __init_subclass__(cls, **kwargs):  # @NoSelf
         """register all subclasses to reconstruct them later"""
@@ -163,7 +164,7 @@ class StateBase(IOBase):
         form.
         """
         try:
-            return self.data
+            return getattr(self, self._state_data_attribute)
         except AttributeError:
             # this can happen if the `data` attribute is not defined
             raise AttributeError("`_state_data` should be defined by subclass")
@@ -172,7 +173,7 @@ class StateBase(IOBase):
     def _state_data(self, data) -> None:
         """set the data of the class"""
         try:
-            self.data = data  # try setting data directly
+            setattr(self, self._state_data_attribute, data)  # try setting data directly
         except AttributeError:
             # this can happen if `data` is a read-only attribute, i.e., if the data
             # attribute is managed by the child class
@@ -227,7 +228,7 @@ class StateBase(IOBase):
 
     def copy(self, data=None):
         if data is None:
-            data = copy.deepcopy(getattr(self, self._data_attribute))
+            data = copy.deepcopy(self._state_data)
         return self.__class__.from_data(copy.deepcopy(self._state_attributes), data)
 
     def _state_write_zarr_attributes(

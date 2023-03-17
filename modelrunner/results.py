@@ -131,9 +131,7 @@ class Result(IOBase):
         )
 
     @classmethod
-    def _from_simple_objects(
-        cls, content, model: Optional[ModelBase] = None
-    ) -> Result:
+    def _from_simple_objects(cls, content, model: Optional[ModelBase] = None) -> Result:
         """read result from a JSON file
 
         Args:
@@ -485,7 +483,7 @@ class ResultCollection(List[Result]):
             df_data = result.parameters.copy()
             if result.info.get("name"):
                 df_data.setdefault("name", result.info["name"])
-            data = getattr(result.state, result.state._data_attribute)
+            data = result.state._state_data
             if np.isscalar(data):
                 df_data["result"] = data
             elif isinstance(data, dict):

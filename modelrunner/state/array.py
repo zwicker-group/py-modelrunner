@@ -18,8 +18,6 @@ from .io import zarrElement
 class ArrayState(StateBase):
     """State characterized by a single numpy array"""
 
-    _data_attribute: str = "data"
-
     def __init__(self, data: np.ndarray):
         """
         Args:
