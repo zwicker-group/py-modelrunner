@@ -3,7 +3,6 @@
 """
 
 
-import glob
 import os
 import subprocess as sp
 import sys
@@ -12,14 +11,14 @@ from typing import List  # @UnusedImport
 
 import pytest
 
-PACKAGEPATH = Path(__file__).parents[1].resolve()
+PACKAGEPATH = Path(__file__).resolve().parents[1]
 EXAMPLE_PATH = PACKAGEPATH / "examples"
 assert EXAMPLE_PATH.is_dir()
 
 
 @pytest.mark.no_cover
 @pytest.mark.skipif(sys.platform == "win32", reason="Assumes unix setup")
-@pytest.mark.parametrize("path", glob.glob(str(EXAMPLE_PATH / "*.py")))
+@pytest.mark.parametrize("path", EXAMPLE_PATH.glob("*.py"))
 def test_examples(path, tmp_path):
     """runs an example script given by path"""
     # prepare environment
