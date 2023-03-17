@@ -35,9 +35,9 @@ class ArrayCollectionState(StateBase):
             data: The data describing the state
         """
         if data is None:
-            setattr(self, self._data_attribute, tuple())
+            self._state_data = tuple()
         else:
-            setattr(self, self._data_attribute, tuple(data))
+            self._state_data = tuple(data)
 
         num_arrays = len(self)
         if labels is None:
@@ -52,10 +52,7 @@ class ArrayCollectionState(StateBase):
             and len(self) == len(other)
             and all(
                 np.array_equal(s, o)
-                for s, o in zip(
-                    getattr(self, self._data_attribute),
-                    getattr(other, other._data_attribute),
-                )
+                for s, o in zip(self._state_data, other._state_data)
             )
         )
 
@@ -69,9 +66,9 @@ class ArrayCollectionState(StateBase):
             return list(labels)
 
     @property
-    def attributes(self) -> Dict[str, Any]:
+    def _state_attributes(self) -> Dict[str, Any]:
         """dict: Additional attributes, which are required to restore the state"""
-        attributes = super().attributes
+        attributes = super()._state_attributes
         attributes["labels"] = self.labels
         return attributes
 
@@ -91,25 +88,24 @@ class ArrayCollectionState(StateBase):
         # the subclass and not follow our interface
         obj = cls.__new__(cls)
         if data is not None:
-            setattr(obj, obj._data_attribute, data)
+            obj._state_data = data
         if labels is not None:
             obj._labels = labels
         return obj
 
     def __len__(self) -> int:
-        return len(getattr(self, self._data_attribute))
+        return len(self._state_data)
 
     def __getitem__(self, index: Union[int, str]) -> np.ndarray:
-        data = getattr(self, self._data_attribute)
         if isinstance(index, str):
-            return data[self.labels.index(index)]  # type: ignore
+            return self._state_data[self.labels.index(index)]  # type: ignore
         elif isinstance(index, int):
-            return data[index]  # type: ignore
+            return self._state_data[index]  # type: ignore
         else:
             raise TypeError()
 
     @classmethod
-    def _read_zarr_data(
+    def _state_read_zarr_data(
         cls, zarr_element: zarr.Array, *, index=...
     ) -> ArrayCollectionState:
         data = tuple(
@@ -117,20 +113,19 @@ class ArrayCollectionState(StateBase):
         )
         return cls.from_data(zarr_element.attrs.asdict(), data)  # type: ignore
 
-    def _update_from_zarr(self, element: zarrElement, *, index=...) -> None:
-        data = getattr(self, self._data_attribute)
-        for label, data_arr in zip(self.labels, data):
+    def _state_update_from_zarr(self, element: zarrElement, *, index=...) -> None:
+        for label, data_arr in zip(self.labels, self._state_data):
             data_arr[:] = element[label][index]
 
-    def _write_zarr_data(
+    def _state_write_zarr_data(
         self, zarr_group: zarr.Group, *, label: str = "data", **kwargs
     ) -> zarr.Group:
         zarr_subgroup = zarr_group.create_group(label)
-        for sublabel, substate in zip(self.labels, self._data_store):
+        for sublabel, substate in zip(self.labels, self._state_data):
             zarr_subgroup.array(sublabel, substate)
         return zarr_subgroup
 
-    def _prepare_zarr_trajectory(
+    def _state_prepare_zarr_trajectory(
         self,
         zarr_group: zarr.Group,
         attrs: Optional[Dict[str, Any]] = None,
@@ -140,8 +135,7 @@ class ArrayCollectionState(StateBase):
     ) -> zarr.Group:
         """prepare the zarr storage for this state"""
         zarr_subgroup = zarr_group.create_group(label)
-        data = getattr(self, self._data_attribute)
-        for sublabel, subdata in zip(self.labels, data):
+        for sublabel, subdata in zip(self.labels, self._state_data):
             zarr_subgroup.zeros(
                 sublabel,
                 shape=(0,) + subdata.shape,
@@ -149,13 +143,12 @@ class ArrayCollectionState(StateBase):
                 dtype=subdata.dtype,
             )
 
-        self._write_zarr_attributes(zarr_subgroup, attrs)
+        self._state_write_zarr_attributes(zarr_subgroup, attrs)
         return zarr_subgroup
 
-    def _append_to_zarr_trajectory(self, zarr_element: zarr.Group) -> None:
+    def _state_append_to_zarr_trajectory(self, zarr_element: zarr.Group) -> None:
         """append current data to a stored element"""
-        data = getattr(self, self._data_attribute)
-        for label, subdata in zip(self.labels, data):
+        for label, subdata in zip(self.labels, self._state_data):
             zarr_element[label].append([subdata])
 
     @classmethod
@@ -178,6 +171,6 @@ class ArrayCollectionState(StateBase):
 
     def _to_simple_objects(self):
         """return object data suitable for encoding as JSON"""
-        data = getattr(self, self._data_attribute)
+        data = self._state_data
         data_simple = {label: substate for label, substate in zip(self.labels, data)}
-        return {"attributes": self._attributes_store, "data": data_simple}
+        return {"attributes": self._state_attributes_store, "data": data_simple}

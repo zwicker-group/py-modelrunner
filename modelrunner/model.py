@@ -220,7 +220,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         return result
 
     @property
-    def attributes(self) -> Dict[str, Any]:
+    def _state_attributes(self) -> Dict[str, Any]:
         """dict: information about the element state, which does not change in time"""
         return {
             "class": self.__class__.__name__,

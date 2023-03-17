@@ -24,22 +24,17 @@ class DictState(StateBase):
         self, data: Optional[Union[Dict[str, StateBase], Tuple[StateBase]]] = None
     ):
         if data is None:
-            data = {}
+            self._state_data = {}
         elif not isinstance(data, dict):
-            data = {str(i): v for i, v in enumerate(data)}
-
-        try:
-            setattr(self, self._data_attribute, data)
-        except AttributeError:
-            # this can happen if `data` is a read-only attribute, i.e., if the data
-            # attribute is managed by the child class
-            pass
+            self._state_data = {str(i): v for i, v in enumerate(data)}
+        else:
+            self._state_data = data
 
     @property
-    def attributes(self) -> Dict[str, Any]:
+    def _state_attributes(self) -> Dict[str, Any]:
         """dict: Additional attributes, which are required to restore the state"""
-        attributes = super().attributes
-        attributes["__keys__"] = list(getattr(self, self._data_attribute).keys())
+        attributes = super()._state_attributes
+        attributes["__keys__"] = list(self._state_data.keys())
         return attributes
 
     @classmethod
@@ -59,23 +54,22 @@ class DictState(StateBase):
         # the subclass and not follow our interface
         obj = cls.__new__(cls)
         if data is not None:
-            setattr(obj, obj._data_attribute, data)
+            obj._state_data = data
         return obj
 
     def __len__(self) -> int:
-        return len(getattr(self, self._data_attribute))
+        return len(self._state_data)
 
     def __getitem__(self, index: Union[int, str]) -> StateBase:
-        data = getattr(self, self._data_attribute)
         if isinstance(index, str):
-            return data[index]  # type: ignore
+            return self._state_data[index]  # type: ignore
         elif isinstance(index, int):
-            return next(itertools.islice(data.values(), index, None))  # type: ignore
+            return next(itertools.islice(self._state_data.values(), index, None))  # type: ignore
         else:
             raise TypeError()
 
     @classmethod
-    def _read_zarr_data(
+    def _state_read_zarr_data(
         cls, zarr_element: zarr.Array, *, index=...
     ) -> Dict[str, StateBase]:
         return {
@@ -83,20 +77,19 @@ class DictState(StateBase):
             for label in zarr_element.attrs["__keys__"]
         }
 
-    def _update_from_zarr(self, element: zarrElement, *, index=...) -> None:
-        data = getattr(self, self._data_attribute)
-        for key, substate in data.items():
-            substate._update_from_zarr(element[key], index=index)
+    def _state_update_from_zarr(self, element: zarrElement, *, index=...) -> None:
+        for key, substate in self._state_data.items():
+            substate._state_update_from_zarr(element[key], index=index)
 
-    def _write_zarr_data(
+    def _state_write_zarr_data(
         self, zarr_group: zarr.Group, *, label: str = "data", **kwargs
     ) -> zarr.Group:
         zarr_subgroup = zarr_group.create_group(label)
-        for label, substate in self._data_store.items():
+        for label, substate in self._state_data.items():
             substate._write_zarr(zarr_subgroup, label=label, **kwargs)
         return zarr_subgroup
 
-    def _prepare_zarr_trajectory(
+    def _state_prepare_zarr_trajectory(
         self,
         zarr_group: zarr.Group,
         attrs: Optional[Dict[str, Any]] = None,
@@ -106,16 +99,18 @@ class DictState(StateBase):
     ) -> zarr.Group:
         """prepare the zarr storage for this state"""
         zarr_subgroup = zarr_group.create_group(label)
-        for label, substate in self._data_store.items():
-            substate._prepare_zarr_trajectory(zarr_subgroup, label=label, **kwargs)
+        for label, substate in self._state_data.items():
+            substate._state_prepare_zarr_trajectory(
+                zarr_subgroup, label=label, **kwargs
+            )
 
-        self._write_zarr_attributes(zarr_subgroup, attrs)
+        self._state_write_zarr_attributes(zarr_subgroup, attrs)
         return zarr_subgroup
 
-    def _append_to_zarr_trajectory(self, zarr_element: zarr.Group) -> None:
+    def _state_append_to_zarr_trajectory(self, zarr_element: zarr.Group) -> None:
         """append current data to a stored element"""
-        for label, substate in self._data_store.items():
-            substate._append_to_zarr_trajectory(zarr_element[label])
+        for label, substate in self._state_data.items():
+            substate._state_append_to_zarr_trajectory(zarr_element[label])
 
     @classmethod
     def _from_simple_objects(
@@ -138,6 +133,6 @@ class DictState(StateBase):
         """return object data suitable for encoding as JSON"""
         data = {
             label: substate._to_simple_objects()
-            for label, substate in self._data_store.items()
+            for label, substate in self._state_data.items()
         }
-        return {"attributes": self._attributes_store, "data": data}
+        return {"attributes": self._state_attributes_store, "data": data}

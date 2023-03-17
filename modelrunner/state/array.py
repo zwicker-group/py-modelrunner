@@ -25,7 +25,7 @@ class ArrayState(StateBase):
         Args:
             data: The data describing the state
         """
-        setattr(self, self._data_attribute, data)
+        self._state_data = data
 
     @classmethod
     def from_data(cls, attributes: Dict[str, Any], data=None):
@@ -40,23 +40,21 @@ class ArrayState(StateBase):
         return super().from_data(attributes, data)
 
     @classmethod
-    def _read_zarr_data(cls, zarr_element: zarr.Array, *, index=...):
+    def _state_read_zarr_data(cls, zarr_element: zarr.Array, *, index=...):
         return zarr_element[index]
 
-    def _update_from_zarr(self, element: zarrElement, *, index=...) -> None:
-        data = getattr(self, self._data_attribute)
-        data[:] = element[index]
+    def _state_update_from_zarr(self, element: zarrElement, *, index=...) -> None:
+        self._state_data[:] = element[index]
 
-    def _write_zarr_data(  # type: ignore
+    def _state_write_zarr_data(  # type: ignore
         self,
         zarr_group: zarr.Group,
         *,
         label: str = "data",
     ) -> zarr.Array:
-        data = getattr(self, self._data_attribute)
-        return zarr_group.array(label, data)
+        return zarr_group.array(label, self._state_data)
 
-    def _prepare_zarr_trajectory(
+    def _state_prepare_zarr_trajectory(
         self,
         zarr_group: zarr.Group,
         attrs: Optional[Dict[str, Any]] = None,
@@ -65,15 +63,14 @@ class ArrayState(StateBase):
         **kwargs,
     ) -> zarr.Array:
         """prepare the zarr storage for this state"""
-        data = getattr(self, self._data_attribute)
+        data = self._state_data
         zarr_element = zarr_group.zeros(
             label, shape=(0,) + data.shape, chunks=(1,) + data.shape, dtype=data.dtype
         )
-        self._write_zarr_attributes(zarr_element, attrs)
+        self._state_write_zarr_attributes(zarr_element, attrs)
 
         return zarr_element
 
-    def _append_to_zarr_trajectory(self, zarr_element: zarr.Array) -> None:
+    def _state_append_to_zarr_trajectory(self, zarr_element: zarr.Array) -> None:
         """append current data to a stored element"""
-        data = getattr(self, self._data_attribute)
-        zarr_element.append([data])
+        zarr_element.append([self._state_data])

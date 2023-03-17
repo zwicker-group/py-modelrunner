@@ -51,7 +51,7 @@ class MockModel(ModelBase):
 class Result(IOBase):
     """describes a model (with parameters) together with its result"""
 
-    _format_version = 1
+    _state_format_version = 1
     """int: number indicating the version of the file format"""
 
     def __init__(
@@ -76,7 +76,7 @@ class Result(IOBase):
     def data(self):
         """direct access to the underlying state data"""
         assert self.state is not self
-        return getattr(self.state, self.state._data_attribute)
+        return self.state._state_data
 
     @classmethod
     def from_data(
@@ -131,7 +131,9 @@ class Result(IOBase):
         )
 
     @classmethod
-    def _from_simple_objects(cls, content, model: Optional[ModelBase] = None) -> Result:
+    def _from_simple_objects(
+        cls, content, model: Optional[ModelBase] = None
+    ) -> Result:
         """read result from a JSON file
 
         Args:
@@ -141,7 +143,7 @@ class Result(IOBase):
         format_version = content.pop("__version__", None)
         if format_version is None:
             return cls._from_simple_objects_version0(content, model)
-        elif format_version != cls._format_version:
+        elif format_version != cls._state_format_version:
             raise RuntimeError(f"Cannot read format version {format_version}")
 
         return cls.from_data(
@@ -157,8 +159,8 @@ class Result(IOBase):
             path (str or :class:`~pathlib.Path`): The path to the file
         """
         content = {
-            "__version__": self._format_version,
-            "model": simplify_data(self.model.attributes),
+            "__version__": self._state_format_version,
+            "model": simplify_data(self.model._state_attributes),
             "state": self.state._to_simple_objects(),
         }
         if self.info:
@@ -200,7 +202,7 @@ class Result(IOBase):
         format_version = attributes.pop("__version__", None)
         if format_version is None:
             return cls._from_hdf_version0(hdf_element, model)
-        elif format_version != cls._format_version:
+        elif format_version != cls._state_format_version:
             raise RuntimeError(f"Cannot read format version {format_version}")
         info = attributes.pop("__info__", {})  # load additional info
 
@@ -225,17 +227,17 @@ class Result(IOBase):
         )
 
         # write attributes
-        for key, value in self.model.attributes.items():
+        for key, value in self.model._state_attributes.items():
             root.attrs[key] = json.dumps(value, cls=NumpyEncoder)
 
         if self.info:
             root.attrs["__info__"] = json.dumps(self.info, cls=NumpyEncoder)
 
-        root.attrs["__version__"] = json.dumps(self._format_version)
+        root.attrs["__version__"] = json.dumps(self._state_format_version)
 
         # write the actual data
-        write_hdf_dataset(root, self.state._attributes_store, "state")
-        write_hdf_dataset(root, self.state._data_store, "data")
+        write_hdf_dataset(root, self.state._state_attributes_store, "state")
+        write_hdf_dataset(root, self.state._state_data, "data")
 
     @classmethod
     def _from_zarr(
@@ -247,7 +249,7 @@ class Result(IOBase):
         }
         # extract version information from attributes
         format_version = attributes.pop("__version__", None)
-        if format_version != cls._format_version:
+        if format_version != cls._state_format_version:
             raise RuntimeError(f"Cannot read format version {format_version}")
         info = attributes.pop("__info__", {})  # load additional info
 
@@ -267,12 +269,12 @@ class Result(IOBase):
 
         # write attributes
         attributes = {}
-        for key, value in self.model.attributes.items():
+        for key, value in self.model._state_attributes.items():
             attributes[key] = json.dumps(value, cls=NumpyEncoder)
 
         if self.info:
             attributes["__info__"] = json.dumps(self.info, cls=NumpyEncoder)
-        attributes["__version__"] = json.dumps(self._format_version)
+        attributes["__version__"] = json.dumps(self._state_format_version)
 
         self.state._write_zarr(result_group, label="state")
         result_group.attrs.update(attributes)

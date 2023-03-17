@@ -59,13 +59,13 @@ class TrajectoryWriter:
 
     def append(self, data: StateBase, time: Optional[float] = None) -> None:
         if "data" not in self._root:
-            data._prepare_zarr_trajectory(self._root, label="data")
+            data._state_prepare_zarr_trajectory(self._root, label="data")
 
         if time is None:
             time = 0 if len(self.times) == 0 else self.times[-1] + 1
 
         self.times.append([time])
-        data._append_to_zarr_trajectory(self._root["data"])
+        data._state_append_to_zarr_trajectory(self._root["data"])
 
     def close(self):
         self._root.store.close()
@@ -103,7 +103,7 @@ class Trajectory:
         assert np.all(np.diff(self.times) > 0)
 
     @property
-    def attributes(self) -> Dict[str, Any]:
+    def _state_attributes(self) -> Dict[str, Any]:
         """dict: information about the trajectory"""
         return self._root.attrs.asdict()  # type: ignore
 
@@ -134,7 +134,7 @@ class Trajectory:
 
         else:
             # update the state with the data of the given index
-            self._state._update_from_zarr(self._root["data"], index=t_index)
+            self._state._state_update_from_zarr(self._root["data"], index=t_index)
 
         return self._state
 

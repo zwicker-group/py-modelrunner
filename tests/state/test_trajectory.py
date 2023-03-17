@@ -25,7 +25,7 @@ def test_trajectory(state, ext, tmp_path):
         np.testing.assert_allclose(traj.times, [1, 2])
         assert traj[1] == state
         assert traj[-1] == state
-        assert traj.attributes == {"test": "yes"}
+        assert traj._state_attributes == {"test": "yes"}
 
         for s in traj:
             assert s == state
