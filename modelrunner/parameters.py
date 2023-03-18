@@ -19,6 +19,7 @@ from __future__ import annotations
 import functools
 import importlib
 import logging
+import warnings
 from typing import Any, Dict, List, Optional, Sequence, Type, Union
 
 import numpy as np
@@ -414,9 +415,12 @@ class Parameterized:
             cls.parameters_default = [
                 Parameter(*args) for args in cls.parameters_default.items()
             ]
+
         # register the subclasses
         super().__init_subclass__(**kwargs)
         if cls is not Parameterized:
+            if cls.__name__ in cls._subclasses:
+                warnings.warn(f"Redefining class {cls.__name__}")
             cls._subclasses[cls.__name__] = cls
 
     @classproperty

@@ -38,7 +38,7 @@ def _equals(left: Any, right: Any) -> bool:
     Returns:
         bool: Whether the two objects are equal
     """
-    if left.__class__ is not right.__class__:
+    if type(left) is not type(right):
         return False
 
     if isinstance(left, str):
@@ -93,6 +93,8 @@ class StateBase(IOBase):
         # register the subclasses
         super().__init_subclass__(**kwargs)
         if cls is not StateBase:
+            if cls.__name__ in cls._state_classes:
+                warnings.warn(f"Redefining class {cls.__name__}")
             cls._state_classes[cls.__name__] = cls
 
     @property

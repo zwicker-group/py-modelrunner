@@ -32,11 +32,11 @@ Design philosophy
 The main requirements for the state classes were
 
 - *Usability*: The user should not need to think about how data is stored in different files
-- *Flexibility*: We want a general interface to write data in multiple files (Yaml, HDF, zarr, ...)
-- *Stability*: Future versions of the package should be able to read older files even when the internals changes
+- *Flexibility*: We want a general interface to write data in multiple file formats (YAML, HDF, zarr, ...)
+- *Stability*: Future versions of the package should be able to read older files even when the internal definitions of file formats change
 - *Extensibility*: States should be subclasses to implement more complicated requirements (e.g., particular serialization)
 - *Self-explainability*: The files should in principle contain all information to reconstruct the data, even if the `py-modelrunner` package is no longer available.
-- *Efficiency*: The files should only store necessary information
+- *Efficiency*: The files should only store necessary information.
 
 The last point results in particular constraints if we want to store temporal simulation results.
 In most cases, there are are some data that are kept fixed for the simulation (describing physical parameters) and others that evolve with time.
