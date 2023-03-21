@@ -11,6 +11,15 @@ from utils.states import EXTENSIONS, get_states
 
 
 @pytest.mark.parametrize("state", get_states())
+def test_state_basic(state):
+    """test basic properties of states"""
+    assert state.__class__.__name__ in StateBase._state_classes
+    s2 = state.copy()
+    assert state is not s2
+    assert state == s2
+
+
+@pytest.mark.parametrize("state", get_states())
 @pytest.mark.parametrize("ext", EXTENSIONS)
 def test_state_io(state, ext, tmp_path):
     """test simple state IO"""
@@ -48,30 +57,3 @@ def test_array_collections(ext, tmp_path):
     state2 = StateBase.from_file(path)
     assert _equals(state._state_data, state2._state_data)
     assert state.labels == state2.labels
-
-
-def test_attribute_packing():
-    """test whether attribute packing is properly called"""
-
-    class MyState(ObjectState):
-        @property
-        def _state_attributes(self):
-            return {"a": 1, "b": 2}
-
-        def _state_pack_attribute(self, name, value):
-            if name == "a":
-                return "PACKED"
-            else:
-                return super()._state_pack_attribute(name, value)
-
-        @classmethod
-        def _state_unpack_attribute(cls, name, value):
-            if name == "a":
-                return value.lower()
-            else:
-                return super()._unpack_attribute(name, value)
-
-    state = MyState({"a"})
-    assert state._state_attributes == {"a": 1, "b": 2}
-    # test whether the packed _state_attributes contain everything on the right
-    assert state._state_attributes_store.items() >= {"a": "PACKED", "b": 2}.items()

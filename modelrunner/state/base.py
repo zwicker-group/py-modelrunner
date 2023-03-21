@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import copy
 import warnings
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Type, TypeVar
 
 import numpy as np
 import zarr
@@ -53,9 +53,8 @@ def _equals(left: Any, right: Any) -> bool:
         )
 
     if isinstance(left, StateBase):
-        return (
-            left._state_attributes_store == right._state_attributes_store
-            and _equals(left._state_data, right._state_data)
+        return left._state_attributes == right._state_attributes and _equals(
+            left._state_data, right._state_data
         )
 
     if hasattr(left, "__iter__"):
@@ -66,16 +65,19 @@ def _equals(left: Any, right: Any) -> bool:
     return bool(left == right)
 
 
+TState = TypeVar("TState", bound="StateBase")
+
+
 class StateBase(IOBase):
     """Base class for specifying the state of a simulation
 
-    A state contains values of all degrees of freedom of a physical system (stored in
-    the `data` field) and potentially some additional information (stored in the
-    `attributes` field). The `data` is mutable and often a numpy array or a collection
-    of numpy arrays. Conversely, the `attributes` are a dictionary with immutable
-    values. To allow flexible storage, we define the attributes `_state_attributes_store` and
-    `_state_data`, which by default return `attributes` and `data` directly, but may be
-    overwritten to process the data before storage (e.g., by additional serialization).
+    A state contains values of all degrees of freedom of a physical system (called the
+    `data`) and some additional information (called `attributes`). The `data` is mutable
+    and often a numpy array or a collection of numpy arrays. Conversely, the
+    `attributes` are stroed in a dictionary with immutable values. To allow flexible
+    storage, we define the properties `_state_data` and `_state_attributes`, which by
+    default return `attributes` and `data` directly, but may be overwritten to process
+    the data before storage (e.g., by additional serialization).
     """
 
     _state_format_version = 1
@@ -84,7 +86,12 @@ class StateBase(IOBase):
     _state_classes: Dict[str, StateBase] = {}
     """dict: class-level list of all subclasses of StateBase"""
 
-    _state_data_attribute: str = "data"
+    _state_attributes_attr_name: Optional[str] = None
+    """str: name of the class attribute holding the state attributes. This is only used
+    if the subclass does not overwrite the `_state_attributes` attribute. If the value
+    is `None`, no attributes are stored with the state."""
+
+    _state_data_attr_name: str = "data"
     """str: name of the attribute where the data is stored. This is only used if the
     subclass does not overwrite the `_state_data` attribute."""
 
@@ -93,70 +100,58 @@ class StateBase(IOBase):
         # register the subclasses
         super().__init_subclass__(**kwargs)
         if cls is not StateBase:
-            if cls.__name__ in cls._state_classes:
+            if cls.__name__ in StateBase._state_classes:
                 warnings.warn(f"Redefining class {cls.__name__}")
-            cls._state_classes[cls.__name__] = cls
+            StateBase._state_classes[cls.__name__] = cls
 
     @property
     def _state_attributes(self) -> Dict[str, Any]:
         """dict: Additional attributes, which are required to restore the state"""
-        return {}
+        if self._state_attributes_attr_name is None:
+            return {}
 
-    def _state_pack_attribute(self, name: str, value) -> Any:
-        """convert an attribute into a form that can be stored
+        # try getting the attributes from the default name
+        try:
+            return getattr(self, self._state_attributes_attr_name)  # type: ignore
+        except AttributeError:
+            # this can happen if the attribute is not defined
+            raise AttributeError("`_state_attributes` should be defined by subclass")
 
-        If this function raises :class:`~modelrunner.state.base.DoNotStore`, the
-        attribute will not be stored.
+    @_state_attributes.setter
+    def _state_attributes(self, attributes: Dict[str, Any]) -> None:
+        """set the attributes of the state"""
+        if self._state_attributes_attr_name is None:
+            # attribute name was not specified
+            if attributes:
+                raise ValueError(
+                    f"No property specified to store attributes {attributes}"
+                )
 
-        Args:
-            name (str): Name of the attribute
-            value: The value of the attribute
+        else:
 
-        Returns:
-            A simplified form of the attribute that can be restored
-        """
-        return simplify_data(value)
-
-    @classmethod
-    def _state_unpack_attribute(cls, name: str, value) -> Any:
-        """convert an attribute from a form that was stored
-
-        Args:
-            name (str): Name of the attribute
-            value: The value of the attribute
-
-        Returns:
-            A restored form of the attribute
-        """
-        return value
+            try:
+                # try setting attributes directly
+                setattr(self, self._state_attributes_attr_name, attributes)
+            except AttributeError:
+                # this can happen if `data` is a read-only attribute, i.e., if the data
+                # attribute is managed by the child class
+                raise AttributeError(
+                    "`_state_attributes` should be defined by subclass"
+                )
 
     @property
     def _state_attributes_store(self) -> Dict[str, Any]:
-        """dict: Attributes in the form in which they will be written to storage"""
-        # pack all attributes for storage
-        attrs = {}
-        for name, value in self._state_attributes.items():
-            try:
-                attrs[name] = self._state_pack_attribute(name, value)
-            except DoNotStore:
-                pass
+        """dict: Attributes in the form in which they will be written to storage
+
+        This property modifies the normal `_state_attributes` and adds information
+        necessary for restoring the class using :meth:`StateBase.from_data`.
+        """
+        attrs = self._state_attributes.copy()
 
         # add some additional information
         attrs["__class__"] = self.__class__.__name__
         attrs["__version__"] = self._state_format_version
         return attrs
-
-    @classmethod
-    def _state_read_attributes(cls, attributes: Dict[str, Any]) -> Dict[str, Any]:
-        """recreating stored attributes
-
-        This classmethod can be overwritten if attributes have been serialized by
-        the :meth:`_state_attributes_store` property.
-        """
-        return {
-            name: cls._state_unpack_attribute(name, value)
-            for name, value in attributes.items()
-        }
 
     @property
     def _state_data(self) -> Any:
@@ -166,7 +161,7 @@ class StateBase(IOBase):
         form.
         """
         try:
-            return getattr(self, self._state_data_attribute)
+            return getattr(self, self._state_data_attr_name)
         except AttributeError:
             # this can happen if the `data` attribute is not defined
             raise AttributeError("`_state_data` should be defined by subclass")
@@ -175,7 +170,7 @@ class StateBase(IOBase):
     def _state_data(self, data) -> None:
         """set the data of the class"""
         try:
-            setattr(self, self._state_data_attribute, data)  # try setting data directly
+            setattr(self, self._state_data_attr_name, data)  # try setting data directly
         except AttributeError:
             # this can happen if `data` is a read-only attribute, i.e., if the data
             # attribute is managed by the child class
@@ -185,42 +180,38 @@ class StateBase(IOBase):
         return _equals(self, other)
 
     @classmethod
-    def from_data(cls, attributes: Dict[str, Any], data=NoData) -> StateBase:
+    def from_data(cls: Type[TState], attributes: Dict[str, Any], data=NoData) -> TState:
         """create instance of any state class from attributes and data
 
         Args:
             attributes (dict): Additional (unserialized) attributes
             data: The data of the degerees of freedom of the physical system
+
+        Returns:
+            The object containing the given attributes and data
         """
-        if cls.__name__ == "StateBase":
+        if cls is StateBase:
             # use the base class as a point to load arbitrary subclasses
             if attributes["__class__"] == "StateBase":
                 raise RuntimeError("Cannot create StateBase instances")
             state_cls = cls._state_classes[attributes["__class__"]]
-            return state_cls.from_data(attributes, data)
+            return state_cls.from_data(attributes, data)  # type: ignore
 
         elif cls.__name__ == attributes["__class__"]:
             # simple version instantiating the current class with the given data
-            num_attrs = 1  # __class__ was stored in attributes
-            if "__version__" in attributes:
-                format_version = attributes["__version__"]
-                num_attrs += 1
-            else:
-                format_version = 0
+            del attributes["__class__"]  # do not propagate this information
+            format_version = attributes.pop("__version__", 0)
             if format_version != cls._state_format_version:
                 warnings.warn(
                     f"File format version mismatch "
                     f"({format_version} != {cls._state_format_version})"
                 )
-            if len(attributes) > num_attrs:  # additional attributes given
-                warnings.warn(
-                    f"Unused attributes, but {cls.__name__} did not implemented custom "
-                    "from_data method"
-                )
 
             # create a new object without calling __init__, which might be overwriten by
             # the subclass and not follow our interface
             obj = cls.__new__(cls)
+            if attributes:
+                obj._state_attributes = attributes
             if data is not NoData:
                 obj._state_data = data
             return obj
@@ -228,10 +219,19 @@ class StateBase(IOBase):
         else:
             raise ValueError(f"Incompatible state class {attributes['class']}")
 
-    def copy(self, data=None):
+    def copy(self: TState, data=None) -> TState:
+        """create a copy of the state
+
+        Args:
+            data: Data to be used instead of the one in the current state
+
+        Returns:
+            A copy of the current state object
+        """
+        attributes = copy.deepcopy(self._state_attributes_store)
         if data is None:
             data = copy.deepcopy(self._state_data)
-        return self.__class__.from_data(copy.deepcopy(self._state_attributes), data)
+        return self.__class__.from_data(attributes, data)
 
     def _state_write_zarr_attributes(
         self, element: zarrElement, attrs: Optional[Dict[str, Any]] = None
@@ -254,6 +254,15 @@ class StateBase(IOBase):
     def _write_zarr(
         self, zarr_group: zarr.Group, attrs: Optional[Dict[str, Any]] = None, **kwargs
     ) -> zarrElement:
+        """writes the state to a zarr storage
+
+        Args:
+            zarr_group (:class:`zarr.Group`): Group into which the data is written
+            attrs (dict): Additional attributes that are stored
+
+        Returns:
+            :class:`zarr.Group` or :class:`zarr.Array`: The written zarr element
+        """
         element = self._state_write_zarr_data(zarr_group, **kwargs)
         self._state_write_zarr_attributes(element, attrs)
         return element
@@ -266,7 +275,7 @@ class StateBase(IOBase):
         state_cls = cls._state_classes[class_name]
 
         # read the attributes and the data using this class
-        attributes = state_cls._state_read_attributes(zarr_element.attrs.asdict())
+        attributes = zarr_element.attrs.asdict()
         data = state_cls._state_read_zarr_data(zarr_element, index=index)
 
         # create an instance of this class
@@ -305,8 +314,7 @@ class StateBase(IOBase):
             return state_cls._from_simple_objects(content, state_cls=state_cls)
         else:
             # specific (basic) implementation that just reads the state
-            attributes = cls._state_read_attributes(content["attributes"])
-            return state_cls.from_data(attributes, content["data"])
+            return state_cls.from_data(content["attributes"], content["data"])
 
     def _to_simple_objects(self):
         """return object data suitable for encoding as text"""

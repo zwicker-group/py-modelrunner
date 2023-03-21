@@ -6,7 +6,7 @@ Class that describe a state of multiple numpy arrays
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import zarr
@@ -32,19 +32,21 @@ class ArrayCollectionState(StateBase):
     ):
         """
         Args:
-            data: The data describing the state
+            data: The arrays describing this collection
+            labels (sequence of str): Optional list of names for all arrays
         """
         if data is None:
             self._state_data = tuple()
         else:
             self._state_data = tuple(data)
 
+        # initialize the labels, although this is optional
         num_arrays = len(self)
         if labels is None:
-            self._labels = tuple(str(i) for i in range(num_arrays))
+            self._labels = [str(i) for i in range(num_arrays)]
         else:
             assert num_arrays == len(labels) == len(set(labels))
-            self._labels = tuple(labels)
+            self._labels = list(labels)
 
     def __eq__(self, other):
         return (
@@ -57,7 +59,7 @@ class ArrayCollectionState(StateBase):
         )
 
     @property
-    def labels(self) -> Sequence[str]:
+    def labels(self) -> List[str]:
         """list: the label assigned to each array"""
         labels = getattr(self, "_labels", None)
         if labels is None:
@@ -65,7 +67,7 @@ class ArrayCollectionState(StateBase):
         else:
             return list(labels)
 
-    @property
+    @property  # type: ignore
     def _state_attributes(self) -> Dict[str, Any]:
         """dict: Additional attributes, which are required to restore the state"""
         attributes = super()._state_attributes
@@ -83,6 +85,8 @@ class ArrayCollectionState(StateBase):
         if data is not None:
             data = tuple(np.asarray(subdata) for subdata in data)
         labels = attributes.get("labels")
+        # quick test if there are additional attributes lingering
+        assert sum(1 for key in attributes if not key.startswith("_")) <= 1
 
         # create a new object without calling __init__, which might be overwriten by
         # the subclass and not follow our interface
@@ -102,7 +106,7 @@ class ArrayCollectionState(StateBase):
         elif isinstance(index, int):
             return self._state_data[index]  # type: ignore
         else:
-            raise TypeError()
+            raise TypeError
 
     @classmethod
     def _state_read_zarr_data(

@@ -236,7 +236,7 @@ class IOBase:
     def from_file(
         cls, store: Store, *, fmt: Optional[str] = None, label: str = "data", **kwargs
     ):
-        """load state from a file
+        """load object from a file
 
         Args:
             store (str or :class:`zarr.Store`):
@@ -287,7 +287,7 @@ class IOBase:
         overwrite: bool = False,
         **kwargs,
     ) -> None:
-        """write this state to a file
+        """write this object to a file
 
         Args:
             store (str or :class:`zarr.Store`):

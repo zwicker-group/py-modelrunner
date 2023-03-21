@@ -7,7 +7,7 @@ Classes that describe the state of a simulation using a dictionary of states
 from __future__ import annotations
 
 import itertools
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Sequence, Union
 
 import zarr
 
@@ -21,14 +21,22 @@ class DictState(StateBase):
     data: Dict[str, StateBase]
 
     def __init__(
-        self, data: Optional[Union[Dict[str, StateBase], Tuple[StateBase]]] = None
+        self, data: Optional[Union[Dict[str, StateBase], Sequence[StateBase]]] = None
     ):
+        """
+        Args:
+            data (dict or tuple):
+                A dictionary of instances of :class:`StateBase` stored in this state.
+                If instead a sequence is given, we generated ascending keys starting at
+                zero automatically.
+        """
         if data is None:
-            self._state_data = {}
-        elif not isinstance(data, dict):
-            self._state_data = {str(i): v for i, v in enumerate(data)}
-        else:
+            self._state_data = {}  # no data
+        elif isinstance(data, dict):
             self._state_data = data
+        else:
+            # data given in some other from -> we assume it's a sequence
+            self._state_data = {str(i): v for i, v in enumerate(data)}
 
     @property
     def _state_attributes(self) -> Dict[str, Any]:
@@ -36,6 +44,12 @@ class DictState(StateBase):
         attributes = super()._state_attributes
         attributes["__keys__"] = list(self._state_data.keys())
         return attributes
+
+    @_state_attributes.setter
+    def _state_attributes(self, attributes: Dict[str, Any]) -> None:
+        """set the attributes of the state"""
+        attributes.pop("__keys__")  # remove auxillary information
+        super(DictState, DictState)._state_attributes.__set__(self, attributes)  # type: ignore
 
     @classmethod
     def from_data(cls, attributes: Dict[str, Any], data=None):
@@ -45,16 +59,19 @@ class DictState(StateBase):
             attributes (dict): Additional (unserialized) attributes
             data: The data of the degerees of freedom of the physical system
         """
+        attributes.pop("__class__")
+        attributes.pop("__version__")
         if data is None or not isinstance(data, (dict, tuple, list)):
             raise TypeError("`data` must be a dictionary or sequence")
         if not isinstance(data, dict) and "__keys__" in attributes:
-            data = {k: v for k, v in zip(attributes["__keys__"], data)}
+            data = {k: v for k, v in zip(attributes.pop("__keys__"), data)}
 
         # create a new object without calling __init__, which might be overwriten by
         # the subclass and not follow our interface
         obj = cls.__new__(cls)
         if data is not None:
             obj._state_data = data
+        obj._state_attributes = attributes
         return obj
 
     def __len__(self) -> int:
