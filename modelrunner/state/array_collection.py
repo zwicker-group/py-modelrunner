@@ -40,13 +40,7 @@ class ArrayCollectionState(StateBase):
         else:
             self._state_data = tuple(data)
 
-        # initialize the labels, although this is optional
-        num_arrays = len(self)
-        if labels is None:
-            self._labels = [str(i) for i in range(num_arrays)]
-        else:
-            assert num_arrays == len(labels) == len(set(labels))
-            self._labels = list(labels)
+        self.labels = labels  # type: ignore
 
     def __eq__(self, other):
         return (
@@ -67,12 +61,51 @@ class ArrayCollectionState(StateBase):
         else:
             return list(labels)
 
-    @property  # type: ignore
+    @labels.setter
+    def labels(self, labels: Sequence[str]) -> None:
+        """set the labels assigned to each array"""
+        num_arrays = len(self)
+        if labels is None:
+            self._labels = [str(i) for i in range(num_arrays)]
+        else:
+            assert num_arrays == len(labels) == len(set(labels))
+            self._labels = list(labels)  # type: ignore
+
+    @property
+    def _state_data(self) -> Any:
+        """determines what data is stored in this state
+
+        This property can be used to determine what is stored as `data` and in which
+        form.
+        """
+        try:
+            return getattr(self, self._state_data_attr_name)
+        except AttributeError:
+            # this can happen if the `data` attribute is not defined
+            raise AttributeError("`_state_data` should be defined by subclass")
+
+    @_state_data.setter
+    def _state_data(self, data) -> None:
+        """set the data of the class"""
+        try:
+            setattr(self, self._state_data_attr_name, data)  # try setting data directly
+        except AttributeError:
+            # this can happen if `data` is a read-only attribute, i.e., if the data
+            # attribute is managed by the child class
+            raise AttributeError("`_state_data` should be defined by subclass")
+
+    @property
     def _state_attributes(self) -> Dict[str, Any]:
         """dict: Additional attributes, which are required to restore the state"""
         attributes = super()._state_attributes
         attributes["labels"] = self.labels
         return attributes
+
+    @_state_attributes.setter
+    def _state_attributes(self, attributes: Dict[str, Any]) -> None:
+        """dict: Additional attributes, which are required to restore the state"""
+        self.labels = attributes.pop("labels", None)
+        super(ArrayCollectionState, ArrayCollectionState)._state_attributes.__set__(self, attributes)  # type: ignore
 
     @classmethod
     def from_data(cls, attributes: Dict[str, Any], data=None):
@@ -94,7 +127,7 @@ class ArrayCollectionState(StateBase):
         if data is not None:
             obj._state_data = data
         if labels is not None:
-            obj._labels = labels
+            obj._labels = labels  # type: ignore
         return obj
 
     def __len__(self) -> int:

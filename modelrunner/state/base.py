@@ -179,6 +179,21 @@ class StateBase(IOBase):
     def __eq__(self, other):
         return _equals(self, other)
 
+    def __getstate__(self):
+        """return a representation of the current state"""
+        attrs = self._state_attributes_store
+        # remove private attributes just used for storage
+        attrs.pop("__class__")
+        attrs.pop("__version__")
+        return {"attributes": attrs, "data": self._state_data}
+
+    def __setstate__(self, dictdata):
+        """set all properties of the object from a stored representation"""
+        if "data" in dictdata:
+            self._state_data = dictdata["data"]
+        if "attributes" in dictdata:
+            self._state_attributes = dictdata["attributes"]
+
     @classmethod
     def from_data(cls: Type[TState], attributes: Dict[str, Any], data=NoData) -> TState:
         """create instance of any state class from attributes and data
@@ -210,10 +225,10 @@ class StateBase(IOBase):
             # create a new object without calling __init__, which might be overwriten by
             # the subclass and not follow our interface
             obj = cls.__new__(cls)
-            if attributes:
-                obj._state_attributes = attributes
             if data is not NoData:
                 obj._state_data = data
+            if attributes:
+                obj._state_attributes = attributes
             return obj
 
         else:
@@ -228,10 +243,11 @@ class StateBase(IOBase):
         Returns:
             A copy of the current state object
         """
-        attributes = copy.deepcopy(self._state_attributes_store)
-        if data is None:
-            data = copy.deepcopy(self._state_data)
-        return self.__class__.from_data(attributes, data)
+        return copy.copy(self)
+        # attributes = copy.deepcopy(self._state_attributes_store)
+        # if data is None:
+        #     data = copy.deepcopy(self._state_data)
+        # return self.__class__.from_data(attributes, data)
 
     def _state_write_zarr_attributes(
         self, element: zarrElement, attrs: Optional[Dict[str, Any]] = None

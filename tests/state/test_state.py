@@ -2,6 +2,8 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
+import copy
+
 import numpy as np
 import pytest
 
@@ -14,9 +16,14 @@ from utils.states import EXTENSIONS, get_states
 def test_state_basic(state):
     """test basic properties of states"""
     assert state.__class__.__name__ in StateBase._state_classes
+
     s2 = state.copy()
     assert state is not s2
     assert state == s2
+
+    s3 = copy.copy(state)
+    assert state is not s3
+    assert state == s3
 
 
 @pytest.mark.parametrize("state", get_states())
