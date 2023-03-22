@@ -146,7 +146,7 @@ class StateBase(IOBase):
         This property modifies the normal `_state_attributes` and adds information
         necessary for restoring the class using :meth:`StateBase.from_data`.
         """
-        attrs = self._state_attributes.copy()
+        attrs = copy.deepcopy(self._state_attributes)
 
         # add some additional information
         attrs["__class__"] = self.__class__.__name__
