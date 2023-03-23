@@ -52,11 +52,6 @@ def _equals(left: Any, right: Any) -> bool:
             _equals(left[key], right[key]) for key in left
         )
 
-    if isinstance(left, StateBase):
-        return left._state_attributes == right._state_attributes and _equals(
-            left._state_data, right._state_data
-        )
-
     if hasattr(left, "__iter__"):
         return len(left) == len(right) and all(
             _equals(l, r) for l, r in zip(left, right)
@@ -103,6 +98,18 @@ class StateBase(IOBase):
             if cls.__name__ in StateBase._state_classes:
                 warnings.warn(f"Redefining class {cls.__name__}")
             StateBase._state_classes[cls.__name__] = cls
+
+    def _state_init(self, attributes: Dict[str, Any], data=NoData) -> None:
+        """initialize the state with attributes and (optionally) data
+
+        Args:
+            attributes (dict): Additional (unserialized) attributes
+            data: The data of the degerees of freedom of the physical system
+        """
+        if data is not NoData:
+            self._state_data = data
+        if attributes:
+            self._state_attributes = attributes
 
     @property
     def _state_attributes(self) -> Dict[str, Any]:
@@ -177,22 +184,23 @@ class StateBase(IOBase):
             raise AttributeError("`_state_data` should be defined by subclass")
 
     def __eq__(self, other):
-        return _equals(self, other)
+        if self.__class__ is not other.__class__:
+            return False
+        if self._state_attributes != other._state_attributes:
+            return False
+        return _equals(self._state_data, other._state_data)
 
     def __getstate__(self):
         """return a representation of the current state"""
         attrs = self._state_attributes_store
-        # remove private attributes just used for storage
+        # remove private attributes used for persistent storage
         attrs.pop("__class__")
         attrs.pop("__version__")
         return {"attributes": attrs, "data": self._state_data}
 
     def __setstate__(self, dictdata):
         """set all properties of the object from a stored representation"""
-        if "data" in dictdata:
-            self._state_data = dictdata["data"]
-        if "attributes" in dictdata:
-            self._state_attributes = dictdata["attributes"]
+        self._state_init(dictdata.get("attributes", {}), dictdata.get("data", NoData))
 
     @classmethod
     def from_data(cls: Type[TState], attributes: Dict[str, Any], data=NoData) -> TState:
@@ -205,16 +213,13 @@ class StateBase(IOBase):
         Returns:
             The object containing the given attributes and data
         """
-        if cls is StateBase:
-            # use the base class as a point to load arbitrary subclasses
-            if attributes["__class__"] == "StateBase":
-                raise RuntimeError("Cannot create StateBase instances")
-            state_cls = cls._state_classes[attributes["__class__"]]
-            return state_cls.from_data(attributes, data)  # type: ignore
+        # copy attributes since they are modified in this function
+        attributes = attributes.copy()
+        cls_name = attributes.pop("__class__", None)
 
-        elif cls.__name__ == attributes["__class__"]:
-            # simple version instantiating the current class with the given data
-            del attributes["__class__"]  # do not propagate this information
+        if cls_name is None or cls.__name__ == cls_name:
+            # attributes contain right class name or no class information at all
+            # => instantiate current class with given data
             format_version = attributes.pop("__version__", 0)
             if format_version != cls._state_format_version:
                 warnings.warn(
@@ -225,14 +230,18 @@ class StateBase(IOBase):
             # create a new object without calling __init__, which might be overwriten by
             # the subclass and not follow our interface
             obj = cls.__new__(cls)
-            if data is not NoData:
-                obj._state_data = data
-            if attributes:
-                obj._state_attributes = attributes
+            obj._state_init(attributes, data)
             return obj
 
+        elif cls is StateBase:
+            # use the base class as a point to load arbitrary subclasses
+            if cls_name == "StateBase":
+                raise RuntimeError("Cannot create StateBase instances")
+            state_cls = cls._state_classes[cls_name]
+            return state_cls.from_data(attributes, data)  # type: ignore
+
         else:
-            raise ValueError(f"Incompatible state class {attributes['class']}")
+            raise ValueError(f"Incompatible state class {cls_name}")
 
     def copy(self: TState, data=None) -> TState:
         """create a copy of the state
@@ -243,11 +252,15 @@ class StateBase(IOBase):
         Returns:
             A copy of the current state object
         """
-        return copy.copy(self)
-        # attributes = copy.deepcopy(self._state_attributes_store)
-        # if data is None:
-        #     data = copy.deepcopy(self._state_data)
-        # return self.__class__.from_data(attributes, data)
+        # use __getstate__ to get data
+        state = self.__getstate__()
+        if data is not None:
+            state["data"] = data
+
+        # use __setstate__ to set data on new object
+        obj = self.__class__.__new__(self.__class__)
+        obj.__setstate__(state)
+        return obj
 
     def _state_write_zarr_attributes(
         self, element: zarrElement, attrs: Optional[Dict[str, Any]] = None

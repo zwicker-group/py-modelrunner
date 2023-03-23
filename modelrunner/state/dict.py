@@ -59,20 +59,11 @@ class DictState(StateBase):
             attributes (dict): Additional (unserialized) attributes
             data: The data of the degerees of freedom of the physical system
         """
-        attributes.pop("__class__")
-        attributes.pop("__version__")
         if data is None or not isinstance(data, (dict, tuple, list)):
             raise TypeError("`data` must be a dictionary or sequence")
         if not isinstance(data, dict) and "__keys__" in attributes:
             data = {k: v for k, v in zip(attributes.pop("__keys__"), data)}
-
-        # create a new object without calling __init__, which might be overwriten by
-        # the subclass and not follow our interface
-        obj = cls.__new__(cls)
-        if data is not None:
-            obj._state_data = data
-        obj._state_attributes = attributes
-        return obj
+        return super().from_data(attributes, data)
 
     def __len__(self) -> int:
         return len(self._state_data)

@@ -42,16 +42,6 @@ class ArrayCollectionState(StateBase):
 
         self.labels = labels  # type: ignore
 
-    def __eq__(self, other):
-        return (
-            self.__class__ == other.__class__
-            and len(self) == len(other)
-            and all(
-                np.array_equal(s, o)
-                for s, o in zip(self._state_data, other._state_data)
-            )
-        )
-
     @property
     def labels(self) -> List[str]:
         """list: the label assigned to each array"""
@@ -117,18 +107,7 @@ class ArrayCollectionState(StateBase):
         """
         if data is not None:
             data = tuple(np.asarray(subdata) for subdata in data)
-        labels = attributes.get("labels")
-        # quick test if there are additional attributes lingering
-        assert sum(1 for key in attributes if not key.startswith("_")) <= 1
-
-        # create a new object without calling __init__, which might be overwriten by
-        # the subclass and not follow our interface
-        obj = cls.__new__(cls)
-        if data is not None:
-            obj._state_data = data
-        if labels is not None:
-            obj._labels = labels  # type: ignore
-        return obj
+        return super().from_data(attributes, data)
 
     def __len__(self) -> int:
         return len(self._state_data)
