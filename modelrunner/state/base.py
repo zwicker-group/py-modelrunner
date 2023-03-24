@@ -183,6 +183,15 @@ class StateBase(IOBase):
             # attribute is managed by the child class
             raise AttributeError("`_state_data` should be defined by subclass")
 
+    @property
+    def _state_data_store(self) -> Any:
+        """form of the data stored in this state which will be written to storage
+
+        This property modifies the normal `_state_data` and adds information
+        necessary for restoring the class using :meth:`StateBase.from_data`.
+        """
+        return self._state_data
+
     def __eq__(self, other):
         if self.__class__ is not other.__class__:
             return False
@@ -199,7 +208,7 @@ class StateBase(IOBase):
         # remove private attributes used for persistent storage
         attrs.pop("__class__")
         attrs.pop("__version__")
-        return {"attributes": attrs, "data": self._state_data}
+        return {"attributes": attrs, "data": self._state_data_store}
 
     def __setstate__(self, dictdata: Dict[str, Any]):
         """set all properties of the object from a stored representation"""
@@ -353,4 +362,7 @@ class StateBase(IOBase):
 
     def _to_simple_objects(self):
         """return object data suitable for encoding as text"""
-        return {"attributes": self._state_attributes_store, "data": self._state_data}
+        return {
+            "attributes": self._state_attributes_store,
+            "data": self._state_data_store,
+        }

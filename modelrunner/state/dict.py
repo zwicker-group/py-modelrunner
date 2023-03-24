@@ -93,7 +93,7 @@ class DictState(StateBase):
         self, zarr_group: zarr.Group, *, label: str = "data", **kwargs
     ) -> zarr.Group:
         zarr_subgroup = zarr_group.create_group(label)
-        for label, substate in self._state_data.items():
+        for label, substate in self._state_data_store.items():
             substate._write_zarr(zarr_subgroup, label=label, **kwargs)
         return zarr_subgroup
 
@@ -107,7 +107,7 @@ class DictState(StateBase):
     ) -> zarr.Group:
         """prepare the zarr storage for this state"""
         zarr_subgroup = zarr_group.create_group(label)
-        for label, substate in self._state_data.items():
+        for label, substate in self._state_data_store.items():
             substate._state_prepare_zarr_trajectory(
                 zarr_subgroup, label=label, **kwargs
             )
@@ -117,7 +117,7 @@ class DictState(StateBase):
 
     def _state_append_to_zarr_trajectory(self, zarr_element: zarr.Group) -> None:
         """append current data to a stored element"""
-        for label, substate in self._state_data.items():
+        for label, substate in self._state_data_store.items():
             substate._state_append_to_zarr_trajectory(zarr_element[label])
 
     @classmethod
@@ -141,6 +141,6 @@ class DictState(StateBase):
         """return object data suitable for encoding as JSON"""
         data = {
             label: substate._to_simple_objects()
-            for label, substate in self._state_data.items()
+            for label, substate in self._state_data_store.items()
         }
         return {"attributes": self._state_attributes_store, "data": data}

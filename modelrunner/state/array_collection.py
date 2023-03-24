@@ -61,28 +61,28 @@ class ArrayCollectionState(StateBase):
             assert num_arrays == len(labels) == len(set(labels))
             self._labels = list(labels)  # type: ignore
 
-    @property
-    def _state_data(self) -> Any:
-        """determines what data is stored in this state
-
-        This property can be used to determine what is stored as `data` and in which
-        form.
-        """
-        try:
-            return getattr(self, self._state_data_attr_name)
-        except AttributeError:
-            # this can happen if the `data` attribute is not defined
-            raise AttributeError("`_state_data` should be defined by subclass")
-
-    @_state_data.setter
-    def _state_data(self, data) -> None:
-        """set the data of the class"""
-        try:
-            setattr(self, self._state_data_attr_name, data)  # try setting data directly
-        except AttributeError:
-            # this can happen if `data` is a read-only attribute, i.e., if the data
-            # attribute is managed by the child class
-            raise AttributeError("`_state_data` should be defined by subclass")
+    # @property
+    # def _state_data(self) -> Any:
+    #     """determines what data is stored in this state
+    #
+    #     This property can be used to determine what is stored as `data` and in which
+    #     form.
+    #     """
+    #     try:
+    #         return getattr(self, self._state_data_attr_name)
+    #     except AttributeError:
+    #         # this can happen if the `data` attribute is not defined
+    #         raise AttributeError("`_state_data` should be defined by subclass")
+    #
+    # @_state_data.setter
+    # def _state_data(self, data) -> None:
+    #     """set the data of the class"""
+    #     try:
+    #         setattr(self, self._state_data_attr_name, data)  # try setting data directly
+    #     except AttributeError:
+    #         # this can happen if `data` is a read-only attribute, i.e., if the data
+    #         # attribute is managed by the child class
+    #         raise AttributeError("`_state_data` should be defined by subclass")
 
     @property
     def _state_attributes(self) -> Dict[str, Any]:
@@ -137,7 +137,7 @@ class ArrayCollectionState(StateBase):
         self, zarr_group: zarr.Group, *, label: str = "data", **kwargs
     ) -> zarr.Group:
         zarr_subgroup = zarr_group.create_group(label)
-        for sublabel, substate in zip(self.labels, self._state_data):
+        for sublabel, substate in zip(self.labels, self._state_data_store):
             zarr_subgroup.array(sublabel, substate)
         return zarr_subgroup
 
@@ -151,7 +151,7 @@ class ArrayCollectionState(StateBase):
     ) -> zarr.Group:
         """prepare the zarr storage for this state"""
         zarr_subgroup = zarr_group.create_group(label)
-        for sublabel, subdata in zip(self.labels, self._state_data):
+        for sublabel, subdata in zip(self.labels, self._state_data_store):
             zarr_subgroup.zeros(
                 sublabel,
                 shape=(0,) + subdata.shape,
@@ -164,7 +164,7 @@ class ArrayCollectionState(StateBase):
 
     def _state_append_to_zarr_trajectory(self, zarr_element: zarr.Group) -> None:
         """append current data to a stored element"""
-        for label, subdata in zip(self.labels, self._state_data):
+        for label, subdata in zip(self.labels, self._state_data_store):
             zarr_element[label].append([subdata])
 
     @classmethod
@@ -187,6 +187,6 @@ class ArrayCollectionState(StateBase):
 
     def _to_simple_objects(self):
         """return object data suitable for encoding as JSON"""
-        data = self._state_data
+        data = self._state_data_store
         data_simple = {label: substate for label, substate in zip(self.labels, data)}
         return {"attributes": self._state_attributes_store, "data": data_simple}

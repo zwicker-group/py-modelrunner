@@ -235,7 +235,7 @@ class Result(IOBase):
 
         # write the actual data
         write_hdf_dataset(root, self.state._state_attributes_store, "state")
-        write_hdf_dataset(root, self.state._state_data, "data")
+        write_hdf_dataset(root, self.state._state_data_store, "data")
 
     @classmethod
     def _from_zarr(
