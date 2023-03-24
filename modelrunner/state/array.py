@@ -78,8 +78,8 @@ class ArrayState(StateBase):
                 dtype = pickle.loads(codecs.decode(dtype_pickled.encode(), "base64"))
                 if data.dtype.names is None:
                     data = unstructured_to_structured(data, dtype=dtype)
-                else:
-                    assert dtype == data.dtype
+                elif dtype != data.dtype:
+                    raise AssertionError(f"{dtype} != {data.dtype}")
                 data = data.view(np.recarray)
 
         super()._state_init(attributes, data)
