@@ -35,18 +35,6 @@ class ArrayState(StateBase):
     def _is_record_array(self) -> bool:
         return self._state_data.dtype.names is not None
 
-    @classmethod
-    def from_data(cls, attributes: Dict[str, Any], data=None):
-        """create instance from attributes and data
-
-        Args:
-            attributes (dict): Additional (unserialized) attributes
-            data: The data of the degerees of freedom of the physical system
-        """
-        if data is not None:
-            data = np.asarray(data)
-        return super().from_data(attributes, data)
-
     @property
     def _state_attributes_store(self) -> Dict[str, Any]:
         """dict: Attributes in the form in which they will be written to storage
@@ -79,17 +67,20 @@ class ArrayState(StateBase):
             attributes (dict): Additional (unserialized) attributes
             data: The data of the degerees of freedom of the physical system
         """
-        if "__dtype_pickled__" in attributes:
-            # the prescence of this attribute signals that data is a record array
-            # the attribute then contains information about the dtype, which we need to
-            # reconstruct or at least check
-            dtype_pickled = attributes.pop("__dtype_pickled__")
-            dtype = pickle.loads(codecs.decode(dtype_pickled.encode(), "base64"))
-            if data.dtype.names is None:
-                data = unstructured_to_structured(data, dtype=dtype)
-            else:
-                assert dtype == data.dtype
-            data = data.view(np.recarray)
+        if data is not NoData:
+            data = np.asarray(data)
+
+            if "__dtype_pickled__" in attributes:
+                # the prescence of this attribute signals that data is a record array
+                # the attribute then contains information about the dtype, which we need
+                # to reconstruct or at least check
+                dtype_pickled = attributes.pop("__dtype_pickled__")
+                dtype = pickle.loads(codecs.decode(dtype_pickled.encode(), "base64"))
+                if data.dtype.names is None:
+                    data = unstructured_to_structured(data, dtype=dtype)
+                else:
+                    assert dtype == data.dtype
+                data = data.view(np.recarray)
 
         super()._state_init(attributes, data)
 
