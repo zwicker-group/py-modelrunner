@@ -30,6 +30,8 @@ dependencies = [
     "pandas>=1.3",
     "PyYAML>=5",
     "tqdm>=4.45",
+    "zarr>=2",
+    "numcodecs>=0.10",
 ]
 
 [project.urls]
@@ -64,11 +66,12 @@ target_version = ["py38"]
 
 [tool.isort]
 profile = "black"
-known_self = "modelrunner"
+known_self = ["modelrunner", "utils"]
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "SELF", "LOCALFOLDER"]
 
 [tool.pytest.ini_options]
 addopts = "--strict-markers"
+norecursedirs = "tests/utils"
 filterwarnings = [
     'ignore:.*importing the ABCs from.*:DeprecationWarning',
     'ignore:.*IPython.utils.signatures backport for Python 2 is deprecated.*:DeprecationWarning',
@@ -90,8 +93,10 @@ module = [
     "IPython.*",
     "ipywidgets.*",
     "mpl_toolkits.*",
+    "numcodecs.*",
     "numpy.*",
     "pandas.*",
     "pytest.*",
+    "zarr.*",
 ]
 ignore_missing_imports = true
