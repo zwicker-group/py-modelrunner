@@ -62,7 +62,6 @@ def test_types(*, report: bool = False, verbose: bool = True):
 
 
 def run_unit_tests(
-    runslow: bool = False,
     parallel: bool = False,
     coverage: bool = False,
     no_numba: bool = False,
@@ -71,7 +70,6 @@ def run_unit_tests(
     """run the unit tests
 
     Args:
-        runslow (bool): Whether to run the slow tests
         parallel (bool): Whether to use multiple processors
         coverage (bool): Whether to determine the test coverage
         no_numba (bool): Whether to disable numba jit compilation
@@ -96,10 +94,6 @@ def run_unit_tests(
         "-rs",  # show summary of skipped tests
         "-rw",  # show summary of warnings raised during tests
     ]
-
-    # allow running slow tests?
-    if runslow:
-        args.append("--runslow")
 
     # run tests using multiple cores?
     if parallel:
@@ -159,12 +153,6 @@ def main():
         help="Suppress output from the script",
     )
     group.add_argument(
-        "--runslow",
-        action="store_true",
-        default=False,
-        help="Also run slow unit tests",
-    )
-    group.add_argument(
         "--coverage",
         action="store_true",
         default=False,
@@ -206,7 +194,6 @@ def main():
         test_types(report=args.report, verbose=not args.quite)
     if run_all or args.unit:
         run_unit_tests(
-            runslow=args.runslow,
             coverage=args.coverage,
             parallel=args.parallel,
             no_numba=args.no_numba,

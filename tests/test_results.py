@@ -5,22 +5,7 @@
 import numpy as np
 import pytest
 
-from modelrunner.results import Result, ResultCollection, simplify_data
-
-
-def test_simplify_data():
-    """test the simplify_data function"""
-    assert simplify_data(1) == 1
-    assert simplify_data(1.5) == 1.5
-    assert simplify_data("1") == "1"
-    assert simplify_data((1, "1")) == [1, "1"]
-    assert simplify_data([1, "1"]) == [1, "1"]
-    assert simplify_data([1, (1, "1")]) == [1, [1, "1"]]
-    assert simplify_data(np.arange(3)) == [0, 1, 2]
-    assert simplify_data(np.array([1])) == [1]
-    assert simplify_data(np.array(1)).__class__ is int
-    assert simplify_data(np.int32(2)).__class__ is int
-    assert simplify_data(np.float32(2.5)).__class__ is float
+from modelrunner.results import Result, ResultCollection
 
 
 @pytest.mark.parametrize("extension", [".hdf", ".yaml", ".json"])
@@ -38,12 +23,12 @@ def test_result_serialization(extension, tmp_path):
 
     # write data
     path = tmp_path / ("test" + extension)
-    result.write_to_file(path)
+    result.to_file(path)
 
     # read data
     read = Result.from_file(path)
     assert read.model.name == "model"
-    np.testing.assert_equal(read.result, result.result)
+    np.testing.assert_equal(read.data, result.data)
 
 
 def test_result_collections():

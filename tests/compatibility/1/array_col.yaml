@@ -1,0 +1,21 @@
+__version__: 1
+model:
+  class: MockModel
+  name: model
+  description: null
+  parameters: {}
+state:
+  attributes:
+    labels:
+    - a
+    - b
+    __class__: ArrayCollectionState
+    __version__: 1
+  data:
+    a:
+    - 0
+    - 1
+    b:
+    - 0
+    - 1
+    - 2

@@ -23,7 +23,7 @@ if __name__ == "__main__":
     os.makedirs("data")
     for n, a in enumerate(range(5, 10)):
         result = model({"a": a}).get_result()
-        result.write_to_json(f"data/test_{n}.json")
+        result.to_file(f"data/test_{n}.json")
 
     # read data
     rc = ResultCollection.from_folder("data")
