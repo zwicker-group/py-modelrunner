@@ -16,7 +16,7 @@ from .io import zarrElement
 
 
 class ArrayCollectionState(StateBase):
-    """State characterized by a multiple numpy array
+    """State characterized by a multiple numpy array as the payload `data`
 
     The arrays are given as a tuple of :class:`~numpy.ndarray`. Optionally, a sequence
     of labels can be supplied to refer to the arrays by convenient names. If the labels

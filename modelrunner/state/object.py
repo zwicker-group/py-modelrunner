@@ -16,7 +16,7 @@ from .io import zarrElement
 
 
 class ObjectState(StateBase):
-    """State characterized by a serializable python object
+    """State characterized by a serializable python object as the payload `data`
 
     The data needs to be accessible from the :attr:`data` property of the instance.
     Additional attributes can be supplied via the :attr:`attribute` property, which will

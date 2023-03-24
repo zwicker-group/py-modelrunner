@@ -16,7 +16,7 @@ from .io import zarrElement
 
 
 class DictState(StateBase):
-    """State characterized by a dictionary of states"""
+    """State characterized by a dictionary of states to allow for nested statesß"""
 
     data: Dict[str, StateBase]
 

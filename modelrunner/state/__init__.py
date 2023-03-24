@@ -62,4 +62,4 @@ def load_state(
     Returns:
         :class:`StateBase`: The state loaded from a file
     """
-    return StateBase.from_file(store, fmt=fmt, label=label)  # type: ignore
+    return StateBase.from_file(store, fmt=fmt, label=label, **kwargs)  # type: ignore

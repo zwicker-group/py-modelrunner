@@ -22,7 +22,7 @@ from .io import zarrElement
 
 
 class ArrayState(StateBase):
-    """State characterized by a single numpy array"""
+    """State characterized by a single numpy array as the payload `data`"""
 
     def __init__(self, data: np.ndarray):
         """

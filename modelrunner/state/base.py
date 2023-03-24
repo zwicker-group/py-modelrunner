@@ -22,12 +22,6 @@ class NoData:
     ...
 
 
-class DoNotStore(Exception):
-    """helper exception to signal that an attribute should not be stored"""
-
-    ...
-
-
 def _equals(left: Any, right: Any) -> bool:
     """checks whether two objects are equal, also supporting :class:~numpy.ndarray`
 
