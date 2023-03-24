@@ -29,9 +29,9 @@ import numpy as np
 
 from .array import ArrayState
 from .array_collection import ArrayCollectionState
-from .base import StateBase
+from .base import NoData, StateBase
 from .dict import DictState
-from .io import Store
+from .io import Store, simplify_data
 from .object import ObjectState
 
 
