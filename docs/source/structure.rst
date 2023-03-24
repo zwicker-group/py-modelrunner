@@ -42,3 +42,20 @@ The last point results in particular constraints if we want to store temporal si
 In most cases, there are are some data that are kept fixed for the simulation (describing physical parameters) and others that evolve with time.
 We denote by `attributes` the parameters that are kept fixed and by `data` the data that varies over time.
 The state classes are already prepared to deal with such data, in conjuction with the :mod:`~modelrunner.state.trajectory` module.
+
+We provide four basic classes that can deal with state data of different type:
+
+- :class:`~modelrunner.state.array.ArrayState` contains a single numpy array
+- :class:`~modelrunner.state.array_collection.ArrayCollectionState` contains multiple numpy arrays
+- :class:`~modelrunner.state.object.ObjectState` contains a single serializable python object
+- :class:`~modelrunner.state.dict.DictState` contains a dictionary of states to allow for nesting
+
+All state classes can be sub-classed to adjust to specialized needs. This will often be
+necessary if some attributes cannot be serialized automatically or if the data requires
+some modifications before storing. To facilitate control over how data is written and
+read, we provide the :attr:`~modelrunner.state.base.StateBase._state_attributes_store`
+and :attr:`~modelrunner.state.base.StateBase._state_data_store` attributes which should
+return respective attributes and data in a form that can be stored directly. When the
+object will be restored during reading, the
+:meth:`~modelrunner.state.base.StateBase._state_init` method is used to set the
+properties of an object.

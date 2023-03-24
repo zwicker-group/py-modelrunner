@@ -7,10 +7,15 @@ These classes define how data is read and written and they contain methods that 
 used to write multiple states of the same class to a file consecutively, e.g., to store
 a trajectory. Here, it is assumed that the `attributes` do not change over time.
 
-TODO:
-- document the succession of calls for storing fields (to get a better idea of the
-  available hooks)
-- do the same for loading data
+All state classes can be sub-classed to adjust to specialized needs. This will often be
+necessary if some attributes cannot be serialized automatically or if the data requires
+some modifications before storing. To facilitate control over how data is written and
+read, we provide the :attr:`~modelrunner.state.base.StateBase._state_attributes_store`
+and :attr:`~modelrunner.state.base.StateBase._state_data_store` attributes which should
+return respective attributes and data in a form that can be stored directly. When the
+object will be restored during reading, the
+:meth:`~modelrunner.state.base.StateBase._state_init` method is used to set the
+properties of an object.
 
 .. autosummary::
    :nosignatures:

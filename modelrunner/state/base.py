@@ -4,6 +4,7 @@ Base classes that describe the state of a simulation at a single point in time
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
+
 from __future__ import annotations
 
 import copy
@@ -67,6 +68,12 @@ class StateBase(IOBase):
     storage, we define the properties `_state_data` and `_state_attributes`, which by
     default return `attributes` and `data` directly, but may be overwritten to process
     the data before storage (e.g., by additional serialization).
+
+    .. automethod:: StateBase._state_init
+    .. autoproperty:: StateBase._state_attributes
+    .. autoproperty:: StateBase._state_attributes_store
+    .. autoproperty:: StateBase._state_data
+    .. autoproperty:: StateBase._state_data_store
     """
 
     _state_format_version = 1
