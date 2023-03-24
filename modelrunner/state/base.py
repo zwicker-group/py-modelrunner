@@ -190,15 +190,18 @@ class StateBase(IOBase):
             return False
         return _equals(self._state_data, other._state_data)
 
-    def __getstate__(self):
-        """return a representation of the current state"""
+    def __getstate__(self) -> Dict[str, Any]:
+        """return a representation of the current state
+
+        Note that this representation might contain views into actual data
+        """
         attrs = self._state_attributes_store
         # remove private attributes used for persistent storage
         attrs.pop("__class__")
         attrs.pop("__version__")
         return {"attributes": attrs, "data": self._state_data}
 
-    def __setstate__(self, dictdata):
+    def __setstate__(self, dictdata: Dict[str, Any]):
         """set all properties of the object from a stored representation"""
         self._state_init(dictdata.get("attributes", {}), dictdata.get("data", NoData))
 
@@ -256,6 +259,9 @@ class StateBase(IOBase):
         state = self.__getstate__()
         if data is not None:
             state["data"] = data
+
+        # create a copy of the state
+        state = copy.deepcopy(state)
 
         # use __setstate__ to set data on new object
         obj = self.__class__.__new__(self.__class__)
