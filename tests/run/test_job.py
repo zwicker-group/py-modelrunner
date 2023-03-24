@@ -18,7 +18,7 @@ def test_submit_job(tmp_path):
 
     def run(**p):
         """helper submitting job locally"""
-        output = tmp_path / "output.yaml"
+        output = tmp_path / "output.json"
         submit_job(
             SCRIPT_PATH / "function.py",
             output,
@@ -27,11 +27,11 @@ def test_submit_job(tmp_path):
             method="foreground",
             overwrite_strategy="silent_overwrite",
         )
-        return Result.from_file(output).result
+        return Result.from_file(output)
 
-    assert run()["a"] == 1
-    assert run(a=2)["a"] == 2
-    assert run(b=[1, 2, 3])["b"] == [1, 2, 3]
+    assert run().data["a"] == 1
+    assert run(a=2).data["a"] == 2
+    assert run(b=[1, 2, 3]).data["b"] == [1, 2, 3]
 
 
 def test_submit_jobs(tmp_path):
@@ -39,7 +39,7 @@ def test_submit_jobs(tmp_path):
 
     def run(parameters, **kwargs):
         """helper submitting job locally"""
-        submit_jobs(
+        num_jobs = submit_jobs(
             SCRIPT_PATH / "function.py",
             tmp_path,
             parameters=parameters.copy(),
@@ -51,6 +51,7 @@ def test_submit_jobs(tmp_path):
 
         # read result
         col = ResultCollection.from_folder(tmp_path).dataframe
+        assert len(col) == num_jobs
 
         # delete temporary files
         for path in tmp_path.iterdir():

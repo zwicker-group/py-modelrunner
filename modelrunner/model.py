@@ -4,9 +4,8 @@ Base class describing a model.
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-from __future__ import annotations
-
 import argparse
+import functools
 import importlib.util
 import inspect
 import json
@@ -14,7 +13,17 @@ import logging
 import os.path
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    Sequence,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from .parameters import (
     DeprecatedParameter,
@@ -23,6 +32,7 @@ from .parameters import (
     Parameter,
     Parameterized,
 )
+from .state import ObjectState, StateBase
 
 if TYPE_CHECKING:
     from .results import Result  # @UnusedImport
@@ -33,7 +43,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
 
     name: Optional[str] = None
     description: Optional[str] = None
-    extra_parameter_behavior = "raise"
+    state_cls = ObjectState
 
     def __init__(
         self, parameters: Optional[Dict[str, Any]] = None, output: Optional[str] = None
@@ -58,11 +68,11 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         """main method calculating the result"""
         pass
 
-    def get_result(self, result_data=None) -> "Result":
+    def get_result(self, state: Optional[StateBase] = None) -> "Result":
         """get the result as a :class:`~model.Result` object
 
         Args:
-            result_data:
+            state:
                 The result data. If omitted, the model is run to obtain results
 
         Returns:
@@ -70,22 +80,23 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         """
         from .results import Result  # @Reimport
 
-        if result_data is None:
-            result_data = self()
-        elif isinstance(result_data, Result):
-            return result_data
+        if state is None:
+            state_data = self()
+            state = self.state_cls(state_data)
+        elif isinstance(state, Result):
+            return state
 
         info = {"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-        return Result(self, result_data, info=info)
+        return Result(self, state, info=info)
 
-    def write_result(self, output: Optional[str] = None, result_data=None) -> None:
+    def write_result(self, output: Optional[str] = None, result=None) -> None:
         """write the result to the output file
 
         Args:
             output (str):
                 File where the output will be written to. If omitted self.output will be
                 used. If self.output is also None, an error will be thrown.
-            result_data:
+            result:
                 The result data. If omitted, the model is run to obtain results
         """
         if output is None:
@@ -93,8 +104,13 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         if output is None:
             raise RuntimeError("output file needs to be specified")
 
-        result = self.get_result(result_data)
-        result.write_to_file(output)
+        if result is None:
+            result = self.get_result()
+        else:
+            from .results import Result  # @Reimport
+
+            assert isinstance(result, Result)
+        result.to_file(output)
 
     @classmethod
     def _prepare_argparser(cls, name: Optional[str] = None) -> argparse.ArgumentParser:
@@ -137,7 +153,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
     @classmethod
     def from_command_line(
         cls, args: Optional[Sequence[str]] = None, name: Optional[str] = None
-    ) -> ModelBase:
+    ) -> "ModelBase":
         """create model from command line parameters
 
         Args:
@@ -191,17 +207,20 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         """
         # create model from command line parameters
         mdl = cls.from_command_line(args, name)
+
         # run the model
         result = mdl.get_result()
-
-        # write the results (if output file was specified)
         if mdl.output:
-            mdl.write_result(output=None, result_data=result)
+            # write the results to a file
+            mdl.write_result(output=None, result=result)
+        else:
+            # display the results on stdout
+            print(result.state._to_simple_objects()["data"])
 
         return result
 
     @property
-    def attributes(self) -> Dict[str, Any]:
+    def _state_attributes(self) -> Dict[str, Any]:
         """dict: information about the element state, which does not change in time"""
         return {
             "class": self.__class__.__name__,
@@ -215,9 +234,10 @@ _DEFAULT_MODEL: Union[Callable, ModelBase, None] = None
 """stores the default model that will be used automatically"""
 
 
-def set_default(
-    func_or_model: Union[Callable, ModelBase, None]
-) -> Union[Callable, ModelBase, None]:
+TModel = TypeVar("TModel", Callable, ModelBase, None)
+
+
+def set_default(func_or_model: TModel) -> TModel:
     """sets the function or model as the default model
 
     The last model that received this flag will be run automatically. This only affects
@@ -234,6 +254,25 @@ def set_default(
     global _DEFAULT_MODEL
     _DEFAULT_MODEL = func_or_model
     return func_or_model
+
+
+TFunc = TypeVar("TFunc", bound=Any)
+
+
+def cleared_default_model(func: TFunc) -> TFunc:
+    """run the function with a cleared _DEFAULT_MODEL and restore it afterwards"""
+
+    @functools.wraps(func)
+    def inner(*args, **kwargs):
+        global _DEFAULT_MODEL
+        _old_model = _DEFAULT_MODEL
+        _DEFAULT_MODEL = None
+        try:
+            return func(*args, **kwargs)
+        finally:
+            _DEFAULT_MODEL = _old_model
+
+    return inner  # type: ignore
 
 
 def make_model_class(func: Callable, *, default: bool = False) -> Type[ModelBase]:
@@ -267,12 +306,18 @@ def make_model_class(func: Callable, *, default: bool = False) -> Type[ModelBase
         parameters = {}
         for i, (name, value) in enumerate(self.parameters.items()):
             if len(args) > i:
-                value = args[i]
+                if name in kwargs:
+                    raise ValueError(f"{name} also given as positional argument")
+                param_value = args[i]
             elif name in kwargs:
-                value = kwargs[name]
-            if value is NoValue:
+                param_value = kwargs[name]
+            else:
+                param_value = value
+
+            if param_value is NoValue:
                 raise TypeError(f"Model missing required argument: '{name}'")
-            parameters[name] = value
+            parameters[name] = param_value
+
         return func(**parameters)
 
     args = {
@@ -330,6 +375,7 @@ def run_function_with_cmd_args(
     return make_model_class(func).run_from_command_line(args, name=name)
 
 
+@cleared_default_model
 def run_script(script_path: str, model_args: Sequence[str]) -> "Result":
     """helper function that runs a model script
 
@@ -368,8 +414,11 @@ def run_script(script_path: str, model_args: Sequence[str]) -> "Result":
         or inspect.isclass(_DEFAULT_MODEL)
         and issubclass(_DEFAULT_MODEL, ModelBase)
     ):
+        logger.info("Run marked default model object")
         return _DEFAULT_MODEL.run_from_command_line(model_args, name=filename)
+
     elif callable(_DEFAULT_MODEL):
+        logger.info("Run marked default model function")
         return run_function_with_cmd_args(
             _DEFAULT_MODEL, args=model_args, name=filename
         )
@@ -423,7 +472,7 @@ def run_script(script_path: str, model_args: Sequence[str]) -> "Result":
     elif len(candidate_funcs) > 1:
         # there are multiple functions and we do not know which one to run
         names = ", ".join(sorted(candidate_funcs.keys()))
-        raise RuntimeError(f"Found many function, but no 'main' function: {names}")
+        raise RuntimeError(f"Found many functions, but no 'main' function: {names}")
 
     else:
         # we could not find any useful objects

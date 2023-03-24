@@ -95,10 +95,10 @@ class Parameter:
             cls:
                 The type of the parameter, which is used for conversion
             description (str):
-                A string describing the parameter, which appears in the help
+                A string describing the impact of this parameter. This
+                description appears in the parameter help
             hidden (bool):
-                Whether the parameter is hidden in the description summary. This can be
-                useful to support parameter that can only be set programmatically.
+                Whether the parameter is hidden in the description summary
             extra (dict):
                 Extra arguments that are stored with the parameter
         """
@@ -146,7 +146,7 @@ class Parameter:
 
     __str__ = __repr__
 
-    def __getstate__(self) -> Dict[str, Any]:
+    def __getstate__(self):
         # replace the object class by its class path
         return {
             "name": str(self.name),
@@ -157,13 +157,13 @@ class Parameter:
             "extra": self.extra,
         }
 
-    def __setstate__(self, state: Dict[str, Any]) -> None:
+    def __setstate__(self, state):
         # restore the object from the class path
         state["cls"] = import_class(state["cls"])
         # restore the state
         self.__dict__.update(state)
 
-    def convert(self, value=NoValue, *, strict: bool = True) -> Any:
+    def convert(self, value=NoValue, *, strict: bool = True):
         """converts a `value` into the correct type for this parameter. If
         `value` is not given, the default value is converted.
 
@@ -377,26 +377,12 @@ class Parameterized:
     """a mixin that manages the parameters of a class"""
 
     parameters_default: ParameterListType = []
-    """list of :class:`Parameter`: All the parameters defined for this class. Subclasses
-    inhert all entries from `parameters_default` of their parent classes, but parameters
-    can be redefined. In particular, defining `HideParameter` allows hiding parameters
-    of parent classes."""
-    extra_parameter_behavior: str = "raise"
-    """str: Determines what to do with extra parameters that are not defined in the
-    model. Possible options are `raise` (raises a ValueError), `warn` (add the
-    parameter, but emit a warning), `silent` (adds the parameters silently), or `ignore`
-    (ignore extra parameters)"""
-    strict_parameter_conversion: bool = True
-    """bool: If `True`, conversion to the type indicated by `cls` is enforced. If
-    `False`, the original value is returned when conversion fails."""
-
     _subclasses: Dict[str, Type[Parameterized]] = {}
 
-    def __init__(self, parameters: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self, parameters: Optional[Dict[str, Any]] = None, *, strict: bool = True
+    ):
         """initialize the parameters of the object
-
-        The class attribute `extra_parameter_behavior` determines how entries that are
-        not defined in `parameters_default` are treated.
 
         Args:
             parameters (dict):
@@ -404,6 +390,10 @@ class Parameterized:
                 parameters can be obtained from
                 :meth:`~Parameterized.get_parameters` or displayed by calling
                 :meth:`~Parameterized.show_parameters`.
+            strict (bool):
+                Flag indicating whether parameters are strictly interpreted. If `True`,
+                only parameters listed in `parameters_default` can be set and their type
+                will be enforced.
         """
         # set logger if this has not happened, yet
         if not hasattr(self, "_logger"):
@@ -412,7 +402,7 @@ class Parameterized:
         # set parameters if they have not been initialized, yet
         if not hasattr(self, "parameters"):
             self.parameters = self._parse_parameters(
-                parameters, include_deprecated=True
+                parameters, include_deprecated=True, check_validity=strict
             )
 
     def __init_subclass__(cls, **kwargs):  # @NoSelf
@@ -425,9 +415,12 @@ class Parameterized:
             cls.parameters_default = [
                 Parameter(*args) for args in cls.parameters_default.items()
             ]
+
         # register the subclasses
         super().__init_subclass__(**kwargs)
         if cls is not Parameterized:
+            if cls.__name__ in cls._subclasses:
+                warnings.warn(f"Redefining class {cls.__name__}")
             cls._subclasses[cls.__name__] = cls
 
     @classproperty
@@ -492,7 +485,7 @@ class Parameterized:
                         parameters[p.name] = p
 
         # filter parameters based on hidden and deprecated flags
-        def show(p: Parameter) -> bool:
+        def show(p):
             """helper function to decide whether parameter will be shown"""
             # show based on hidden flag?
             show1 = include_hidden or not p.hidden
@@ -513,30 +506,24 @@ class Parameterized:
     def _parse_parameters(
         cls,
         parameters: Optional[Dict[str, Any]] = None,
-        *,
+        check_validity: bool = True,
         allow_hidden: bool = True,
         include_deprecated: bool = False,
-        strict_conversion: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """parse parameters
 
         Args:
             parameters (dict):
                 A dictionary of parameters that will be parsed.
+            check_validity (bool):
+                Determines whether a `ValueError` is raised if there are keys in
+                parameters that are not in the defaults. If `False`, additional
+                items are simply stored in `self.parameters`
             allow_hidden (bool):
                 Allow setting hidden parameters
             include_deprecated (bool):
-                Flag determining whether deprecated parameters are included
-            strict_conversion (bool):
-                If `True`, conversion to the type indicated by `cls` is enforced. If
-                `False`, the original value is returned when conversion fails. If `None`
-                the class attribute `strict_parameter_conversion` is used
-
-        Returns:
-            dict: A dictionary with the converted and filtered parameter values
+                Include deprecated parameters
         """
-        if strict_conversion is None:
-            strict_conversion = cls.strict_parameter_conversion
         if parameters is None:
             parameters = {}
         else:
@@ -555,35 +542,21 @@ class Parameterized:
             # take value from parameters or set default value
             value = parameters.pop(name, NoValue)
             # convert parameter to correct type
-            result[name] = param_obj.convert(value, strict=strict_conversion)
+            result[name] = param_obj.convert(value, strict=check_validity)
 
-        # decide what to do with parameters not defined on the class
-        if parameters:
-            if cls.extra_parameter_behavior == "raise":
-                # raise an error
-                raise ValueError(
-                    f"Parameters `{sorted(parameters.keys())}` were provided for an "
-                    f"instance but are not defined for the class `{cls.__name__}`"
-                )
-            elif cls.extra_parameter_behavior == "warn":
-                # emit a warning
-                warnings.warn(
-                    f"Parameters `{sorted(parameters.keys())}` were provided for an "
-                    f"instance but are not defined for the class `{cls.__name__}`"
-                )
-            elif cls.extra_parameter_behavior == "add":
-                # include them in the result
-                result.update(parameters)
-            elif cls.extra_parameter_behavior != "ignore":
-                # ignore extra parameters
-                raise ValueError(
-                    "`extra_parameters` must be `raise`, `add`, or `ignore`"
-                )
+        # update parameters with the supplied ones
+        if check_validity and parameters:
+            raise ValueError(
+                f"Parameters `{sorted(parameters.keys())}` were provided for an "
+                f"instance but are not defined for the class `{cls.__name__}`"
+            )
+        else:
+            result.update(parameters)  # add remaining parameters
 
         return result
 
     @hybridmethod
-    def get_parameter_default(cls, name: str) -> Any:  # @NoSelf
+    def get_parameter_default(cls, name):  # @NoSelf
         """return the default value for the parameter with `name`
 
         Args:
@@ -598,7 +571,7 @@ class Parameterized:
         raise KeyError(f"Parameter `{name}` is not defined")
 
     @get_parameter_default.instancemethod  # type: ignore
-    def get_parameter_default(self, name: str) -> Any:
+    def get_parameter_default(self, name):
         """return the default value for the parameter with `name`
 
         Args:
@@ -614,7 +587,7 @@ class Parameterized:
         show_hidden: bool = False,
         show_deprecated: bool = False,
         parameter_values: Optional[Dict[str, Any]] = None,
-    ) -> None:
+    ):
         """private method showing all parameters in human readable format
 
         Args:
@@ -670,7 +643,7 @@ class Parameterized:
         sort: bool = False,
         show_hidden: bool = False,
         show_deprecated: bool = False,
-    ) -> None:
+    ):
         """show all parameters in human readable format
 
         Args:
@@ -695,7 +668,7 @@ class Parameterized:
         show_hidden: bool = False,
         show_deprecated: bool = False,
         default_value: bool = False,
-    ) -> None:
+    ):
         """show all parameters in human readable format
 
         Args:

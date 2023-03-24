@@ -121,6 +121,7 @@ def submit_job(
     ensure_directory_exists(log_folder)
 
     script_args = {
+        "PACKAGE_PATH": Path(__file__).parents[2],
         "LOG_FOLDER": log_folder,
         "JOB_NAME": name,
         "MODEL_FILE": escape_string(script),
@@ -158,6 +159,9 @@ def submit_job(
                 pass
             else:
                 raise NotImplementedError(f"Unknown strategy `{overwrite_strategy}`")
+
+            # delete old output
+            output.unlink(missing_ok=True)
 
         # check whether output points to a directory or whether this should be a file
         if output.is_dir():
@@ -210,7 +214,7 @@ def submit_jobs(
     output_format: str = "hdf",
     list_params: Optional[Iterable[str]] = None,
     **kwargs,
-) -> None:
+) -> int:
     """submit many jobs of the same script with different parameters to the cluster
 
     Args:
@@ -232,6 +236,9 @@ def submit_jobs(
             individual parameters and not iterated over to produce multiple jobs.
         **kwargs:
             All additional parameters are forwarded to :func:`submit_job`.
+
+    Returns:
+        int: The number of jobs that have been submitted
     """
     if parameters is None:
         parameter_dict = {}
@@ -269,3 +276,5 @@ def submit_jobs(
         name = get_job_name(name_base, p_job)
         output = Path(output_folder) / f"{name}{output_format}"
         submit_job(script, output=output, name=name, parameters=params, **kwargs)
+
+    return len(p_vary_list)

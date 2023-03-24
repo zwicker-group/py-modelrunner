@@ -15,7 +15,7 @@ def multiply(a: float = 1, b: float = 2):
 
 if __name__ == "__main__":
     result = run_function_with_cmd_args(multiply)
-    result.write_to_yaml("test.yaml")
+    result.to_file("test.yaml")
 
-    read = Result.from_yaml("test.yaml")
-    print(read.parameters, "–– a * b =", read.result)
+    read = Result.from_file("test.yaml")
+    print(read.parameters, "–– a * b =", read.state)
