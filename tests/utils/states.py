@@ -20,6 +20,7 @@ def get_states():
     # define basic payload
     a = np.arange(5)
     b = np.random.random(size=3)
+    da = np.ones((1,), dtype=[("x", int), ("y", float)])
     ra = np.recarray((1,), dtype=[("x", int), ("y", float)])
     ra[:] = (1, 2)
     o = {"list": [1, 2], "bool": True}
@@ -30,6 +31,7 @@ def get_states():
     res = [
         obj_state.copy(),
         arr_state.copy(),
+        ArrayState(da.copy()),
         ArrayState(ra.copy()),
         ArrayCollectionState((a.copy(), b.copy()), labels=["a", "b"]),
         DictState({"o": obj_state.copy(), "a": arr_state.copy()}),

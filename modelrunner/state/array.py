@@ -32,7 +32,8 @@ class ArrayState(StateBase):
         self._state_data = data
 
     @property
-    def _is_record_array(self) -> bool:
+    def _is_structured_array(self) -> bool:
+        """bool: property determining whether this array is a structured array"""
         return self._state_data.dtype.names is not None
 
     @property
@@ -44,17 +45,19 @@ class ArrayState(StateBase):
         """
         attrs = super()._state_attributes_store
 
-        if self._state_data.dtype.names is not None:
+        if self._is_structured_array:
             # store dtype for structured arrays
             dtype_pickled = pickle.dumps(self._state_data.dtype)
             attrs["__dtype_pickled__"] = codecs.encode(dtype_pickled, "base64").decode()
+        if isinstance(self._state_data, np.recarray):
+            attrs["__record_array__"] = True
 
         return attrs
 
     @property
     def _state_data_store(self) -> Any:
         """determines what data is stored in this state"""
-        if self._is_record_array:
+        if self._is_structured_array:
             # we store a structured array as an unstructured one
             return structured_to_unstructured(self._state_data)
         else:
@@ -68,6 +71,7 @@ class ArrayState(StateBase):
             data: The data of the degerees of freedom of the physical system
         """
         if data is not NoData:
+            # set the array if any data was given
             data = np.asarray(data)
 
             if "__dtype_pickled__" in attributes:
@@ -80,6 +84,9 @@ class ArrayState(StateBase):
                     data = unstructured_to_structured(data, dtype=dtype)
                 elif dtype != data.dtype:
                     raise AssertionError(f"{dtype} != {data.dtype}")
+
+            if attributes.pop("__record_array__", False):
+                # the array was a record array
                 data = data.view(np.recarray)
 
         super()._state_init(attributes, data)
