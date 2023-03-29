@@ -3,6 +3,7 @@
 """
 
 import copy
+import pickle
 
 import numpy as np
 import pytest
@@ -30,6 +31,14 @@ def test_state_basic(state):
     s3 = copy.copy(state)
     assert state is not s3
     assert state == s3
+
+
+@pytest.mark.parametrize("state", get_states(add_derived=False))
+def test_state_pickle(state):
+    """test basic properties of states"""
+    s4 = pickle.loads(pickle.dumps(state))
+    assert state is not s4
+    assert state == s4
 
 
 @pytest.mark.parametrize("state", get_states())

@@ -131,21 +131,17 @@ class StateBase(IOBase):
         if self._state_attributes_attr_name is None:
             # attribute name was not specified
             if attributes:
-                raise ValueError(
-                    f"No property specified to store attributes {attributes}"
-                )
+                raise ValueError("`_state_attributes_attr_name` not set")
 
         else:
-
+            # attribute name was specified
             try:
                 # try setting attributes directly
                 setattr(self, self._state_attributes_attr_name, attributes)
             except AttributeError:
                 # this can happen if `data` is a read-only attribute, i.e., if the data
                 # attribute is managed by the child class
-                raise AttributeError(
-                    "`_state_attributes` should be defined by subclass"
-                )
+                raise AttributeError("subclass should define `_state_attributes`")
 
     @property
     def _state_attributes_store(self) -> Dict[str, Any]:
@@ -172,7 +168,7 @@ class StateBase(IOBase):
             return getattr(self, self._state_data_attr_name)
         except AttributeError:
             # this can happen if the `data` attribute is not defined
-            raise AttributeError("`_state_data` should be defined by subclass")
+            raise AttributeError("subclass should define `_state_data`")
 
     @_state_data.setter
     def _state_data(self, data) -> None:
@@ -265,7 +261,7 @@ class StateBase(IOBase):
         Returns:
             A copy of the current state object
         """
-        # use __getstate__ to get data
+        # use __getstate__ to get data necessary to re-create data
         state = self.__getstate__()
         if data is not None:
             state["data"] = data
