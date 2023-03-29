@@ -15,8 +15,13 @@ from modelrunner.state import (
 EXTENSIONS = ["json", "yaml", "zarr"]
 
 
-def get_states():
-    """generate multiple states"""
+def get_states(add_derived: bool = True):
+    """generate multiple states
+
+    Args:
+        add_derived (bool):
+            Also return states based on subclasses
+    """
     # define basic payload
     a = np.arange(5)
     b = np.random.random(size=3)
@@ -36,6 +41,9 @@ def get_states():
         ArrayCollectionState((a.copy(), b.copy()), labels=["a", "b"]),
         DictState({"o": obj_state.copy(), "a": arr_state.copy()}),
     ]
+
+    if not add_derived:
+        return res
 
     # add custom state classes
     if "DerivedObject" not in StateBase._state_classes:
