@@ -483,7 +483,7 @@ class Parameterized:
 
         return result
 
-    @hybridmethod
+    @classmethod
     def get_parameter_default(cls, name):  # @NoSelf
         """return the default value for the parameter with `name`
 
@@ -495,15 +495,6 @@ class Parameterized:
                 return p.default_value
 
         raise KeyError(f"Parameter `{name}` is not defined")
-
-    @get_parameter_default.instancemethod  # type: ignore
-    def get_parameter_default(self, name):
-        """return the default value for the parameter with `name`
-
-        Args:
-            name (str): The parameter name
-        """
-        return self.__class__.get_parameter_default(name)
 
     @classmethod
     def _get_parameters_str(
