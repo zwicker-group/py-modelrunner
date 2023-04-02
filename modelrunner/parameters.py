@@ -379,7 +379,7 @@ class Parameterized:
         super().__init_subclass__(**kwargs)
         if cls is not Parameterized:
             if cls.__name__ in cls._subclasses:
-                warnings.warn(f"Redefining class {cls.__name__}")
+                warnings.warn(f"Redefining class `{cls.__name__}`")
             cls._subclasses[cls.__name__] = cls
 
     @classmethod

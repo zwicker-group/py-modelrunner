@@ -42,8 +42,11 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
     """base class for describing models"""
 
     name: Optional[str] = None
+    """str: the name of the model"""
     description: Optional[str] = None
-    state_cls = ObjectState
+    """str: a longer description of the model"""
+    state_cls: Type[StateBase] = ObjectState
+    """type: the class that will contain the model results"""
 
     def __init__(
         self, parameters: Optional[Dict[str, Any]] = None, output: Optional[str] = None
@@ -324,6 +327,7 @@ def make_model_class(func: Callable, *, default: bool = False) -> Type[ModelBase
         "name": func.__name__,
         "description": func.__doc__,
         "parameters_default": parameters_default,
+        "__doc__": func.__doc__,
         "__call__": __call__,
     }
     newclass = type(func.__name__, (ModelBase,), args)
