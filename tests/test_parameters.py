@@ -80,9 +80,9 @@ def test_parameters():
     assert t.parameters["a"] == 10
     assert t.parameters["b"] == 20
     assert t.get_parameter_default("a") == 1
-    assert t.get_parameter_default("b") == "2"
+    assert t.get_parameter_default("b") == 2
     assert Test2.get_parameter_default("a") == 1
-    assert Test2.get_parameter_default("b") == "2"
+    assert Test2.get_parameter_default("b") == 2
     with pytest.raises(KeyError):
         t.get_parameter_default("c")
 
