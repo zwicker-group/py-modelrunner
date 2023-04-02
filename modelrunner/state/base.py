@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import copy
 import warnings
+from abc import ABCMeta, abstractmethod
 from typing import Any, Dict, Optional, Type, TypeVar
 
 import numpy as np
@@ -58,7 +59,7 @@ def _equals(left: Any, right: Any) -> bool:
 TState = TypeVar("TState", bound="StateBase")
 
 
-class StateBase(IOBase):
+class StateBase(IOBase, metaclass=ABCMeta):
     """Base class for specifying the state of a simulation
 
     A state contains values of all degrees of freedom of a physical system (called the
@@ -90,6 +91,14 @@ class StateBase(IOBase):
     _state_data_attr_name: str = "data"
     """str: name of the attribute where the data is stored. This is only used if the
     subclass does not overwrite the `_state_data` attribute."""
+
+    @abstractmethod
+    def __init__(self, data: Optional[Any] = None):
+        """
+        Args:
+            data: The data describing the state
+        """
+        ...
 
     def __init_subclass__(cls, **kwargs):  # @NoSelf
         """register all subclasses to reconstruct them later"""
@@ -189,7 +198,7 @@ class StateBase(IOBase):
         """
         return self._state_data
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if self.__class__ is not other.__class__:
             return False
         if self._state_attributes != other._state_attributes:
@@ -328,6 +337,7 @@ class StateBase(IOBase):
         raise NotImplementedError
 
     def _state_update_from_zarr(self, element: zarrElement, *, index=...) -> None:
+        """update the current state from an zarr element"""
         raise NotImplementedError
 
     def _state_prepare_zarr_trajectory(
@@ -342,7 +352,7 @@ class StateBase(IOBase):
 
     @classmethod
     def _from_simple_objects(
-        cls, content, *, state_cls: Optional[StateBase] = None
+        cls, content: Dict[str, Any], *, state_cls: Optional[StateBase] = None
     ) -> StateBase:
         """create state from text data
 
@@ -357,7 +367,7 @@ class StateBase(IOBase):
             # specific (basic) implementation that just reads the state
             return state_cls.from_data(content["attributes"], content["data"])
 
-    def _to_simple_objects(self):
+    def _to_simple_objects(self) -> Dict[str, Any]:
         """return object data suitable for encoding as text"""
         return {
             "attributes": self._state_attributes_store,
