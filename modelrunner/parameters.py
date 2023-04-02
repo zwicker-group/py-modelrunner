@@ -16,11 +16,12 @@ One aim is to allow easy management of inheritance of parameters.
 
 from __future__ import annotations
 
-import functools
+import copy
 import importlib
 import logging
 import warnings
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Type, Union
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, Iterator, List, Optional, Type, Union
 
 import numpy as np
 
@@ -72,56 +73,50 @@ def import_class(identifier: str):
         return importlib.import_module(class_name)
 
 
+@dataclass
 class Parameter:
-    """class representing a single parameter"""
+    """class representing a single parameter
 
-    def __init__(
-        self,
-        name: str,
-        default_value=None,
-        cls=object,
-        description: str = "",
-        *,
-        hidden: bool = False,
-        extra: Optional[Dict[str, Any]] = None,
-    ):
-        """initialize a parameter
+    Args:
+        name (str):
+            The name of the parameter
+        default_value:
+            The default value
+        cls:
+            The type of the parameter, which is used for conversion
+        description (str):
+            A string describing the impact of this parameter. This
+            description appears in the parameter help
+        hidden (bool):
+            Whether the parameter is hidden in the description summary
+        extra (dict):
+            Extra arguments that are stored with the parameter
+    """
 
-        Args:
-            name (str):
-                The name of the parameter
-            default_value:
-                The default value
-            cls:
-                The type of the parameter, which is used for conversion
-            description (str):
-                A string describing the impact of this parameter. This
-                description appears in the parameter help
-            hidden (bool):
-                Whether the parameter is hidden in the description summary
-            extra (dict):
-                Extra arguments that are stored with the parameter
-        """
-        self.name = name
-        self.default_value = default_value
-        self.cls = cls
-        self.description = description
-        self.hidden = hidden
-        self.extra = {} if extra is None else extra
+    name: str
+    default_value: Any = None
+    cls: Union[Type, Callable] = object
+    description: str = ""
+    hidden: bool = False
+    extra: Dict[str, Any] = field(default_factory=dict)
 
-        if cls is not object and not any(default_value is v for v in {None, NoValue}):
+    def __post_init__(self):
+        """check default values and cls"""
+        if self.cls is not object and not any(
+            self.default_value is v for v in {None, NoValue}
+        ):
             # check whether the default value is of the correct type
             try:
-                converted_value = cls(default_value)
+                converted_value = self.cls(self.default_value)
             except TypeError as err:
                 raise TypeError(
-                    f"Parameter {self.name} has invalid default value: {default_value}"
+                    f"Parameter {self.name} has invalid default: {self.default_value}"
                 ) from err
 
             if isinstance(converted_value, np.ndarray):
                 # numpy arrays are checked for each individual value
                 valid_default = np.allclose(
-                    converted_value, default_value, equal_nan=True
+                    converted_value, self.default_value, equal_nan=True
                 )
 
             else:
@@ -129,29 +124,21 @@ class Parameter:
                 # to capture the case where the value is `math.nan`, where the direct
                 # comparison (nan == nan) would evaluate to False
                 valid_default = (
-                    converted_value is default_value or converted_value == default_value
+                    converted_value is self.default_value
+                    or converted_value == self.default_value
                 )
 
             if not valid_default:
                 logging.warning(
-                    f"Default value `{name}` is not of type `{cls.__name__}`"
+                    f"Default value `{self.name}` is not of type `{self.cls.__name__}`"
                 )
-
-    def __repr__(self):
-        return (
-            f'{self.__class__.__name__}(name="{self.name}", default_value='
-            f"{self.default_value}, cls={self.cls.__name__}, description="
-            f'"{self.description}", hidden={self.hidden})'
-        )
-
-    __str__ = __repr__
 
     def __getstate__(self):
         # replace the object class by its class path
         return {
             "name": str(self.name),
             "default_value": self.convert(),
-            "cls": object.__module__ + "." + self.cls.__name__,
+            "cls": self.cls.__module__ + "." + self.cls.__name__,
             "description": self.description,
             "hidden": self.hidden,
             "extra": self.extra,
@@ -282,71 +269,6 @@ class HideParameter:
         pass
 
 
-class classproperty(property):
-    """decorator that can be used to define read-only properties for classes.
-
-    This is inspired by the implementation of :mod:`astropy`, see
-    `astropy.org <http://astropy.org/>`_.
-
-    Example:
-        The decorator can be used much like the `property` decorator::
-
-            class Test():
-
-                item: str = 'World'
-
-                @classproperty
-                def message(cls):
-                    return 'Hello ' + cls.item
-
-            print(Test.message)
-    """
-
-    def __new__(cls, fget=None, doc=None):
-        if fget is None:
-            # use wrapper to support decorator without arguments
-            def wrapper(func):
-                return cls(func)
-
-            return wrapper
-
-        return super().__new__(cls)
-
-    def __init__(self, fget, doc=None):
-        fget = self._wrap_fget(fget)
-
-        super().__init__(fget=fget, doc=doc)
-
-        if doc is not None:
-            self.__doc__ = doc
-
-    def __get__(self, obj, objtype):
-        # The base property.__get__ will just return self here;
-        # instead we pass objtype through to the original wrapped
-        # function (which takes the class as its sole argument)
-        return self.fget.__wrapped__(objtype)
-
-    def getter(self, fget):
-        return super().getter(self._wrap_fget(fget))
-
-    def setter(self, fset):
-        raise NotImplementedError("classproperty is read-only")
-
-    def deleter(self, fdel):
-        raise NotImplementedError("classproperty is read-only")
-
-    @staticmethod
-    def _wrap_fget(orig_fget):
-        if isinstance(orig_fget, classmethod):
-            orig_fget = orig_fget.__func__
-
-        @functools.wraps(orig_fget)
-        def fget(obj):
-            return orig_fget(obj.__class__)
-
-        return fget
-
-
 class hybridmethod:
     """
     descriptor that can be used as a decorator to allow calling a method both
@@ -375,14 +297,18 @@ class hybridmethod:
         return self.finstance.__get__(instance, cls)
 
 
-ParameterListType = Sequence[Union[Parameter, HideParameter]]
+ParameterListType = List[Union[Parameter, HideParameter]]
 
 
 class Parameterized:
     """a mixin that manages the parameters of a class"""
 
     parameters_default: ParameterListType = []
+    """list: parameters (with default values) of this subclass"""
+    _parameters_default_full: ParameterListType = []
+    """list: all parameters (including those of parent classes)"""
     _subclasses: Dict[str, Type[Parameterized]] = {}
+    """dict: a dictionary of all classes inheriting from `Parameterized`"""
 
     def __init__(
         self, parameters: Optional[Dict[str, Any]] = None, *, strict: bool = True
@@ -410,9 +336,9 @@ class Parameterized:
                 parameters, include_deprecated=True, check_validity=strict
             )
 
-    def __init_subclass__(cls, **kwargs):  # @NoSelf
+    def __init_subclass__(cls, **kwargs) -> None:  # @NoSelf
         """register all subclasses to reconstruct them later"""
-        # normalize the parameters_default attribute
+        # normalize the parameters_default attribute to be a list of `Parameter`
         if hasattr(cls, "parameters_default") and isinstance(
             cls.parameters_default, dict
         ):
@@ -420,6 +346,17 @@ class Parameterized:
             cls.parameters_default = [
                 Parameter(*args) for args in cls.parameters_default.items()
             ]
+
+        # combine parameters with those of the parent class
+        parameters_default: Dict[str, Parameter] = {}
+        for p in cls._parameters_default_full + cls.parameters_default:
+            if isinstance(p, HideParameter):
+                if p.name in parameters_default:
+                    parameters_default[p.name].hidden = True
+            else:
+                parameters_default[p.name] = copy.copy(p)
+        cls._parameters_default_full = list(parameters_default.values())
+        # Note that `_parameters_default_full` also includes hidden parameters
 
         # append the list of parameters to the end of the docstring
         parameter_doc = list(
@@ -438,41 +375,12 @@ class Parameterized:
             else:
                 cls.__doc__ = extra_doc
 
-        # register the subclasses
+        # register this subclass
         super().__init_subclass__(**kwargs)
         if cls is not Parameterized:
             if cls.__name__ in cls._subclasses:
                 warnings.warn(f"Redefining class {cls.__name__}")
             cls._subclasses[cls.__name__] = cls
-
-    @classproperty
-    def _parameters_default_full(cls) -> ParameterListType:  # @NoSelf
-        """default parameters including these of parent classes"""
-        result: List[Union[Parameter, HideParameter]] = []
-        names: Dict[str, int] = {}
-        for cls in reversed(cls.__mro__):  # type: ignore
-            if hasattr(cls, "parameters_default"):
-                for p in cls.parameters_default:
-                    if p.name in names:
-                        # parameter was already seen
-                        if isinstance(p, HideParameter):
-                            # remove parameter since we need to hide it
-                            p_i = names[p.name]
-                            del result[p_i]
-                            names = {  # adjust indices
-                                k: i if i < p_i else i - 1
-                                for k, i in names.items()
-                                if i != p_i
-                            }
-                        else:
-                            # overwrite old parameter
-                            result[names[p.name]] = p
-
-                    elif not isinstance(p, HideParameter):
-                        # add the parameter if it is not a hidden parameter
-                        names[p.name] = len(result)
-                        result.append(p)
-        return result
 
     @classmethod
     def get_parameters(
@@ -494,21 +402,19 @@ class Parameterized:
         """
         # collect the parameters from the class hierarchy
         parameters: Dict[str, Parameter] = {}
-        for cls in reversed(cls.__mro__):
-            if hasattr(cls, "parameters_default"):
-                for p in cls.parameters_default:
-                    if isinstance(p, HideParameter):
-                        if include_hidden:
-                            parameters[p.name].hidden = True
-                        else:
-                            del parameters[p.name]
+        for p in cls._parameters_default_full:
+            if isinstance(p, HideParameter):
+                if include_hidden:
+                    parameters[p.name].hidden = True
+                else:
+                    del parameters[p.name]
 
-                    else:
-                        parameters[p.name] = p
+            else:
+                parameters[p.name] = p
 
         # filter parameters based on hidden and deprecated flags
         def show(p):
-            """helper function to decide whether parameter will be shown"""
+            """helper function to decide whether a parameter will be shown"""
             # show based on hidden flag?
             show1 = include_hidden or not p.hidden
             # show based on deprecated flag?
@@ -577,29 +483,18 @@ class Parameterized:
 
         return result
 
-    @hybridmethod
+    @classmethod
     def get_parameter_default(cls, name):  # @NoSelf
         """return the default value for the parameter with `name`
 
         Args:
             name (str): The parameter name
         """
-        for c in cls.__mro__:
-            if hasattr(c, "parameters_default"):
-                for p in c.parameters_default:
-                    if isinstance(p, Parameter) and p.name == name:
-                        return p.default_value
+        for p in cls._parameters_default_full:
+            if isinstance(p, Parameter) and p.name == name:
+                return p.default_value
 
         raise KeyError(f"Parameter `{name}` is not defined")
-
-    @get_parameter_default.instancemethod  # type: ignore
-    def get_parameter_default(self, name):
-        """return the default value for the parameter with `name`
-
-        Args:
-            name (str): The parameter name
-        """
-        return self.__class__.get_parameter_default(name)
 
     @classmethod
     def _get_parameters_str(

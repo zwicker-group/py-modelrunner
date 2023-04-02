@@ -80,9 +80,9 @@ def test_parameters():
     assert t.parameters["a"] == 10
     assert t.parameters["b"] == 20
     assert t.get_parameter_default("a") == 1
-    assert t.get_parameter_default("b") == "2"
+    assert t.get_parameter_default("b") == 2
     assert Test2.get_parameter_default("a") == 1
-    assert Test2.get_parameter_default("b") == "2"
+    assert Test2.get_parameter_default("b") == 2
     with pytest.raises(KeyError):
         t.get_parameter_default("c")
 
@@ -101,6 +101,18 @@ def test_parameters():
     for key in ["value", "description"]:
         p2 = get_all_parameters(key)
         assert set(p1) == p2.keys()
+
+    class Test4(Test3):
+        # test default parameters given as dictionarys
+        parameters_default = {"a": 30, "b": 40}
+
+    t = Test4()
+    assert t.parameters["a"] == 30
+    assert t.get_parameter_default("a") == 30
+    assert Test4.get_parameter_default("a") == 30
+    assert set(t.parameters.keys()) == {"a", "b", "c"}
+    assert t.parameters["b"] == 40
+    assert t.parameters["c"] == 4
 
 
 def test_parameters_simple():
@@ -212,13 +224,14 @@ def test_convert_default_values(caplog):
 def test_parameters_default_full():
     """test the _parameters_default_full property"""
     ps = [
-        Parameter("a", 1),
-        Parameter("b", 2),
-        HideParameter("b"),
-        Parameter("a", 3),
-        Parameter("b", 4, hidden=True),
-        Parameter("a", 5),
+        Parameter("a", 1),  # 0
+        Parameter("b", 2),  # 1
+        HideParameter("b"),  # 2
+        Parameter("a", 3),  # 3
+        Parameter("b", 4, hidden=True),  # 4
+        Parameter("a", 5),  # 5
     ]
+    ps1_hidden = Parameter("b", 2, hidden=True)
 
     class TestDefault1(Parameterized):
         parameters_default = [ps[0], ps[1]]
@@ -228,7 +241,7 @@ def test_parameters_default_full():
     class TestDefault2(TestDefault1):
         parameters_default = [ps[2]]
 
-    assert TestDefault2()._parameters_default_full == [ps[0]]
+    assert TestDefault2()._parameters_default_full == [ps[0], ps1_hidden]
 
     class TestDefault3(TestDefault1):
         parameters_default = [ps[3], ps[4]]
@@ -238,7 +251,7 @@ def test_parameters_default_full():
     class TestDefault4(TestDefault3):
         parameters_default = [ps[2]]
 
-    assert TestDefault4()._parameters_default_full == [ps[3]]
+    assert TestDefault4()._parameters_default_full == [ps[3], ps[4]]
 
     class TestDefault5(TestDefault3):
         parameters_default = [ps[5]]
