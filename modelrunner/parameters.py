@@ -20,7 +20,7 @@ import functools
 import importlib
 import logging
 import warnings
-from typing import Any, Dict, List, Optional, Sequence, Type, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Type, Union
 
 import numpy as np
 
@@ -416,6 +416,15 @@ class Parameterized:
                 Parameter(*args) for args in cls.parameters_default.items()
             ]
 
+        # append the list of parameters to the end of the docstring
+        parameter_doc = ["Parameters:"]
+        for line in cls._get_parameters_str(description=True, sort=True):
+            parameter_doc.append(f"  {line}")
+        if cls.__doc__:
+            cls.__doc__ += "\n\n" + "\n".join(parameter_doc)
+        else:
+            cls.__doc__ = "\n".join(parameter_doc)
+
         # register the subclasses
         super().__init_subclass__(**kwargs)
         if cls is not Parameterized:
@@ -580,14 +589,14 @@ class Parameterized:
         return self.__class__.get_parameter_default(name)
 
     @classmethod
-    def _show_parameters(
+    def _get_parameters_str(
         cls,
         description: bool = False,
         sort: bool = False,
         show_hidden: bool = False,
         show_deprecated: bool = False,
         parameter_values: Optional[Dict[str, Any]] = None,
-    ):
+    ) -> Iterator[str]:
         """private method showing all parameters in human readable format
 
         Args:
@@ -632,9 +641,9 @@ class Parameterized:
 
             # print the data to stdout
             if param.cls is object:
-                print(template_object.format(**data))
+                yield template_object.format(**data)
             else:
-                print(template.format(**data))
+                yield template.format(**data)
 
     @hybridmethod
     def show_parameters(  # @NoSelf
@@ -643,7 +652,7 @@ class Parameterized:
         sort: bool = False,
         show_hidden: bool = False,
         show_deprecated: bool = False,
-    ):
+    ) -> None:
         """show all parameters in human readable format
 
         Args:
@@ -658,7 +667,10 @@ class Parameterized:
 
         All flags default to `False`.
         """
-        cls._show_parameters(description, sort, show_hidden, show_deprecated)
+        for line in cls._get_parameters_str(
+            description, sort, show_hidden, show_deprecated
+        ):
+            print(line)
 
     @show_parameters.instancemethod  # type: ignore
     def show_parameters(
@@ -668,7 +680,7 @@ class Parameterized:
         show_hidden: bool = False,
         show_deprecated: bool = False,
         default_value: bool = False,
-    ):
+    ) -> None:
         """show all parameters in human readable format
 
         Args:
@@ -686,13 +698,14 @@ class Parameterized:
 
         All flags default to `False`.
         """
-        self._show_parameters(
+        for line in self._get_parameters_str(
             description,
             sort,
             show_hidden,
             show_deprecated,
             parameter_values=None if default_value else self.parameters,
-        )
+        ):
+            print(line)
 
 
 def get_all_parameters(data: str = "name") -> Dict[str, Any]:
