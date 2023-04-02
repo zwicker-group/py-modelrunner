@@ -51,7 +51,7 @@ include-package-data = true
 zip-safe = false  # required for mypy to find the py.typed file
 
 [tool.setuptools.packages.find]
-include = ["modelrunner*", "modelrunner/py.typed", "modelrunner/run/templates/*.template"}]
+include = ["modelrunner*", "modelrunner/py.typed", "modelrunner/run/templates/*.template"]
 exclude = ["*.tests", "*.tests.*", "tests.*", "tests"]
 namespaces = false
 
