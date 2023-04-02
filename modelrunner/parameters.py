@@ -20,8 +20,8 @@ import copy
 import importlib
 import logging
 import warnings
-from dataclasses import dataclass
-from typing import Any, Dict, Iterator, List, Optional, Type, Union
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, Iterator, List, Optional, Type, Union
 
 import numpy as np
 
@@ -95,10 +95,10 @@ class Parameter:
 
     name: str
     default_value: Any = None
-    cls: Type = object
+    cls: Union[Type, Callable] = object
     description: str = ""
     hidden: bool = False
-    extra: Optional[Dict[str, Any]] = None
+    extra: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         """check default values and cls"""
