@@ -163,6 +163,11 @@ class Parameter:
         # restore the state
         self.__dict__.update(state)
 
+    @property
+    def short_description(self) -> str:
+        """return only the first sentence of the description"""
+        return self.description.split(".", 1)[0]
+
     def convert(self, value=NoValue, *, strict: bool = True):
         """converts a `value` into the correct type for this parameter. If
         `value` is not given, the default value is converted.
@@ -417,13 +422,21 @@ class Parameterized:
             ]
 
         # append the list of parameters to the end of the docstring
-        parameter_doc = ["Parameters:"]
-        for line in cls._get_parameters_str(description=True, sort=True):
-            parameter_doc.append(f"  {line}")
-        if cls.__doc__:
-            cls.__doc__ += "\n\n" + "\n".join(parameter_doc)
-        else:
-            cls.__doc__ = "\n".join(parameter_doc)
+        parameter_doc = list(
+            cls._get_parameters_str(
+                description=True,
+                sort=True,
+                short_description=True,
+                template="  * `{name}`: {description} (default={value!r})",
+                template_object="  * `{name}`: {description} (default={value!r})",
+            )
+        )
+        if parameter_doc:
+            extra_doc = "Parameters Dictionary:\n" + "\n".join(parameter_doc)
+            if cls.__doc__:
+                cls.__doc__ += "\n\n" + extra_doc
+            else:
+                cls.__doc__ = extra_doc
 
         # register the subclasses
         super().__init_subclass__(**kwargs)
@@ -591,11 +604,15 @@ class Parameterized:
     @classmethod
     def _get_parameters_str(
         cls,
+        *,
         description: bool = False,
         sort: bool = False,
         show_hidden: bool = False,
         show_deprecated: bool = False,
+        short_description: bool = False,
         parameter_values: Optional[Dict[str, Any]] = None,
+        template: Optional[str] = None,
+        template_object: Optional[str] = None,
     ) -> Iterator[str]:
         """private method showing all parameters in human readable format
 
@@ -608,6 +625,8 @@ class Parameterized:
                 Flag determining whether hidden parameters are shown
             show_deprecated (bool):
                 Flag determining whether deprecated parameters are shown
+            short_description (bool):
+                Whether to show a shortended version of the description
             parameter_values (dict):
                 A dictionary with values to show. Parameters not in this
                 dictionary are shown with their default value.
@@ -615,11 +634,14 @@ class Parameterized:
         All flags default to `False`.
         """
         # set the templates for displaying the data
-        template = "{name}: {type} = {value!r}"
-        template_object = "{name} = {value!r}"
-        if description:
-            template += " ({description})"
-            template_object += " ({description})"
+        if template is None:
+            template = "{name}: {type} = {value!r}"
+            if description:
+                template += " ({description})"
+        if template_object is None:
+            template_object = "{name} = {value!r}"
+            if description:
+                template_object += " ({description})"
 
         # iterate over all parameters
         params = cls.get_parameters(
@@ -630,7 +652,9 @@ class Parameterized:
             data = {
                 "name": param.name,
                 "type": param.cls.__name__,
-                "description": param.description,
+                "description": param.short_description
+                if short_description
+                else param.description,
             }
 
             # determine the value to show
@@ -668,7 +692,10 @@ class Parameterized:
         All flags default to `False`.
         """
         for line in cls._get_parameters_str(
-            description, sort, show_hidden, show_deprecated
+            description=description,
+            sort=sort,
+            show_hidden=show_hidden,
+            show_deprecated=show_deprecated,
         ):
             print(line)
 
@@ -699,10 +726,10 @@ class Parameterized:
         All flags default to `False`.
         """
         for line in self._get_parameters_str(
-            description,
-            sort,
-            show_hidden,
-            show_deprecated,
+            description=description,
+            sort=sort,
+            show_hidden=show_hidden,
+            show_deprecated=show_deprecated,
             parameter_values=None if default_value else self.parameters,
         ):
             print(line)
