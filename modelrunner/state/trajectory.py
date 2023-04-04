@@ -24,20 +24,26 @@ from .io import normalize_zarr_store
 class TrajectoryWriter:
     """writes trajectories of states using :mod:`zarr`
 
+    Stored data can then be read using :class:`Trajectory`.
+
     Example:
 
         .. code-block:: python
 
-            # explicit use
-            writer = TrajectoryWriter("test.zarr")
+            # write data using context manager
+            with TrajectoryWriter("test.zarr") as write:
+                for t, data in simulation:
+                    write(data, t)
+
+            # write using explicit class interface
+            writer = TrajectoryWriter("test.zarr", overwrite=True)
             writer.append(data0)
             writer.append(data1)
             writer.close()
 
-            # context manager
-            with TrajectoryWriter("test.zarr") as write:
-                for t, data in simulation:
-                    write(data, t)
+            # read data
+            trajectory = Trajectory("test.zarr")
+            assert trajectory[0] == data0
     """
 
     def __init__(
@@ -86,6 +92,9 @@ class TrajectoryWriter:
 
 class Trajectory:
     """Reads trajectories of states written with :class:`TrajectoryWriter`
+
+    The class permits direct access to indivdual states using the square bracket
+    notation. It is also possible to directly iterate over all states.
 
     Attributes:
         times (:class:`~numpy.ndarray`): Time points at which data is available
