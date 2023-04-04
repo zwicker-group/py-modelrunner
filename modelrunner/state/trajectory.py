@@ -18,25 +18,32 @@ import numpy as np
 import zarr
 
 from .base import StateBase
+from .io import normalize_zarr_store
 
 
 class TrajectoryWriter:
-    """allows writing trajectories of states in a zarr file
+    """writes trajectories of states using :mod:`zarr`
+
+    Stored data can then be read using :class:`Trajectory`.
 
     Example:
 
         .. code-block:: python
 
-            # explicit use
-            writer = trajectory_writer("test.zarr")
+            # write data using context manager
+            with TrajectoryWriter("test.zarr") as write:
+                for t, data in simulation:
+                    write(data, t)
+
+            # write using explicit class interface
+            writer = TrajectoryWriter("test.zarr", overwrite=True)
             writer.append(data0)
             writer.append(data1)
             writer.close()
 
-            # context manager
-            with trajectory_writer("test.zarr") as write:
-                for t, data in simulation:
-                    write(data, t)
+            # read data
+            trajectory = Trajectory("test.zarr")
+            assert trajectory[0] == data0
     """
 
     def __init__(
@@ -52,7 +59,13 @@ class TrajectoryWriter:
             overwrite (bool):
                 If True, delete all pre-existing data in store.
         """
-        self._root = zarr.group(store, overwrite=overwrite)
+        # create the root group where we store all the data
+        self._root = zarr.group(normalize_zarr_store(store), overwrite=overwrite)
+
+        # make sure we don't overwrite data
+        if "times" in self._root or "data" in self._root:
+            raise IOError("zarr Store already contains data")
+
         if attrs is not None:
             self._root.attrs.put(attrs)
         self.times = self._root.zeros("times", shape=(0,), chunks=(1,))
@@ -78,13 +91,16 @@ class TrajectoryWriter:
 
 
 class Trajectory:
-    """Collection of states of identical type for successive time points
+    """Reads trajectories of states written with :class:`TrajectoryWriter`
+
+    The class permits direct access to indivdual states using the square bracket
+    notation. It is also possible to directly iterate over all states.
 
     Attributes:
         times (:class:`~numpy.ndarray`): Time points at which data is available
     """
 
-    def __init__(self, store, ret_copy: bool = True):
+    def __init__(self, store, *, ret_copy: bool = True):
         """
         Args:
             store (MutableMapping or string):
@@ -92,10 +108,11 @@ class Trajectory:
             ret_copy (bool):
                 If True, copies of states are returned, e.g., when iterating. If the
                 returned state is not modified, this flag can be set to False to
-                accelerate the processing.
+                accelerate the processing. In any case, the state data is always loaded
+                from the store, so this setting only affects attributes.
         """
         self.ret_copy = ret_copy
-        self._root = zarr.open_group(store, mode="r")
+        self._root = zarr.open_group(normalize_zarr_store(store), mode="r")
         self.times = np.array(self._root["times"])
         self._state: Optional[StateBase] = None
 

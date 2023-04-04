@@ -38,6 +38,7 @@ from .base import NoData, StateBase
 from .dict import DictState
 from .io import Store, simplify_data
 from .object import ObjectState
+from .trajectory import Trajectory, TrajectoryWriter
 
 
 def make_state(data: Any) -> StateBase:
