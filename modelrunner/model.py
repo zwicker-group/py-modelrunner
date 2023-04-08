@@ -49,7 +49,11 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
     """type: the class that will contain the model results"""
 
     def __init__(
-        self, parameters: Optional[Dict[str, Any]] = None, output: Optional[str] = None
+        self,
+        parameters: Optional[Dict[str, Any]] = None,
+        output: Optional[str] = None,
+        *,
+        strict: bool = False,
     ):
         """initialize the parameters of the object
 
@@ -61,8 +65,12 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
                 :meth:`~Parameterized.show_parameters`.
             output (str):
                 Path to write the output file
+            strict (bool):
+                Flag indicating whether parameters are strictly interpreted. If `True`,
+                only parameters listed in `parameters_default` can be set and their type
+                will be enforced.
         """
-        super().__init__(parameters)
+        super().__init__(parameters, strict=strict)
         self.output = output
         self._logger = logging.getLogger(self.__class__.__name__)
 
