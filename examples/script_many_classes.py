@@ -11,7 +11,6 @@ from modelrunner import ModelBase
 
 
 class MyModel(ModelBase):
-
     parameters_default = {"a": 1, "b": 2}
 
     def __call__(self):
@@ -19,7 +18,6 @@ class MyModel(ModelBase):
 
 
 class MyDerivedModel(MyModel):
-
     parameters_default = {"c": 3}
 
     def __call__(self):

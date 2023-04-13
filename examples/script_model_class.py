@@ -9,7 +9,6 @@ from modelrunner import ModelBase
 
 
 class MyModel(ModelBase):
-
     parameters_default = {"a": 1, "b": 2}
 
     def __call__(self):

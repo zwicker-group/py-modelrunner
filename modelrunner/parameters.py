@@ -196,7 +196,6 @@ class Parameter:
     def _argparser_add(self, parser):
         """add a command line option for this parameter to a parser"""
         if not self.hidden:
-
             if self.description:
                 description = self.description
             else:
