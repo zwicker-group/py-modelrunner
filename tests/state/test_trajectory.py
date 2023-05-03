@@ -84,3 +84,24 @@ def test_trajectory_multiple_reads(ext, tmp_path):
     state1.data[:] = 0  # this should only modify the temporary copy
     assert state1 != state
     assert t1[0] == t1[0] == state
+
+
+@pytest.mark.parametrize("ext", ["", ".zarr"])
+def test_trajectory_overwriting(ext, tmp_path):
+    """test whether zarr zip files can be overwritten"""
+    path = tmp_path / ("file" + ext)
+    state = ArrayState(np.arange(5))
+
+    # write some data
+    with TrajectoryWriter(path, attrs={"test": "yes"}) as write:
+        write(state, 1)
+        write(state)
+
+    # try writing data without overwrite
+    with pytest.raises(OSError):
+        with TrajectoryWriter(path, overwrite=False) as write:
+            write(state)
+
+    # try writing data with overwrite
+    with TrajectoryWriter(path, overwrite=True) as write:
+        write(state)

@@ -60,7 +60,10 @@ class TrajectoryWriter:
                 If True, delete all pre-existing data in store.
         """
         # create the root group where we store all the data
-        self._root = zarr.group(normalize_zarr_store(store), overwrite=overwrite)
+        self._root = zarr.group(
+            normalize_zarr_store(store, mode="w" if overwrite else "a"),
+            overwrite=overwrite,
+        )
 
         # make sure we don't overwrite data
         if "times" in self._root or "data" in self._root:
