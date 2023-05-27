@@ -28,9 +28,13 @@ def test_state_basic(state):
     assert state is not s2
     assert state == s2
 
-    s3 = copy.copy(state)
+    s3 = state.copy(deep=True)
     assert state is not s3
     assert state == s3
+
+    s4 = copy.copy(state)
+    assert state is not s4
+    assert state == s4
 
 
 @pytest.mark.parametrize("state", get_states(add_derived=False))
@@ -98,6 +102,16 @@ def test_state_attributes_implicit(state_cls, tmp_path):
         state2 = StateBase.from_file(path)
         assert state == state2
         assert state2.attrs["value"] == "hello"
+
+    nested = MyState("inner")
+    state = MyState(nested)
+    state2 = state.copy(deep=False)
+    assert state.attrs["value"] is state2.attrs["value"] is nested
+    assert state.data is None or (state.data is not state2.data)
+
+    state2 = state.copy(deep=True)
+    assert state.attrs["value"] is not state2.attrs["value"]
+    assert state.data is None or (state.data is not state2.data)
 
 
 @pytest.mark.parametrize(
