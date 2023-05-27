@@ -159,7 +159,7 @@ class StateBase(IOBase, metaclass=ABCMeta):
         This property modifies the normal `_state_attributes` and adds information
         necessary for restoring the class using :meth:`StateBase.from_data`.
         """
-        attrs = copy.deepcopy(self._state_attributes)
+        attrs = copy.copy(self._state_attributes)
 
         # add some additional information
         attrs["__class__"] = self.__class__.__name__
@@ -261,22 +261,41 @@ class StateBase(IOBase, metaclass=ABCMeta):
         else:
             raise ValueError(f"Incompatible state class {cls_name}")
 
-    def copy(self: TState, data=None) -> TState:
+    def copy(self: TState, data=None, *, deep: bool = False) -> TState:
         """create a copy of the state
 
+        Warning:
+            This method makes a copy of the state by gathering its contents using
+            :meth:`~StateBase.__getstate__`, makeing a copy (at least of the data) and
+            then instantiating a new state class, using :meth:`~StateBase.__setstate__`
+            to restore the state. Since a new object is created, all data not captured
+            by `__getstate__` (like internal caches) are lost! To copy this data, too,
+            :func:`copy.copy` or :func:`copy.deepcopy` can be used.
+
         Args:
-            data: Data to be used instead of the one in the current state
+            data:
+                Data to be used instead of the one in the current state
+            deep (bool):
+                Flag indicating whether a deepcopy of the state object is performed. If
+                `False`, only the `data` is deep-copied, while all other aspects
+                obtained from :meth:`__getstate__` are not copied. If `True`, everything
+                is copyied using :func:`~copy.deepcopy`.
 
         Returns:
             A copy of the current state object
         """
         # use __getstate__ to get data necessary to re-create data
         state = self.__getstate__()
-        if data is not None:
-            state["data"] = data
 
         # create a copy of the state
-        state = copy.deepcopy(state)
+        if deep:
+            state = copy.deepcopy(state)
+
+        if data is not None:
+            state["data"] = data
+        elif not deep:
+            # copy data if no deep copy is requested
+            state["data"] = copy.deepcopy(state["data"])
 
         # use __setstate__ to set data on new object
         obj = self.__class__.__new__(self.__class__)
