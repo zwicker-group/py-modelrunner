@@ -159,7 +159,8 @@ class StateBase(IOBase, metaclass=ABCMeta):
         This property modifies the normal `_state_attributes` and adds information
         necessary for restoring the class using :meth:`StateBase.from_data`.
         """
-        attrs = copy.copy(self._state_attributes)
+        # make a copy since we add additional fields below
+        attrs = self._state_attributes.copy()
 
         # add some additional information
         attrs["__class__"] = self.__class__.__name__
@@ -261,45 +262,47 @@ class StateBase(IOBase, metaclass=ABCMeta):
         else:
             raise ValueError(f"Incompatible state class {cls_name}")
 
-    def copy(self: TState, data=None, *, deep: bool = False) -> TState:
+    def copy(self: TState, data=None, *, clean: bool = True) -> TState:
         """create a copy of the state
 
         Warning:
-            This method makes a copy of the state by gathering its contents using
-            :meth:`~StateBase.__getstate__`, makeing a copy (at least of the data) and
-            then instantiating a new state class, using :meth:`~StateBase.__setstate__`
-            to restore the state. Since a new object is created, all data not captured
-            by `__getstate__` (like internal caches) are lost! To copy this data, too,
-            :func:`copy.copy` or :func:`copy.deepcopy` can be used.
+            If argument `clean == True`, this method makes a copy of the state by
+            gathering its contents using :meth:`~StateBase.__getstate__`, makeing a copy
+            of only the actual data and then instantiating a new state class, using
+            :meth:`~StateBase.__setstate__` to restore the state. Since a new object is
+            created, all data not captured by `__getstate__` (like internal caches) are
+            lost! To copy this data, too, use `clean == False`, which simply copies the
+            entire :attr:`__dict__` of the state and makes a deep copy of only the data.
 
         Args:
             data:
                 Data to be used instead of the one in the current state
-            deep (bool):
-                Flag indicating whether a deepcopy of the state object is performed. If
-                `False`, only the `data` is deep-copied, while all other aspects
-                obtained from :meth:`__getstate__` are not copied. If `True`, everything
-                is copyied using :func:`~copy.deepcopy`.
+            clean (bool):
+                Flag indicating how attributes beside the core data are handled. If
+                `True`, attributes obtained from :meth:`__getstate__` are used to
+                instantiate a new class using :meth:`__setstate__`. If this flag is
+                `False`, the entire :attr:`__dict__` is copied.
 
         Returns:
             A copy of the current state object
         """
-        # use __getstate__ to get data necessary to re-create data
-        state = self.__getstate__()
-
-        # create a copy of the state
-        if deep:
-            state = copy.deepcopy(state)
-
-        if data is not None:
-            state["data"] = data
-        elif not deep:
-            # copy data if no deep copy is requested
-            state["data"] = copy.deepcopy(state["data"])
-
-        # use __setstate__ to set data on new object
+        # create a new object of the same class without any attributes
         obj = self.__class__.__new__(self.__class__)
-        obj.__setstate__(state)
+        if clean:
+            # make clean copy by re-initializing state with copy of relevant attributes
+            state = copy.deepcopy(self.__getstate__())  # copy current state
+            if data is not None:
+                state["data"] = data
+            # use __setstate__ to set data on new object
+            obj.__setstate__(state)
+
+        else:
+            # (shallow) copy of all attributes of current state
+            obj.__dict__ = self.__dict__.copy()
+            if data is None:
+                obj._state_data = copy.deepcopy(self._state_data)
+            else:
+                obj._state_data = data
         return obj
 
     def _state_write_zarr_attributes(

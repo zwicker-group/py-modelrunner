@@ -24,11 +24,11 @@ def test_state_basic(state):
     """test basic properties of states"""
     assert state.__class__.__name__ in StateBase._state_classes
 
-    s2 = state.copy()
+    s2 = state.copy(clean=False)
     assert state is not s2
     assert state == s2
 
-    s3 = state.copy(deep=True)
+    s3 = state.copy(clean=True)
     assert state is not s3
     assert state == s3
 
@@ -105,11 +105,11 @@ def test_state_attributes_implicit(state_cls, tmp_path):
 
     nested = MyState("inner")
     state = MyState(nested)
-    state2 = state.copy(deep=False)
+    state2 = state.copy(clean=False)
     assert state.attrs["value"] is state2.attrs["value"] is nested
     assert state.data is None or (state.data is not state2.data)
 
-    state2 = state.copy(deep=True)
+    state2 = state.copy(clean=True)
     assert state.attrs["value"] is not state2.attrs["value"]
     assert state.data is None or (state.data is not state2.data)
 
