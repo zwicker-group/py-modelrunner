@@ -5,7 +5,6 @@ This `py-modelrunner` package is developed for python 3.8+ and should run on all
 platforms. 
 
 
-
 Install using pip
 ^^^^^^^^^^^^^^^^^
 
@@ -32,7 +31,6 @@ This installation includes all required dependencies to have all features of `py
 
 Installing from source
 ^^^^^^^^^^^^^^^^^^^^^^
-
 
 Prerequisites
 -------------
