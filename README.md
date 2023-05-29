@@ -49,7 +49,7 @@ around this simple function. Assuming the script is saved in a file called `scri
 calling `python -m modelrunner script.py -h` shows the follwing help
 
 ```
-usage: test.py [-h] [--a VALUE] [--b VALUE] [--negate] [--json JSON] [-o PATH]
+usage: script.py [-h] [--a VALUE] [--b VALUE] [--negate] [--json JSON] [-o PATH]
 
 optional arguments:
   -h, --help            show this help message and exit
