@@ -227,10 +227,8 @@ class Result(IOBase):
         # write attributes
         for key, value in self.model._state_attributes.items():
             root.attrs[key] = json.dumps(value, cls=NumpyEncoder)
-
         if self.info:
             root.attrs["__info__"] = json.dumps(self.info, cls=NumpyEncoder)
-
         root.attrs["__version__"] = json.dumps(self._state_format_version)
 
         # write the actual data
@@ -262,18 +260,19 @@ class Result(IOBase):
     def _write_zarr(
         self, zarr_group: zarr.Group, *, label: str = "data", **kwargs
     ) -> zarrElement:
-        # write the actual data
+        """write the entire Result object to a `zarr` file"""
+        # create a zarr group to store all data
         result_group = zarr_group.create_group(label)
 
-        # write attributes
+        # collect attributes from
         attributes = {}
         for key, value in self.model._state_attributes.items():
             attributes[key] = json.dumps(value, cls=NumpyEncoder)
-
         if self.info:
             attributes["__info__"] = json.dumps(self.info, cls=NumpyEncoder)
         attributes["__version__"] = json.dumps(self._state_format_version)
 
+        # write the actual data
         self.state._write_zarr(result_group, label="state")
         result_group.attrs.update(attributes)
         return result_group
