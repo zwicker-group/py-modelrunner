@@ -86,11 +86,12 @@ def submit_job(
         log_folder (str of :class:`~pathlib.Path`):
             Path to the logging folder
         method (str):
-            Specifies the submission method. Currently `background`, `foreground`, and
+            Specifies the submission method. Currently `background`, `foreground`, 'srun' and
             `qsub` are supported.
         use_modelrunner (bool):
             If True, `script` is envoked with the modelrunner library, e.g. by calling
             `python -m modelrunner {script}`.
+            
         template (str of :class:`~pathlib.Path`):
             Jinja template file for submission script. If omitted, a standard template
             is chosen based on the submission method.
@@ -179,10 +180,10 @@ def submit_job(
     script_content = Template(script_template).render(script_args)
     logger.debug("Script: `%s`", script_content)
 
-    if method == "qsub":
+    if method in {"qsub", "srun"}:
         # submit job to queue
         proc = sp.Popen(
-            ["qsub"],
+            [method],
             stdin=sp.PIPE,
             stdout=sp.PIPE,
             stderr=sp.PIPE,
