@@ -9,6 +9,7 @@ import logging
 import os
 import pipes
 import subprocess as sp
+import sys
 import warnings
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional, Tuple, Union
@@ -127,6 +128,8 @@ def submit_job(
         "JOB_NAME": name,
         "MODEL_FILE": escape_string(script),
         "USE_MODELRUNNER": use_modelrunner,
+        "PYTHON_BIN": sys.executable,
+        "DEFAULT_QUEUE": "teutates.q",
     }
     for k, v in kwargs.items():
         script_args[k.upper()] = v
