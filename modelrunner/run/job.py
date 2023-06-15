@@ -91,7 +91,7 @@ def submit_job(
         use_modelrunner (bool):
             If True, `script` is envoked with the modelrunner library, e.g. by calling
             `python -m modelrunner {script}`.
-            
+
         template (str of :class:`~pathlib.Path`):
             Jinja template file for submission script. If omitted, a standard template
             is chosen based on the submission method.
