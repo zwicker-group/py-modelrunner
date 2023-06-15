@@ -2,7 +2,7 @@
 """
 This example shows how to submit the same model with multiple parameters.
 
-Note that the method `local` just runs the script locally, thus not really queuing. To
+Note that the method `foreground` just runs the script locally, thus not really queuing. To
 actually queue a job on a high performance computing cluster, replace the `method`
 argument by something more suitable; see the documentation. 
 
