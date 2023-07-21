@@ -301,7 +301,7 @@ class IOBase:
                 writing of the specific format (_write_**).
         """
         fmt = self._guess_format(store, fmt)
-        mode = "w" if overwrite else "x"
+        mode = "w" if overwrite else "a+"
 
         if fmt == "json":
             content = simplify_data(self._to_simple_objects())
