@@ -301,7 +301,7 @@ class IOBase:
                 writing of the specific format (_write_**).
         """
         fmt = self._guess_format(store, fmt)
-        mode = "w" if overwrite else "a+"
+        mode = "w" if overwrite else "x"  # zarr.ZipStore does only supports r, w, a, x
 
         if fmt == "json":
             content = simplify_data(self._to_simple_objects())
