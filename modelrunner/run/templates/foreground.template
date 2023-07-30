@@ -8,12 +8,12 @@ mkdir -p {{ OUTPUT_FOLDER }}
 
 # Run the program
 {% if USE_MODELRUNNER is defined and USE_MODELRUNNER %}
-python3 -m modelrunner {{ MODEL_FILE }} \
+{{ PYTHON_BIN }} -m modelrunner {{ MODEL_FILE }} \
     {{ JOB_ARGS }} \
     > {{ LOG_FOLDER }}/{{ JOB_NAME }}.out.txt \
     2> {{ LOG_FOLDER }}/{{ JOB_NAME }}.err.txt
 {% else %}
-python3 {{ MODEL_FILE }} \
+{{ PYTHON_BIN }} {{ MODEL_FILE }} \
     {{ JOB_ARGS }} \
     > {{ LOG_FOLDER }}/{{ JOB_NAME }}.out.txt \
     2> {{ LOG_FOLDER }}/{{ JOB_NAME }}.err.txt

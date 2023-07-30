@@ -8,12 +8,12 @@ mkdir -p {{ OUTPUT_FOLDER }}
 
 {% if USE_MODELRUNNER is defined and USE_MODELRUNNER %}
 # Run the program in the background
-nohup python -m modelrunner {{ MODEL_FILE }} \
+nohup {{ PYTHON_BIN }} -m modelrunner {{ MODEL_FILE }} \
     {{ JOB_ARGS }} \
     > {{ LOG_FOLDER }}/{{ JOB_NAME }}.out.txt \
     2> {{ LOG_FOLDER }}/{{ JOB_NAME }}.err.txt &
 {% else %}
-nohup python3 {{ MODEL_FILE }} \
+nohup {{ PYTHON_BIN }} {{ MODEL_FILE }} \
     {{ JOB_ARGS }} \
     > {{ LOG_FOLDER }}/{{ JOB_NAME }}.out.txt \
     2> {{ LOG_FOLDER }}/{{ JOB_NAME }}.err.txt &

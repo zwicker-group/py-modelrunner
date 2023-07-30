@@ -9,6 +9,7 @@ import logging
 import os
 import pipes
 import subprocess as sp
+import sys
 import warnings
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional, Tuple, Union
@@ -86,7 +87,7 @@ def submit_job(
         log_folder (str of :class:`~pathlib.Path`):
             Path to the logging folder
         method (str):
-            Specifies the submission method. Currently `background`, `foreground`, and
+            Specifies the submission method. Currently `background`, `foreground`, 'srun' and
             `qsub` are supported.
         use_modelrunner (bool):
             If True, `script` is envoked with the modelrunner library, e.g. by calling
@@ -126,6 +127,8 @@ def submit_job(
         "JOB_NAME": name,
         "MODEL_FILE": escape_string(script),
         "USE_MODELRUNNER": use_modelrunner,
+        "PYTHON_BIN": sys.executable,
+        "DEFAULT_QUEUE": "teutates.q",
     }
     for k, v in kwargs.items():
         script_args[k.upper()] = v
@@ -179,10 +182,10 @@ def submit_job(
     script_content = Template(script_template).render(script_args)
     logger.debug("Script: `%s`", script_content)
 
-    if method == "qsub":
+    if method in {"qsub", "srun"}:
         # submit job to queue
         proc = sp.Popen(
-            ["qsub"],
+            [method],
             stdin=sp.PIPE,
             stdout=sp.PIPE,
             stderr=sp.PIPE,
