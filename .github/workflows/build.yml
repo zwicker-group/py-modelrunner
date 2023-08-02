@@ -29,7 +29,7 @@ jobs:
         MPLBACKEND: agg
       run: |
         cd scripts
-        python run_tests.py --unit --num_cores auto
+        python run_tests.py --unit --parallel
 
     - name: Test types with mypy
       continue-on-error: true
