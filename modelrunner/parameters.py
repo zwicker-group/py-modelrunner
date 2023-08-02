@@ -153,7 +153,7 @@ class Parameter:
     @property
     def short_description(self) -> str:
         """return only the first sentence of the description"""
-        return self.description.split(".", 1)[0]
+        return self.description.split(". ", 1)[0]
 
     def convert(self, value=NoValue, *, strict: bool = True):
         """converts a `value` into the correct type for this parameter. If
