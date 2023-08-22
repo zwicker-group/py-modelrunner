@@ -2,11 +2,21 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
+import shutil
+
 import numpy as np
 import pytest
 
 from modelrunner.state import ArrayState, Trajectory, TrajectoryWriter
 from utils.states import EXTENSIONS, get_states
+
+
+def remove_file_or_folder(path):
+    """removes file or folder `path` with all subfiles"""
+    if path.is_dir():
+        shutil.rmtree(path, ignore_errors=True)
+    else:
+        path.unlink()
 
 
 @pytest.mark.parametrize("state", get_states())
@@ -39,16 +49,18 @@ def test_trajectory(state, ext, tmp_path):
 
     if ext == ".zarr":
         # zarr does not support deletion of data, so we choose a new path
-        path = tmp_path / ("file2" + ext)
+        path2 = tmp_path / ("file2" + ext)
+    else:
+        path2 = path
 
     # write second batch of data
-    writer = TrajectoryWriter(path, attrs={"test": "no"}, overwrite=True)
+    writer = TrajectoryWriter(path2, attrs={"test": "no"}, overwrite=True)
     writer.append(state, 2)
     writer.append(state)
     writer.close()
 
     # check second batch of data
-    traj = Trajectory(path, ret_copy=True)
+    traj = Trajectory(path2, ret_copy=True)
     assert len(traj) == 2
     np.testing.assert_allclose(traj.times, [2, 3])
     assert traj[1] == state
@@ -58,6 +70,10 @@ def test_trajectory(state, ext, tmp_path):
 
     for s in traj:
         assert s == state
+
+    remove_file_or_folder(path)
+    if ext == ".zarr":
+        remove_file_or_folder(path2)
 
 
 @pytest.mark.parametrize("ext", ["", ".zarr"])
@@ -85,6 +101,8 @@ def test_trajectory_multiple_reads(ext, tmp_path):
     assert state1 != state
     assert t1[0] == t1[0] == state
 
+    remove_file_or_folder(path)
+
 
 @pytest.mark.parametrize("ext", ["", ".zarr"])
 def test_trajectory_overwriting(ext, tmp_path):
@@ -105,3 +123,5 @@ def test_trajectory_overwriting(ext, tmp_path):
     # try writing data with overwrite
     with TrajectoryWriter(path, overwrite=True) as write:
         write(state)
+
+    remove_file_or_folder(path)

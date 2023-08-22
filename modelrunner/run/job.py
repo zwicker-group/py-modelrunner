@@ -121,7 +121,7 @@ def submit_job(
     # prepare submission script
     ensure_directory_exists(log_folder)
 
-    script_args = {
+    script_args: Dict[str, Any] = {
         "PACKAGE_PATH": Path(__file__).parents[2],
         "LOG_FOLDER": log_folder,
         "JOB_NAME": name,
@@ -177,6 +177,9 @@ def submit_job(
         # if `output` is not specified, save data to current directory
         script_args["OUTPUT_FOLDER"] = "."
     script_args["JOB_ARGS"] = " ".join(job_args)
+
+    # set some default values if no values have been specified
+    script_args["NUM_THREADS"] = 1
 
     # replace parameters in submission script template
     script_content = Template(script_template).render(script_args)
