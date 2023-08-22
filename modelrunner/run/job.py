@@ -179,7 +179,7 @@ def submit_job(
     script_args["JOB_ARGS"] = " ".join(job_args)
 
     # set some default values if no values have been specified
-    script_args["NUM_THREADS"] = 1
+    script_args.setdefault("NUM_THREADS", 1)
 
     # replace parameters in submission script template
     script_content = Template(script_template).render(script_args)
