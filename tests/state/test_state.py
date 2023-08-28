@@ -25,16 +25,19 @@ def test_state_basic(state):
     assert state.__class__.__name__ in StateBase._state_classes
 
     s2 = state.copy(clean=False)
-    assert state is not s2
     assert state == s2
+    assert state is not s2
+    assert state._state_data is not s2._state_data
 
     s3 = state.copy(clean=True)
-    assert state is not s3
     assert state == s3
+    assert state is not s3
+    assert state._state_data is not s3._state_data
 
     s4 = copy.copy(state)
-    assert state is not s4
     assert state == s4
+    assert state is not s4
+    assert state._state_data is not s4._state_data
 
 
 @pytest.mark.parametrize("state", get_states(add_derived=False))
