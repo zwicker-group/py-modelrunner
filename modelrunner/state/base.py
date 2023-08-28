@@ -305,6 +305,18 @@ class StateBase(IOBase, metaclass=ABCMeta):
                 obj._state_data = data
         return obj
 
+    def __copy__(self: TState) -> TState:
+        """create a shallow copy of the state using :meth:`copy.copy`
+
+        This method inserts references into the new state to the objects found in the
+        original state. The only exception to this rule is the `data` attribute, which
+        will actually be copied.
+
+        Returns:
+            A copy of the current state object
+        """
+        return self.copy(clean=False)
+
     def _state_write_zarr_attributes(
         self, element: zarrElement, attrs: Optional[Dict[str, Any]] = None
     ) -> zarrElement:
