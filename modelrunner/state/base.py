@@ -281,12 +281,12 @@ class StateBase(IOBase, metaclass=ABCMeta):
             in the :attr:`_state_data`, which typically is aliased by :attr:`data`).
 
         Args:
-            data:
-                Data to be used instead of the one in the current state. This data is
-                used as is and not copied!
             method (str):
                 Determines whether a `clean`, `shallow`, or `data` copy is performed.
                 See description above for details.
+            data:
+                Data to be used instead of the one in the current state. This data is
+                used as is and not copied!
 
         Returns:
             A copy of the current state object

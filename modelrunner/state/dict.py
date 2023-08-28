@@ -65,6 +65,38 @@ class DictState(StateBase):
             data = {k: v for k, v in zip(attributes.pop("__keys__"), data)}
         return super().from_data(attributes, data)
 
+    def copy(self, method: str, data=None):
+        """create a copy of the state
+
+        Args:
+            method (str):
+                Determines whether a `clean`, `shallow`, or `data` copy is performed.
+                See :meth:`~modelrunner.state.base.StateBase.copy` for details.
+            data:
+                Data to be used instead of the one in the current state. This data is
+                used as is and not copied!
+
+        Returns:
+            A copy of the current state object
+        """
+        if method == "data":
+            # This special copy mode needs to be implemented in a very special way for
+            # `DictState` since only the data needs to be deep-copied, while all other
+            # attributes shall receive shallow copies. This particularly also needs to
+            # hold for the substates stored in `_state_data`.
+            obj = self.__class__.__new__(self.__class__)
+            obj.__dict__ = self.__dict__.copy()
+            if data is None:
+                obj._state_data = {
+                    k: v.copy(method="data") for k, v in self._state_data.items()
+                }
+            else:
+                obj._state_data = data
+
+        else:
+            obj = super().copy(method=method, data=data)
+        return obj
+
     def __len__(self) -> int:
         return len(self._state_data)
 
