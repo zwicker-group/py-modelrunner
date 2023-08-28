@@ -262,33 +262,39 @@ class StateBase(IOBase, metaclass=ABCMeta):
         else:
             raise ValueError(f"Incompatible state class {cls_name}")
 
-    def copy(self: TState, data=None, *, clean: bool = True) -> TState:
+    def copy(self: TState, method: str, data=None) -> TState:
         """create a copy of the state
 
-        Warning:
-            If argument `clean == True`, this method makes a copy of the state by
-            gathering its contents using :meth:`~StateBase.__getstate__`, makeing a copy
-            of only the actual data and then instantiating a new state class, using
-            :meth:`~StateBase.__setstate__` to restore the state. Since a new object is
-            created, all data not captured by `__getstate__` (like internal caches) are
-            lost! To copy this data, too, use `clean == False`, which simply copies the
-            entire :attr:`__dict__` of the state and makes a deep copy of only the data.
+        There are several methods of copying the state:
+
+        `clean`:
+            Makes a copy of the state by gathering its contents using
+            :meth:`~StateBase.__getstate__`, makeing a copy of only the actual data and
+            then instantiating a new state class, using :meth:`~StateBase.__setstate__`
+            to restore the state. Since a new object is created, all data not captured
+            by `__getstate__` (like internal caches) are lost!
+        `shallow`:
+            Performs a shallow copy of all attributes of the class. This is simply
+            copying the entire :attr:`__dict__`
+        `data`:
+            Like `shallow`, but additionally makes a deep copy of the state data (stored
+            in the :attr:`_state_data`, which typically is aliased by :attr:`data`).
 
         Args:
             data:
-                Data to be used instead of the one in the current state
-            clean (bool):
-                Flag indicating how attributes beside the core data are handled. If
-                `True`, attributes obtained from :meth:`__getstate__` are used to
-                instantiate a new class using :meth:`__setstate__`. If this flag is
-                `False`, the entire :attr:`__dict__` is copied.
+                Data to be used instead of the one in the current state. This data is
+                used as is and not copied!
+            method (str):
+                Determines whether a `clean`, `shallow`, or `data` copy is performed.
+                See description above for details.
 
         Returns:
             A copy of the current state object
         """
         # create a new object of the same class without any attributes
         obj = self.__class__.__new__(self.__class__)
-        if clean:
+
+        if method == "clean":
             # make clean copy by re-initializing state with copy of relevant attributes
             state = copy.deepcopy(self.__getstate__())  # copy current state
             if data is not None:
@@ -296,26 +302,24 @@ class StateBase(IOBase, metaclass=ABCMeta):
             # use __setstate__ to set data on new object
             obj.__setstate__(state)
 
-        else:
-            # (shallow) copy of all attributes of current state
+        elif method == "shallow":
+            # (shallow) copy of all attributes of current state, including `data`
+            obj.__dict__ = self.__dict__.copy()
+            if data is not None:
+                obj._state_data = data
+
+        elif method == "data":
+            # (shallow) copy of all attributes of current state, except `data`, which is
+            # copied using a deep-copy
             obj.__dict__ = self.__dict__.copy()
             if data is None:
                 obj._state_data = copy.deepcopy(self._state_data)
             else:
                 obj._state_data = data
+
+        else:
+            raise ValueError(f"Unknown copy method {method}")
         return obj
-
-    def __copy__(self: TState) -> TState:
-        """create a shallow copy of the state using :meth:`copy.copy`
-
-        This method inserts references into the new state to the objects found in the
-        original state. The only exception to this rule is the `data` attribute, which
-        will actually be copied.
-
-        Returns:
-            A copy of the current state object
-        """
-        return self.copy(clean=False)
 
     def _state_write_zarr_attributes(
         self, element: zarrElement, attrs: Optional[Dict[str, Any]] = None

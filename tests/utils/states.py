@@ -34,12 +34,12 @@ def get_states(add_derived: bool = True):
     obj_state = ObjectState(o.copy())
     arr_state = ArrayState(a.copy())
     res = [
-        obj_state.copy(),
-        arr_state.copy(),
+        obj_state.copy("clean"),
+        arr_state.copy("clean"),
         ArrayState(da.copy()),
         ArrayState(ra.copy()),
         ArrayCollectionState((a.copy(), b.copy()), labels=["a", "b"]),
-        DictState({"o": obj_state.copy(), "a": arr_state.copy()}),
+        DictState({"o": obj_state.copy("clean"), "a": arr_state.copy("clean")}),
     ]
 
     if not add_derived:
@@ -75,7 +75,7 @@ def get_states(add_derived: bool = True):
             _state_data_attr_name = "states"
 
             def __init__(self, states):
-                self.states = {k: v.copy() for k, v in states.items()}
+                self.states = {k: v.copy("clean") for k, v in states.items()}
 
     res.append(
         StateBase._state_classes["DerivedDict"]({"o": obj_state, "a": arr_state})

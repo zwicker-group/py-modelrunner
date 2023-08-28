@@ -20,24 +20,26 @@ from utils.states import EXTENSIONS, get_states
 
 
 @pytest.mark.parametrize("state", get_states())
-def test_state_basic(state):
+@pytest.mark.parametrize("method", ["shallow", "data", "clean"])
+def test_state_basic(state, method):
     """test basic properties of states"""
     assert state.__class__.__name__ in StateBase._state_classes
+    state._extra_info = "test"
 
-    s2 = state.copy(clean=False)
-    assert state == s2
-    assert state is not s2
-    assert state._state_data is not s2._state_data
+    # copy everything by copying __dict__
+    s_c = state.copy(method)
+    assert state == s_c
+    assert state is not s_c
 
-    s3 = state.copy(clean=True)
-    assert state == s3
-    assert state is not s3
-    assert state._state_data is not s3._state_data
+    if method == "clean":
+        assert not hasattr(s_c, "_extra_info")
+    else:
+        assert s_c._extra_info == "test"
 
-    s4 = copy.copy(state)
-    assert state == s4
-    assert state is not s4
-    assert state._state_data is not s4._state_data
+    if method == "shallow":
+        assert state._state_data is s_c._state_data
+    else:
+        assert state._state_data is not s_c._state_data
 
 
 @pytest.mark.parametrize("state", get_states(add_derived=False))
@@ -95,7 +97,7 @@ def test_state_attributes_implicit(state_cls, tmp_path):
                 self.data = None
 
     state = MyState("hello")
-    state2 = state.copy()
+    state2 = state.copy("clean")
     assert state == state2
     assert state2.attrs["value"] == "hello"
 
@@ -108,11 +110,15 @@ def test_state_attributes_implicit(state_cls, tmp_path):
 
     nested = MyState("inner")
     state = MyState(nested)
-    state2 = state.copy(clean=False)
+    state2 = state.copy("shallow")
+    assert state.attrs["value"] is state2.attrs["value"] is nested
+    assert state.data is None or (state.data is state2.data)
+
+    state2 = state.copy("data")
     assert state.attrs["value"] is state2.attrs["value"] is nested
     assert state.data is None or (state.data is not state2.data)
 
-    state2 = state.copy(clean=True)
+    state2 = state.copy("clean")
     assert state.attrs["value"] is not state2.attrs["value"]
     assert state.data is None or (state.data is not state2.data)
 
@@ -146,7 +152,7 @@ def test_state_attributes_explicit(state_cls, tmp_path):
             self.value = attrs["value"]
 
     state = MyState("hello")
-    state2 = state.copy()
+    state2 = state.copy(method="clean")
     assert state == state2
     assert state2.value == "hello"
 
