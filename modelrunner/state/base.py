@@ -10,12 +10,13 @@ from __future__ import annotations
 import copy
 import warnings
 from abc import ABCMeta, abstractmethod
-from typing import Any, Dict, Optional, Type, TypeVar
+from typing import Any, Dict, Optional, Type, TypeVar, TYPE_CHECKING
 
 import numpy as np
 import zarr
 
-from .io import IOBase, simplify_data, zarrElement
+if TYPE_CHECKING:
+    from ..storage import StorageID
 
 
 class NoData:
@@ -59,7 +60,7 @@ def _equals(left: Any, right: Any) -> bool:
 TState = TypeVar("TState", bound="StateBase")
 
 
-class StateBase(IOBase, metaclass=ABCMeta):
+class StateBase(metaclass=ABCMeta):
     """Base class for specifying the state of a simulation
 
     A state contains values of all degrees of freedom of a physical system (called the
@@ -320,6 +321,30 @@ class StateBase(IOBase, metaclass=ABCMeta):
         else:
             raise ValueError(f"Unknown copy method {method}")
         return obj
+
+    def to_file(
+        self,
+        storage: StorageID,
+        *,
+        key: str = "state",
+        overwrite: bool = False,
+        **kwargs,
+    ) -> None:
+        """write this object to a file
+
+        Args:
+            store (str or :class:`zarr.Store`):
+                Where to write the data to
+            overwrite (bool):
+                If True, overwrites files even if they already exist
+            **kwargs:
+                Additional arguments are passed on to the method that implements the
+                writing of the specific format (_write_**).
+        """
+        from ..storage import get_storage
+
+        storage = get_storage(storage, overwrite=overwrite)
+        self._write_state(storage, key=key)
 
     def _state_write_zarr_attributes(
         self, element: zarrElement, attrs: Optional[Dict[str, Any]] = None
