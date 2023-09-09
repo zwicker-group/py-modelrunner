@@ -18,7 +18,6 @@ from numpy.lib.recfunctions import (
 )
 
 from .base import NoData, StateBase
-from .io import zarrElement
 
 
 class ArrayState(StateBase):
