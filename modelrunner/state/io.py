@@ -15,11 +15,9 @@ from pathlib import Path
 from typing import Optional, Union
 
 from ..parameters import NoValueType
+
 if TYPE_CHECKING:
     from ..storage import StorageID
-
-
-
 
 
 class IOBase:
@@ -72,7 +70,12 @@ class IOBase:
 
     @classmethod
     def from_file(
-        cls, storage: StorageID, *, fmt: Optional[str] = None, label: str = "data", **kwargs
+        cls,
+        storage: StorageID,
+        *,
+        fmt: Optional[str] = None,
+        label: str = "data",
+        **kwargs,
     ):
         """load object from a file
 

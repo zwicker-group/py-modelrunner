@@ -4,62 +4,21 @@
 
 from __future__ import annotations
 
-import logging
-from abc import ABCMeta, abstractmethod
-from importlib import import_module
-from typing import List, Iterator, Sequence, Tuple, Union, Dict, Optional, Any
+from typing import Any, Dict, Iterator, Optional, Sequence, Tuple, Type, Union
+
 import numpy as np
+from numpy.typing import ArrayLike, DTypeLike
 
+from .base import StorageBase
+from .utils import Array, InfoDict, KeyType, decode_class, storage_actions
 
-from .base import StorageBase, InfoDict
-
-
-class ArrayWithAttrs(np.ndarray):
-    """array class that is returned if no class can be loaded"""
-
-    def __new__(cls, input_array, attrs: Optional[InfoDict] = None):
-        obj = np.asarray(input_array).view(cls)
-        obj.attrs = {} if attrs is None else attrs
-        return obj
-
-    def __array_finalize__(self, obj):
-        if obj is None:  # __new__ handles instantiation
-            return
-        """we essentially need to set all our attributes that are set in __new__ here again (including their default values). 
-        Otherwise numpy's view-casting and new-from-template mechanisms would break our class.
-        """
-        self.attrs = getattr(obj, "attrs", {})
-
-
-def encode_class(cls) -> str:
-    if cls is None:
-        return "None"
-    return cls.__module__ + "." + cls.__name__
-
-
-def decode_class(class_path: Optional[str]):
-    if class_path is None or class_path == "None":
-        return None
-
-    # import class from a package
-    try:
-        module_path, class_name = class_path.rsplit(".", 1)
-    except ValueError:
-        raise ImportError(f"Cannot import class {class_path}")
-
-    module = import_module(module_path)
-
-    try:
-        return getattr(module, class_name)
-    except AttributeError:
-        raise ImportError(f"Module {module_path} does not define {class_name}")
+# TODO: Provide .attrs attribute with a descriptor protocol (implemented by the backend)
 
 
 class Group:
     def __init__(
         self, storage: StorageBase, path: Union[None, str, Sequence[str]] = None
     ):
-        self._storage = storage
         if path is None:
             self.path = []
         elif isinstance(path, str):
@@ -67,24 +26,32 @@ class Group:
         else:
             self.path = path
 
-    def __getitem__(self, key: str) -> Any:
+        if isinstance(storage, StorageBase):
+            self._storage = storage
+        elif isinstance(storage, Group):
+            self.path = storage.path + self.path
+            self._storage = storage._storage
+        else:
+            raise TypeError
+
+    def _get_key(self, key: Optional[KeyType] = None):
+        # TODO: use regex to check whether key is only alphanumerical and has no "/"
+        if key is None:
+            return self.path
+        elif isinstance(key, str):
+            return self.path + key.split("/")
+        else:
+            return self.path + key
+
+    def __getitem__(self, key: KeyType) -> Any:
         """read state or trajectory from storage"""
-        key = self.path + key.split("/")
+        key = self._get_key(key)
         if self._storage.is_group(key):
+            # just return a subgroup at this location
             return Group(self._storage, key)
         else:
-            attrs = self._storage._read_attrs(key)
-            cls = decode_class(attrs.get("__class__"))
-            if cls is None:
-                # return numpy array
-                data, attrs = self._storage._read_array(key)
-                attrs = dict(attrs)  # make a shallow copy
-                attrs.pop("__class__")
-                return ArrayWithAttrs(data, attrs=attrs)
-            else:
-                # create object
-                parent = self if len(key) == 1 else self[key[:-1]]
-                return cls._from_stored(parent, attrs)
+            # reconstruct objected stored at this place
+            return self._read_object(key)
 
     def keys(self) -> Sequence[str]:
         """return name of all stored items"""
@@ -95,22 +62,82 @@ class Group:
         for key in self.keys():
             yield self[key]
 
+    def __contains__(self, key: KeyType):
+        return self._get_key(key) in self._storage
+
     def items(self) -> Iterator[Tuple[str, Any]]:
         """iterate over stored items and trajectories"""
         for key in self.keys():
             yield key, self[key]
 
-    def create_group(self, key: str) -> Group:
+    def read_attrs(self, key: Optional[KeyType] = None) -> InfoDict:
+        return self._storage._read_attrs(self._get_key(key))
+
+    def write_attrs(
+        self, key: Optional[KeyType] = None, attrs: InfoDict = None
+    ) -> None:
+        if attrs is not None:
+            self._storage._write_attrs(self._get_key(key), attrs=attrs)
+
+    @property
+    def attrs(self) -> InfoDict:
+        return self.read_attrs()
+
+    def _read_object(self, key: Sequence[str]):
+        attrs = dict(self._storage._read_attrs(key))  # make shallow copy
+        cls = decode_class(attrs.pop("__class__"))
+        if cls is None:
+            # return numpy array
+            arr = self._storage._read_array(key)
+            return Array(arr, attrs=attrs)
+        else:
+            # create object using a registered action
+            create_object = storage_actions.get(cls, "read_object")
+            return create_object(self._storage, key)
+
+    def create_group(self, key: str, *, cls: Optional[Type] = None) -> Group:
         """key: relative path in current group"""
-        path = self.path + key.split("/")
-        self._storage.create_group(path)
-        return Group(self._storage, path)
+        key = self._get_key(key)
+        return self._storage.create_group(key, cls=cls)
+
+    def read_array(
+        self,
+        key: KeyType,
+        *,
+        out: Optional[np.ndarray] = None,
+        index: Optional[int] = None,
+        copy: bool = True,
+    ) -> np.ndarray:
+        return self._storage.read_array(
+            self._get_key(key), out=out, index=index, copy=copy
+        )
 
     def write_array(
-        self, key: str, arr: np.ndarray, *, cls=None, attrs: Optional[InfoDict] = None
+        self,
+        key: KeyType,
+        arr: np.ndarray,
+        *,
+        cls: Optional[Type] = None,
+        attrs: Optional[InfoDict] = None,
     ):
-        path = self.path + key.split("/")
-        attrs_ = {"__class__": encode_class(cls)}
-        if attrs is not None:
-            attrs_.update(attrs)
-        self._storage._write_array(path, arr, attrs_)
+        key = self._get_key(key)
+        self._storage.write_array(key, arr, cls=cls, attrs=attrs)
+
+    def create_dynamic_array(
+        self,
+        key: KeyType,
+        shape: Tuple[int, ...],
+        *,
+        dtype: DTypeLike = float,
+        cls: Optional[Type] = None,
+        attrs: Optional[InfoDict] = None,
+    ):
+        self._storage.create_dynamic_array(
+            self._get_key(key), shape, dtype=dtype, cls=cls, attrs=attrs
+        )
+
+    def extend_dynamic_array(self, key: KeyType, data: ArrayLike):
+        self._storage.extend_dynamic_array(self._get_key(key), data)
+
+    def get_dynamic_array(self, key: KeyType) -> ArrayLike:
+        return self._storage.get_dynamic_array(self._get_key(key))

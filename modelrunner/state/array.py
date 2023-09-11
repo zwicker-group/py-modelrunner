@@ -8,15 +8,15 @@ from __future__ import annotations
 
 import codecs
 import pickle
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Sequence
 
 import numpy as np
-import zarr
 from numpy.lib.recfunctions import (
     structured_to_unstructured,
     unstructured_to_structured,
 )
 
+from ..storage import storage_actions
 from .base import NoData, StateBase
 
 
@@ -91,37 +91,62 @@ class ArrayState(StateBase):
         super()._state_init(attributes, data)
 
     @classmethod
-    def _state_read_zarr_data(cls, zarr_element: zarr.Array, *, index=...):
-        return zarr_element[index]
+    def _state_from_stored_data(cls, storage, key: str, index: Optional[int] = None):
+        return cls(storage.read_array(key, index=index))
 
-    def _state_update_from_zarr(self, element: zarrElement, *, index=...) -> None:
-        self._state_data[:] = element[index]
+    def _state_update_from_stored_data(
+        self, storage, key: str, index: Optional[int] = None
+    ):
+        storage.read_array(key, index=index, out=self._state_data)
 
-    def _state_write_zarr_data(  # type: ignore
-        self,
-        zarr_group: zarr.Group,
-        *,
-        label: str = "data",
-    ) -> zarr.Array:
-        return zarr_group.array(label, self._state_data)
+    def _state_write_to_storage(self, storage, key: Sequence[str]):
+        storage.write_array(key, self._state_data, cls=self.__class__)
 
-    def _state_prepare_zarr_trajectory(
-        self,
-        zarr_group: zarr.Group,
-        attrs: Optional[Dict[str, Any]] = None,
-        *,
-        label: str = "data",
-        **kwargs,
-    ) -> zarr.Array:
+    def _state_create_trajectory(self, storage, key: str):
         """prepare the zarr storage for this state"""
         data = self._state_data
-        zarr_element = zarr_group.zeros(
-            label, shape=(0,) + data.shape, chunks=(1,) + data.shape, dtype=data.dtype
+        storage.create_dynamic_array(
+            key, shape=data.shape, dtype=data.dtype, cls=self.__class__
         )
-        self._state_write_zarr_attributes(zarr_element, attrs)
 
-        return zarr_element
+    def _state_append_to_trajectory(self, storage, key: str):
+        storage.extend_dynamic_array(key, self._state_data)
 
-    def _state_append_to_zarr_trajectory(self, zarr_element: zarr.Array) -> None:
-        """append current data to a stored element"""
-        zarr_element.append([self._state_data])
+    # @classmethod
+    # def _state_read_zarr_data(cls, zarr_element: zarr.Array, *, index=...):
+    #     return zarr_element[index]
+    #
+    # def _state_update_from_zarr(self, element: zarrElement, *, index=...) -> None:
+    #     self._state_data[:] = element[index]
+    #
+    # def _state_write_zarr_data(  # type: ignore
+    #     self,
+    #     zarr_group: zarr.Group,
+    #     *,
+    #     label: str = "data",
+    # ) -> zarr.Array:
+    #     return zarr_group.array(label, self._state_data)
+    #
+    # def _state_prepare_zarr_trajectory(
+    #     self,
+    #     zarr_group: zarr.Group,
+    #     attrs: Optional[Dict[str, Any]] = None,
+    #     *,
+    #     label: str = "data",
+    #     **kwargs,
+    # ) -> zarr.Array:
+    #     """prepare the zarr storage for this state"""
+    #     data = self._state_data
+    #     zarr_element = zarr_group.zeros(
+    #         label, shape=(0,) + data.shape, chunks=(1,) + data.shape, dtype=data.dtype
+    #     )
+    #     self._state_write_zarr_attributes(zarr_element, attrs)
+    #
+    #     return zarr_element
+    #
+    # def _state_append_to_zarr_trajectory(self, zarr_element: zarr.Array) -> None:
+    #     """append current data to a stored element"""
+    #     zarr_element.append([self._state_data])
+
+
+storage_actions.register("read_object", ArrayState, ArrayState._state_from_stored_data)
