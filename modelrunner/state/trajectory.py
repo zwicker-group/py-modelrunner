@@ -17,8 +17,10 @@ from typing import Any, Dict, Iterator, Optional, Union
 import numpy as np
 import zarr
 
+from ..storage.group import Group
+from ..storage.tools import open_storage
+from ..storage.utils import KeyType, decode_class, encode_class, storage_actions
 from .base import StateBase
-from .io import normalize_zarr_store
 
 
 class TrajectoryWriter:
@@ -31,9 +33,9 @@ class TrajectoryWriter:
         .. code-block:: python
 
             # write data using context manager
-            with TrajectoryWriter("test.zarr") as write:
+            with TrajectoryWriter("test.zarr", key="trajectory") as writer:
                 for t, data in simulation:
-                    write(data, t)
+                    writer.append(data, t)
 
             # write using explicit class interface
             writer = TrajectoryWriter("test.zarr", overwrite=True)
@@ -47,7 +49,11 @@ class TrajectoryWriter:
     """
 
     def __init__(
-        self, store, *, attrs: Optional[Dict[str, Any]] = None, overwrite: bool = False
+        self,
+        storage,
+        key: KeyType = "trajectory",
+        *,
+        attrs: Optional[Dict[str, Any]] = None,
     ):
         """
         Args:
@@ -60,34 +66,35 @@ class TrajectoryWriter:
                 If True, delete all pre-existing data in store.
         """
         # create the root group where we store all the data
-        self._root = zarr.group(
-            normalize_zarr_store(store, mode="w" if overwrite else "a"),
-            overwrite=overwrite,
-        )
+        self._storage = storage.create_group(key)
+        self._storage.write_attrs(None, {"__class__": encode_class(Trajectory)})
 
         # make sure we don't overwrite data
-        if "times" in self._root or "data" in self._root:
-            raise IOError("zarr Store already contains data")
+        if "times" in self._storage or "data" in self._storage:
+            raise IOError("Storage already contains data")
 
         if attrs is not None:
-            self._root.attrs.put(attrs)
-        self.times = self._root.zeros("times", shape=(0,), chunks=(1,))
+            self._storage.write_attrs(attrs=attrs)
 
     def append(self, data: StateBase, time: Optional[float] = None) -> None:
-        if "data" not in self._root:
-            data._state_prepare_zarr_trajectory(self._root, label="data")
+        if "data" not in self._storage:
+            data._state_create_trajectory(self._storage, "data")
+            self._storage.create_dynamic_array("time", shape=tuple(), dtype=float)
+            if time is None:
+                time = 0.0
+        else:
+            if time is None:
+                time = float(self._storage.get_dynamic_array("time")[-1]) + 1.0
 
-        if time is None:
-            time = 0 if len(self.times) == 0 else self.times[-1] + 1
-
-        self.times.append([time])
-        data._state_append_to_zarr_trajectory(self._root["data"])
+        data._state_append_to_trajectory(self._storage, "data")
+        self._storage.extend_dynamic_array("time", time)
 
     def close(self):
-        self._root.store.close()
+        ...
+        # self._root.store.close()
 
     def __enter__(self):
-        return self.append
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
@@ -103,10 +110,10 @@ class Trajectory:
         times (:class:`~numpy.ndarray`): Time points at which data is available
     """
 
-    def __init__(self, store, *, ret_copy: bool = True):
+    def __init__(self, storage, key: str, *, ret_copy: bool = True):
         """
         Args:
-            store (MutableMapping or string):
+            storage (MutableMapping or string):
                 Store or path to directory in file system or name of zip file.
             ret_copy (bool):
                 If True, copies of states are returned, e.g., when iterating. If the
@@ -115,9 +122,10 @@ class Trajectory:
                 from the store, so this setting only affects attributes.
         """
         self.ret_copy = ret_copy
-        self._root = zarr.open_group(normalize_zarr_store(store), mode="r")
-        self.times = np.array(self._root["times"])
+        self._storage = Group(open_storage(storage, overwrite=False), key)
+        self.times = self._storage.read_array("time")
         self._state: Optional[StateBase] = None
+        self._state_cls = decode_class(self._storage.read_attrs("data")["__class__"])
 
         # check temporal ordering
         assert np.all(np.diff(self.times) > 0)
@@ -125,7 +133,7 @@ class Trajectory:
     @property
     def _state_attributes(self) -> Dict[str, Any]:
         """dict: information about the trajectory"""
-        return self._root.attrs.asdict()  # type: ignore
+        return self.storage.read.attrs.asdict()  # type: ignore
 
     def __len__(self) -> int:
         return len(self.times)
@@ -150,15 +158,19 @@ class Trajectory:
 
         if self.ret_copy or self._state is None:
             # create the state with the data of the given index
-            self._state = StateBase._from_zarr(self._root["data"], index=t_index)
+            self._state = self._state_cls._state_from_stored_data(
+                self._storage, "data", index=t_index
+            )
 
         else:
             # update the state with the data of the given index
-            self._state._state_update_from_zarr(self._root["data"], index=t_index)
+            self._state._state_update_from_stored_data(
+                self._storage, "data", index=t_index
+            )
 
         return self._state
 
-    def __getitem__(self, key: Union[int, slice]) -> Union[StateBase, Trajectory]:
+    def __getitem__(self, key: int) -> StateBase:
         """return field at given index or a list of fields for a slice"""
         if isinstance(key, int):
             return self._get_state(key)
@@ -169,3 +181,6 @@ class Trajectory:
         """iterate over all stored fields"""
         for i in range(len(self)):
             yield self[i]  # type: ignore
+
+
+storage_actions.register("read_object", Trajectory, Trajectory)

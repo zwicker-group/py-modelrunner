@@ -2,6 +2,14 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
+# Dtype needs to be properly pickled
+# Encoding:
+#     dtype_pickled = pickle.dumps(self._state_data.dtype)
+#     codecs.encode(dtype_pickled, "base64").decode()
+# Decoding:
+#     dtype = pickle.loads(codecs.decode(dtype_pickled.encode(), "base64"))
+#     if data.dtype.names is None:
+#         data = unstructured_to_structured(data, dtype=dtype)
 
 from __future__ import annotations
 
@@ -13,6 +21,7 @@ import numpy as np
 import zarr
 from zarr.storage import BaseStore
 
+from ..base import StorageBase
 from ..parameters import NoValueType
 from ..storage import get_storage
 
@@ -56,11 +65,15 @@ def contains_array(data) -> bool:
         return any(contains_array(d) for d in data)
     else:
         return False
+
+
 class TextBasedStorage(StorageBase):
-    
+    ...
+
 
 class JSONStorage(TextBasedStorage):
     ...
-    
+
+
 class YAMLStorage(TextBasedStorage):
     ...

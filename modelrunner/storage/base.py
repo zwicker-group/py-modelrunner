@@ -8,20 +8,19 @@ from __future__ import annotations
 
 import logging
 from abc import ABCMeta, abstractmethod
-from importlib import import_module
-from typing import List, Iterator, Sequence, Tuple, Union, Dict, Optional, Any
-import numpy as np
+from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Type
 
-InfoDict = Dict[str, Any]
+import numpy as np
+from numpy.typing import ArrayLike, DTypeLike
+
+from .utils import InfoDict, KeyType, encode_class
+
+if TYPE_CHECKING:
+    from .group import Group
 
 
 class StorageBase(metaclass=ABCMeta):
-    """base class for storing time series of discretized fields
-
-    These classes store time series of :class:`~pde.fields.base.FieldBase`, i.e., they
-    store the values of the fields at particular time points. Iterating of the storage
-    will return the fields in order and individual time points can also be accessed.
-    """
+    """base class for storing data"""
 
     extensions: List[str] = []
 
@@ -34,31 +33,129 @@ class StorageBase(metaclass=ABCMeta):
         self.overwrite = overwrite
         self._logger = logging.getLogger(self.__class__.__name__)
 
-    def __getitem__(self, key: str):
-        from .group import Group
-
-        return Group(self)[key]
+    def _get_key(self, key: KeyType):
+        if isinstance(key, str):
+            return key.split("/")
+        else:
+            return key
 
     @abstractmethod
     def keys(self, key: Sequence[str]) -> List[str]:
         ...
 
-    @abstractmethod
-    def _read_attrs(self, key: Sequence[str]) -> InfoDict:
-        ...
+    def __contains__(self, key: Sequence[str]):
+        return key[-1] in self.keys(key[:-1])
 
     @abstractmethod
     def is_group(self, key: Sequence[str]) -> bool:
         ...
 
     @abstractmethod
-    def create_group(self, key: Sequence[str]):
+    def _create_group(self, key: Sequence[str]):
+        ...
+
+    def create_group(
+        self,
+        key: Sequence[str],
+        *,
+        cls: Optional[Type] = None,
+        attrs: Optional[InfoDict] = None,
+    ) -> "Group":
+        from .group import Group  # @Reimport to avoid circular import
+
+        key = self._get_key(key)
+        attrs_ = {} if cls is None else {"__class__": encode_class(cls)}
+        if attrs is not None:
+            attrs_.update(attrs)
+        self._create_group(key)
+        self._write_attrs(key, attrs_)
+        return Group(self, key)
+
+    @abstractmethod
+    def _read_attrs(self, key: Sequence[str]) -> InfoDict:
         ...
 
     @abstractmethod
-    def _read_array(self, key: Sequence[str]) -> Tuple[np.ndarray, InfoDict]:
+    def _write_attrs(self, key: Sequence[str], attrs: InfoDict) -> None:
         ...
+
+    @abstractmethod
+    def _read_array(
+        self,
+        key: Sequence[str],
+        *,
+        index: Optional[int] = None,
+    ) -> np.ndarray:
+        ...
+
+    def read_array(
+        self,
+        key: KeyType,
+        *,
+        out: Optional[np.ndarray] = None,
+        index: Optional[int] = None,
+        copy: bool = True,
+    ) -> np.ndarray:
+        key = self._get_key(key)
+        if out is not None:
+            out[:] = self._read_array(key, index=index)
+        elif copy:
+            out = np.array(self._read_array(key, index=index), copy=True)
+        else:
+            out = self._read_array(key, index=index)
+        return out
 
     @abstractmethod
     def _write_array(self, key: Sequence[str], arr: np.ndarray, attrs: InfoDict):
         ...
+
+    def write_array(
+        self,
+        key: KeyType,
+        arr: np.ndarray,
+        *,
+        cls: Optional[Type] = None,
+        attrs: Optional[InfoDict] = None,
+    ):
+        key = self._get_key(key)
+        attrs_ = {"__class__": encode_class(cls)}
+        if attrs is not None:
+            attrs_.update(attrs)
+        self._write_array(key, arr)
+        self._write_attrs(key, attrs_)
+
+    @abstractmethod
+    def _create_dynamic_array(
+        self, key: Sequence[str], shape: Tuple[int, ...], dtype: DTypeLike
+    ):
+        raise NotImplementedError(f"No dynamic arrays for {self.__class__.__name__}")
+
+    def create_dynamic_array(
+        self,
+        key: KeyType,
+        shape: Tuple[int, ...],
+        *,
+        dtype: DTypeLike = float,
+        cls: Optional[Type] = None,
+        attrs: Optional[InfoDict] = None,
+    ):
+        key = self._get_key(key)
+        attrs_ = {"__class__": encode_class(cls)}
+        if attrs is not None:
+            attrs_.update(attrs)
+        self._create_dynamic_array(key, shape, dtype=dtype)
+        self._write_attrs(key, attrs_)
+
+    @abstractmethod
+    def _extend_dynamic_array(self, key: Sequence[str], data: ArrayLike):
+        raise NotImplementedError(f"No dynamic arrays for {self.__class__.__name__}")
+
+    def extend_dynamic_array(self, key: KeyType, data: ArrayLike):
+        self._extend_dynamic_array(self._get_key(key), data)
+
+    @abstractmethod
+    def _get_dynamic_array(self, key: Sequence[str]) -> ArrayLike:
+        ...
+
+    def get_dynamic_array(self, key: KeyType) -> ArrayLike:
+        return self._get_dynamic_array(self._get_key(key))

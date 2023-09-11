@@ -6,11 +6,13 @@ Defines a class storing data in memory.
 
 from __future__ import annotations
 
-from typing import Optional, Sequence, Tuple, Any, List
+from typing import Any, List, Optional, Sequence, Tuple
 
 import numpy as np
+from numpy.typing import ArrayLike, DTypeLike
 
-from ..base import StorageBase, InfoDict
+from ..base import StorageBase
+from ..utils import InfoDict
 
 
 class MemoryStorage(StorageBase):
@@ -31,15 +33,7 @@ class MemoryStorage(StorageBase):
         """
         self._data = {}
 
-    def _get_parent(
-        self,
-        key: Sequence[str],
-        *,
-        validate_key: bool = True,
-        check_write: bool = False,
-    ):
-        # TODO: use regex to check whether key is only alphanumerical and has /
-
+    def _get_parent(self, key: Sequence[str], *, check_write: bool = False):
         value = self._data
         for part in key[:-1]:
             try:
@@ -76,17 +70,54 @@ class MemoryStorage(StorageBase):
         else:
             return False
 
-    def create_group(self, key: Sequence[str]):
+    def _create_group(self, key: Sequence[str]):
         parent, name = self._get_parent(key, check_write=True)
         parent[name] = {}
 
     def _read_attrs(self, key: Sequence[str]) -> InfoDict:
         return self[key].get("attrs", {})
 
-    def _read_array(self, key: Sequence[str]) -> Tuple[np.ndarray, InfoDict]:
+    def _write_attrs(self, key: Sequence[str], attrs: InfoDict):
         item = self[key]
-        return item["data"], item.get("attrs", {})
+        if "attrs" not in item:
+            item["attrs"] = attrs
+        else:
+            if not self.overwrite:
+                for k in attrs.keys():
+                    if k in item["attrs"]:
+                        raise KeyError(f"Cannot overwrite attribute `{k}`")
+            item["attrs"].update(attrs)
 
-    def _write_array(self, key: Sequence[str], arr: np.ndarray, attrs: InfoDict):
+    def _read_array(
+        self, key: Sequence[str], *, index: Optional[int] = None
+    ) -> np.ndarray:
+        if index is None:
+            return self[key]["data"]
+        else:
+            return self[key]["data"][index]
+
+    def _write_array(self, key: Sequence[str], arr: np.ndarray):
         parent, name = self._get_parent(key, check_write=True)
-        parent[name] = {"data": arr, "attrs": attrs}
+        parent[name] = {"data": np.array(arr, copy=True)}
+
+    def _create_dynamic_array(
+        self, key: Sequence[str], shape: Tuple[int, ...], dtype: DTypeLike
+    ):
+        parent, name = self._get_parent(key, check_write=True)
+        parent[name] = {"data": [], "shape": shape, "dtype": np.dtype(dtype)}
+
+    def _extend_dynamic_array(self, key: Sequence[str], data: ArrayLike):
+        item = self[key]
+        data = np.asanyarray(data)
+        if item["shape"] != data.shape:
+            raise TypeError("Shape mismatch")
+        if not np.issubdtype(data.dtype, item["dtype"]):
+            raise TypeError("Dtype mismatch")
+
+        if data.ndim == 0:
+            item["data"].append(data.item())
+        else:
+            item["data"].append(np.array(data, copy=True))
+
+    def _get_dynamic_array(self, key: Sequence[str]) -> ArrayLike:
+        return self[key]["data"]

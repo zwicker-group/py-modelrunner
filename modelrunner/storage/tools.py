@@ -4,11 +4,12 @@
 
 from pathlib import Path
 from typing import Union
+
+from .backend import AVAILABLE_STORAGE, MemoryStorage
 from .base import StorageBase
 from .group import Group
-from .backend import AVAILABLE_STORAGE, MemoryStorage
 
-StorageID = Union[None, str, Path, StorageBase]
+StorageID = Union[None, str, Path, Group, StorageBase]
 
 
 def _open_storage(storage: StorageID = None, **kwargs) -> StorageBase:
@@ -22,10 +23,13 @@ def _open_storage(storage: StorageID = None, **kwargs) -> StorageBase:
             Explicit file format. Determined from `store` if omitted.
 
     Returns:
-        str: The store format
+        :class:`StorageBase`: The storage
     """
     if isinstance(storage, StorageBase):
         return storage
+
+    elif isinstance(storage, Group):
+        return storage._storage
 
     elif storage is None:
         return MemoryStorage(**kwargs)

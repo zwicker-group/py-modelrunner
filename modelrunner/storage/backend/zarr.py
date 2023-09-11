@@ -7,15 +7,15 @@ Defines a class storing data on the file system using the hierarchical data form
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Optional, List, Tuple, Union, Sequence
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
-
-
 import zarr
+from numpy.typing import ArrayLike, DTypeLike
 from zarr._storage.store import Store
-from ..base import StorageBase, InfoDict
 
+from ..base import InfoDict, StorageBase
+from ..utils import InfoDict
 
 zarrElement = Union[zarr.Group, zarr.Array]
 
@@ -40,13 +40,7 @@ class ZarrStorage(StorageBase):
 
         self._root = zarr.group(store=self._store, overwrite=overwrite)
 
-    def _get_parent(
-        self,
-        key: Sequence[str],
-        *,
-        validate_key: bool = True,
-        check_write: bool = False,
-    ):
+    def _get_parent(self, key: Sequence[str], *, check_write: bool = False):
         path, name = key[:-1], key[-1]
         parent = self._root
         for part in path:
@@ -64,29 +58,54 @@ class ZarrStorage(StorageBase):
         parent, name = self._get_parent(key)
         return parent[name]
 
-    def keys(self, key: Sequence[str]) -> List[str]:
+    def keys(self, key: Optional[Sequence[str]] = None) -> List[str]:
         if key:
             return self[key].keys()
         else:
             return self._root.keys()
 
     def is_group(self, key: Sequence[str]) -> bool:
-        return isinstance(self[key], zarr.hierarchy.Group)
+        item = self[key]
+        if isinstance(item, zarr.hierarchy.Group):
+            return "__class__" not in item.attrs
+        else:
+            return False
 
-    def create_group(self, key: str):
+    def _create_group(self, key: str):
         parent, name = self._get_parent(key, check_write=True)
         return parent.create_group(name)
 
     def _read_attrs(self, key: Sequence[str]) -> InfoDict:
         return self[key].attrs
 
-    def _read_array(self, key: Sequence[str]) -> Tuple[np.ndarray, InfoDict]:
-        parent, name = self._get_parent(key)
-        element = parent[name]
-        return element, element.attrs
+    def _write_attrs(self, key: Sequence[str], attrs: InfoDict) -> None:
+        item = self[key]
+        if not self.overwrite:
+            for k in attrs.keys():
+                if k in item.attrs:
+                    raise KeyError(f"Cannot overwrite attribute `{k}`")
+        item.attrs.update(attrs)
 
-    def _write_array(self, key: Sequence[str], arr: np.ndarray, attrs: InfoDict):
+    def _read_array(
+        self, key: Sequence[str], *, index: Optional[int] = None
+    ) -> np.ndarray:
+        if index is None:
+            return self[key]
+        else:
+            return self[key][index]
+
+    def _write_array(self, key: Sequence[str], arr: np.ndarray):
         parent, name = self._get_parent(key, check_write=True)
-        element = parent.array(name, arr)
-        element.attrs.update(attrs)  # write the attributes of the state
-        return element
+        return parent.array(name, arr)
+
+    def _create_dynamic_array(
+        self, key: Sequence[str], shape: Tuple[int, ...], dtype: DTypeLike
+    ):
+        parent, name = self._get_parent(key, check_write=True)
+        return parent.zeros(name, shape=(0,) + shape, chunks=(1,) + shape, dtype=dtype)
+
+    def _extend_dynamic_array(self, key: Sequence[str], data: ArrayLike):
+        self[key].append([data])
+
+    def _get_dynamic_array(self, key: Sequence[str]) -> ArrayLike:
+        return self[key]
