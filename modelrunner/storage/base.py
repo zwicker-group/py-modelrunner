@@ -16,7 +16,7 @@ from numpy.typing import ArrayLike, DTypeLike
 from .utils import InfoDict, KeyType, encode_class
 
 if TYPE_CHECKING:
-    from .group import Group
+    from .group import Group  # @UnusedImport
 
 
 class StorageBase(metaclass=ABCMeta):

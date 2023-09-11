@@ -12,10 +12,9 @@ Classes that describe the state of a simulation over time
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterator, Optional, Union
+from typing import Any, Dict, Iterator, Optional
 
 import numpy as np
-import zarr
 
 from ..storage.group import Group
 from ..storage.tools import open_storage
