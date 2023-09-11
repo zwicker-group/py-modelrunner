@@ -39,6 +39,15 @@ class StorageBase(metaclass=ABCMeta):
         else:
             return key
 
+    def _get_attrs(self, attrs: Optional[InfoDict], cls: Optional[Type] = None):
+        if attrs is None:
+            attrs = {}
+        else:
+            attrs = dict(attrs)
+        if cls is not None:
+            attrs["__class__"] = encode_class(cls)
+        return attrs
+
     @abstractmethod
     def keys(self, key: Sequence[str]) -> List[str]:
         ...
@@ -58,26 +67,33 @@ class StorageBase(metaclass=ABCMeta):
         self,
         key: Sequence[str],
         *,
-        cls: Optional[Type] = None,
         attrs: Optional[InfoDict] = None,
+        cls: Optional[Type] = None,
     ) -> "Group":
         from .group import Group  # @Reimport to avoid circular import
 
         key = self._get_key(key)
-        attrs_ = {} if cls is None else {"__class__": encode_class(cls)}
-        if attrs is not None:
-            attrs_.update(attrs)
         self._create_group(key)
-        self._write_attrs(key, attrs_)
+        self.write_attrs(key, self._get_attrs(attrs, cls))
         return Group(self, key)
 
     @abstractmethod
     def _read_attrs(self, key: Sequence[str]) -> InfoDict:
         ...
 
+    def read_attrs(self, key: Sequence[str], *, copy: bool = True) -> InfoDict:
+        if copy:
+            return dict(self._read_attrs(key))
+        else:
+            return self._read_attrs(key)
+
     @abstractmethod
     def _write_attrs(self, key: Sequence[str], attrs: InfoDict) -> None:
         ...
+
+    def write_attrs(self, key: Sequence[str], attrs: Optional[InfoDict]) -> None:
+        if attrs is not None and len(attrs) > 0:
+            self._write_attrs(key, attrs)
 
     @abstractmethod
     def _read_array(
@@ -114,15 +130,12 @@ class StorageBase(metaclass=ABCMeta):
         key: KeyType,
         arr: np.ndarray,
         *,
-        cls: Optional[Type] = None,
         attrs: Optional[InfoDict] = None,
+        cls: Optional[Type] = None,
     ):
         key = self._get_key(key)
-        attrs_ = {"__class__": encode_class(cls)}
-        if attrs is not None:
-            attrs_.update(attrs)
         self._write_array(key, arr)
-        self._write_attrs(key, attrs_)
+        self.write_attrs(key, self._get_attrs(attrs, cls))
 
     @abstractmethod
     def _create_dynamic_array(
@@ -136,15 +149,12 @@ class StorageBase(metaclass=ABCMeta):
         shape: Tuple[int, ...],
         *,
         dtype: DTypeLike = float,
-        cls: Optional[Type] = None,
         attrs: Optional[InfoDict] = None,
+        cls: Optional[Type] = None,
     ):
         key = self._get_key(key)
-        attrs_ = {"__class__": encode_class(cls)}
-        if attrs is not None:
-            attrs_.update(attrs)
         self._create_dynamic_array(key, shape, dtype=dtype)
-        self._write_attrs(key, attrs_)
+        self.write_attrs(key, self._get_attrs(attrs, cls))
 
     @abstractmethod
     def _extend_dynamic_array(self, key: Sequence[str], data: ArrayLike):

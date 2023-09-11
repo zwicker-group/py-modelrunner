@@ -9,10 +9,9 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
-import zarr
 
+from ..storage import Group, storage_actions
 from .base import StateBase
-from .io import zarrElement
 
 
 class ArrayCollectionState(StateBase):
@@ -121,72 +120,47 @@ class ArrayCollectionState(StateBase):
             raise TypeError
 
     @classmethod
-    def _state_read_zarr_data(
-        cls, zarr_element: zarr.Array, *, index=...
-    ) -> ArrayCollectionState:
-        data = tuple(
-            zarr_element[label][index] for label in zarr_element.attrs["labels"]
-        )
-        return cls.from_data(zarr_element.attrs.asdict(), data)  # type: ignore
+    def _state_from_stored_data(cls, storage, key: str, index: Optional[int] = None):
+        attrs = storage.read_attrs(key, copy=True)
+        attrs.pop("__class__")
 
-    def _state_update_from_zarr(self, element: zarrElement, *, index=...) -> None:
+        group = Group(storage, key)
+        data = tuple(group.read_array(label, index=index) for label in attrs["labels"])
+
+        return cls.from_data(attrs, data)
+
+    def _state_update_from_stored_data(
+        self, storage, key: str, index: Optional[int] = None
+    ):
+        group = Group(storage, key)
         for label, data_arr in zip(self.labels, self._state_data):
-            data_arr[:] = element[label][index]
+            group.read_array(label, index=index, out=data_arr)
 
-    def _state_write_zarr_data(
-        self, zarr_group: zarr.Group, *, label: str = "data", **kwargs
-    ) -> zarr.Group:
-        zarr_subgroup = zarr_group.create_group(label)
+    def _state_write_to_storage(self, storage, key: Sequence[str]):
+        group = storage.create_group(
+            key, cls=self.__class__, attrs=self._state_attributes_store
+        )
+
         for sublabel, substate in zip(self.labels, self._state_data_store):
-            zarr_subgroup.array(sublabel, substate)
-        return zarr_subgroup
+            group.write_array(sublabel, substate)
 
-    def _state_prepare_zarr_trajectory(
-        self,
-        zarr_group: zarr.Group,
-        attrs: Optional[Dict[str, Any]] = None,
-        *,
-        label: str = "data",
-        **kwargs,
-    ) -> zarr.Group:
+    def _state_create_trajectory(self, storage, key: str):
         """prepare the zarr storage for this state"""
-        zarr_subgroup = zarr_group.create_group(label)
+        group = storage.create_group(
+            key, cls=self.__class__, attrs=self._state_attributes_store
+        )
+
         for sublabel, subdata in zip(self.labels, self._state_data_store):
-            zarr_subgroup.zeros(
-                sublabel,
-                shape=(0,) + subdata.shape,
-                chunks=(1,) + subdata.shape,
-                dtype=subdata.dtype,
+            group.create_dynamic_array(
+                sublabel, shape=subdata.shape, dtype=subdata.dtype
             )
 
-        self._state_write_zarr_attributes(zarr_subgroup, attrs)
-        return zarr_subgroup
-
-    def _state_append_to_zarr_trajectory(self, zarr_element: zarr.Group) -> None:
-        """append current data to a stored element"""
+    def _state_append_to_trajectory(self, storage, key: str):
+        group = Group(storage, key)
         for label, subdata in zip(self.labels, self._state_data_store):
-            zarr_element[label].append([subdata])
+            group.extend_dynamic_array(label, subdata)
 
-    @classmethod
-    def _from_simple_objects(
-        cls, content, *, state_cls: Optional[StateBase] = None
-    ) -> StateBase:
-        """create state from text data
 
-        Args:
-            content: The data loaded from text
-        """
-        if state_cls is None:
-            return super()._from_simple_objects(content)
-
-        data = tuple(
-            np.array(content["data"][label])
-            for label in content["attributes"]["labels"]
-        )
-        return state_cls.from_data(content["attributes"], data)
-
-    def _to_simple_objects(self):
-        """return object data suitable for encoding as JSON"""
-        data = self._state_data_store
-        data_simple = {label: substate for label, substate in zip(self.labels, data)}
-        return {"attributes": self._state_attributes_store, "data": data_simple}
+storage_actions.register(
+    "read_object", ArrayCollectionState, ArrayCollectionState._state_from_stored_data
+)

@@ -70,35 +70,44 @@ class Group:
         for key in self.keys():
             yield key, self[key]
 
-    def read_attrs(self, key: Optional[KeyType] = None) -> InfoDict:
-        return self._storage._read_attrs(self._get_key(key))
+    def read_attrs(
+        self, key: Optional[KeyType] = None, *, copy: bool = True
+    ) -> InfoDict:
+        return self._storage.read_attrs(self._get_key(key), copy=copy)
 
     def write_attrs(
         self, key: Optional[KeyType] = None, attrs: InfoDict = None
     ) -> None:
-        if attrs is not None:
-            self._storage._write_attrs(self._get_key(key), attrs=attrs)
+        self._storage.write_attrs(self._get_key(key), attrs=attrs)
 
     @property
     def attrs(self) -> InfoDict:
         return self.read_attrs()
 
     def _read_object(self, key: Sequence[str]):
-        attrs = dict(self._storage._read_attrs(key))  # make shallow copy
-        cls = decode_class(attrs.pop("__class__"))
+        attrs = self._storage.read_attrs(key, copy=False)
+        cls = decode_class(attrs.get("__class__"))
         if cls is None:
             # return numpy array
             arr = self._storage._read_array(key)
+            attrs = self._storage.read_attrs(key, copy=True)
+            attrs.pop("__class__")
             return Array(arr, attrs=attrs)
         else:
             # create object using a registered action
             create_object = storage_actions.get(cls, "read_object")
             return create_object(self._storage, key)
 
-    def create_group(self, key: str, *, cls: Optional[Type] = None) -> Group:
+    def create_group(
+        self,
+        key: str,
+        *,
+        attrs: Optional[InfoDict] = None,
+        cls: Optional[Type] = None,
+    ) -> Group:
         """key: relative path in current group"""
         key = self._get_key(key)
-        return self._storage.create_group(key, cls=cls)
+        return self._storage.create_group(key, attrs=attrs, cls=cls)
 
     def read_array(
         self,
@@ -117,11 +126,11 @@ class Group:
         key: KeyType,
         arr: np.ndarray,
         *,
-        cls: Optional[Type] = None,
         attrs: Optional[InfoDict] = None,
+        cls: Optional[Type] = None,
     ):
         key = self._get_key(key)
-        self._storage.write_array(key, arr, cls=cls, attrs=attrs)
+        self._storage.write_array(key, arr, attrs=attrs, cls=cls)
 
     def create_dynamic_array(
         self,
@@ -129,11 +138,11 @@ class Group:
         shape: Tuple[int, ...],
         *,
         dtype: DTypeLike = float,
-        cls: Optional[Type] = None,
         attrs: Optional[InfoDict] = None,
+        cls: Optional[Type] = None,
     ):
         self._storage.create_dynamic_array(
-            self._get_key(key), shape, dtype=dtype, cls=cls, attrs=attrs
+            self._get_key(key), shape, dtype=dtype, attrs=attrs, cls=cls
         )
 
     def extend_dynamic_array(self, key: KeyType, data: ArrayLike):

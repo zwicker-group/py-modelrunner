@@ -33,9 +33,10 @@ from typing import Any, Optional
 import numpy as np
 
 from .array import ArrayState
-# from .array_collection import ArrayCollectionState
+from .array_collection import ArrayCollectionState
 from .base import NoData, StateBase
-# from .dict import DictState
+from .dict import DictState
+
 # from .object import ObjectState
 # from .trajectory import Trajectory, TrajectoryWriter
 
