@@ -473,6 +473,3 @@ class StateBase(metaclass=ABCMeta):
     #         "attributes": self._state_attributes_store,
     #         "data": self._state_data_store,
     #     }
-
-
-storage_actions.register("read_object", StateBase, StateBase._state_from_stored_data)

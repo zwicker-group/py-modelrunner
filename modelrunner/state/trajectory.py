@@ -125,7 +125,8 @@ class Trajectory:
         self._storage = Group(open_storage(storage, overwrite=False), key)
         self.times = self._storage.read_array("time")
         self._state: Optional[StateBase] = None
-        self._state_cls = decode_class(self._storage.read_attrs("data")["__class__"])
+        attrs = self._storage.read_attrs("data", copy=False)
+        self._state_cls = decode_class(attrs["__class__"])
 
         # check temporal ordering
         assert np.all(np.diff(self.times) > 0)

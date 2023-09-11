@@ -65,7 +65,7 @@ class MemoryStorage(StorageBase):
     def is_group(self, key: Sequence[str]) -> bool:
         item = self[key]
         if isinstance(item, dict):
-            attrs = item.get("attrs", {})
+            attrs = item.get("__attrs__", {})
             return "__class__" not in attrs
         else:
             return False
@@ -75,18 +75,18 @@ class MemoryStorage(StorageBase):
         parent[name] = {}
 
     def _read_attrs(self, key: Sequence[str]) -> InfoDict:
-        return self[key].get("attrs", {})
+        return self[key].get("__attrs__", {})
 
     def _write_attrs(self, key: Sequence[str], attrs: InfoDict):
         item = self[key]
-        if "attrs" not in item:
-            item["attrs"] = attrs
+        if "__attrs__" not in item:
+            item["__attrs__"] = attrs
         else:
             if not self.overwrite:
                 for k in attrs.keys():
-                    if k in item["attrs"]:
+                    if k in item["__attrs__"]:
                         raise KeyError(f"Cannot overwrite attribute `{k}`")
-            item["attrs"].update(attrs)
+            item["__attrs__"].update(attrs)
 
     def _read_array(
         self, key: Sequence[str], *, index: Optional[int] = None

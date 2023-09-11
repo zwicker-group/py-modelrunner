@@ -14,9 +14,8 @@ from typing import Any, Optional, Tuple
 import numpy as np
 from numpy.typing import DTypeLike
 
-from .base import StorageBase
-
 from ..parameters import NoValueType
+from .base import StorageBase
 
 
 class NumpyEncoder(json.JSONEncoder):

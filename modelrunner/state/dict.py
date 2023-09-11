@@ -11,8 +11,8 @@ from typing import Any, Dict, Optional, Sequence, Union
 
 import zarr
 
+from ..storage import Group, storage_actions
 from .base import StateBase
-from .io import zarrElement
 
 
 class DictState(StateBase):
@@ -61,8 +61,9 @@ class DictState(StateBase):
         """
         if data is None or not isinstance(data, (dict, tuple, list)):
             raise TypeError("`data` must be a dictionary or sequence")
-        if not isinstance(data, dict) and "__keys__" in attributes:
-            data = {k: v for k, v in zip(attributes.pop("__keys__"), data)}
+        keys = attributes.pop("__keys__")
+        if not isinstance(data, dict) and keys:
+            data = {k: v for k, v in zip(keys, data)}
         return super().from_data(attributes, data)
 
     def copy(self, method: str, data=None):
@@ -109,70 +110,43 @@ class DictState(StateBase):
             raise TypeError()
 
     @classmethod
-    def _state_read_zarr_data(
-        cls, zarr_element: zarr.Array, *, index=...
-    ) -> Dict[str, StateBase]:
-        return {
-            label: StateBase._from_zarr(zarr_element[label], index=index)
-            for label in zarr_element.attrs["__keys__"]
-        }
+    def _state_from_stored_data(cls, storage, key: str, index: Optional[int] = None):
+        attrs = storage.read_attrs(key, copy=True)
+        attrs.pop("__class__")
 
-    def _state_update_from_zarr(self, element: zarrElement, *, index=...) -> None:
+        group = Group(storage, key)
+        data = {label: group[label] for label in attrs["__keys__"]}
+
+        return cls.from_data(attrs, data)
+
+    def _state_update_from_stored_data(
+        self, storage, key: str, index: Optional[int] = None
+    ):
+        group = Group(storage, key)
         for key, substate in self._state_data.items():
-            substate._state_update_from_zarr(element[key], index=index)
+            substate._state_update_from_stored_data(group, key, index=index)
 
-    def _state_write_zarr_data(
-        self, zarr_group: zarr.Group, *, label: str = "data", **kwargs
-    ) -> zarr.Group:
-        zarr_subgroup = zarr_group.create_group(label)
+    def _state_write_to_storage(self, storage, key: Sequence[str]):
+        group = storage.create_group(
+            key, cls=self.__class__, attrs=self._state_attributes_store
+        )
+
         for label, substate in self._state_data_store.items():
-            substate._write_zarr(zarr_subgroup, label=label, **kwargs)
-        return zarr_subgroup
+            substate._state_write_to_storage(group, label)
 
-    def _state_prepare_zarr_trajectory(
-        self,
-        zarr_group: zarr.Group,
-        attrs: Optional[Dict[str, Any]] = None,
-        *,
-        label: str = "data",
-        **kwargs,
-    ) -> zarr.Group:
+    def _state_create_trajectory(self, storage, key: str):
         """prepare the zarr storage for this state"""
-        zarr_subgroup = zarr_group.create_group(label)
+        group = storage.create_group(
+            key, cls=self.__class__, attrs=self._state_attributes_store
+        )
+
         for label, substate in self._state_data_store.items():
-            substate._state_prepare_zarr_trajectory(
-                zarr_subgroup, label=label, **kwargs
-            )
+            substate._state_create_trajectory(group, label)
 
-        self._state_write_zarr_attributes(zarr_subgroup, attrs)
-        return zarr_subgroup
-
-    def _state_append_to_zarr_trajectory(self, zarr_element: zarr.Group) -> None:
-        """append current data to a stored element"""
+    def _state_append_to_trajectory(self, storage, key: str):
+        group = Group(storage, key)
         for label, substate in self._state_data_store.items():
-            substate._state_append_to_zarr_trajectory(zarr_element[label])
+            substate._state_append_to_trajectory(group, label)
 
-    @classmethod
-    def _from_simple_objects(
-        cls, content, *, state_cls: Optional[StateBase] = None
-    ) -> StateBase:
-        """create state from JSON data
 
-        Args:
-            content: The data loaded from json
-        """
-        if state_cls is None:
-            return super()._from_simple_objects(content)
-
-        data = {}
-        for label, substate in content["data"].items():
-            data[label] = StateBase._from_simple_objects(substate)
-        return state_cls.from_data(content["attributes"], data)
-
-    def _to_simple_objects(self):
-        """return object data suitable for encoding as JSON"""
-        data = {
-            label: substate._to_simple_objects()
-            for label, substate in self._state_data_store.items()
-        }
-        return {"attributes": self._state_attributes_store, "data": data}
+storage_actions.register("read_object", DictState, DictState._state_from_stored_data)
