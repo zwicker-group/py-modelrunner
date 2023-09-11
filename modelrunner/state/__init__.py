@@ -36,9 +36,8 @@ from .array import ArrayState
 from .array_collection import ArrayCollectionState
 from .base import NoData, StateBase
 from .dict import DictState
-
-# from .object import ObjectState
-# from .trajectory import Trajectory, TrajectoryWriter
+from .object import ObjectState
+from .trajectory import Trajectory, TrajectoryWriter
 
 
 def make_state(data: Any) -> StateBase:

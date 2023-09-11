@@ -13,9 +13,6 @@ from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Type, TypeVar
 
 import numpy as np
-import zarr
-
-from ..storage.utils import storage_actions
 
 if TYPE_CHECKING:
     from ..storage import StorageID
