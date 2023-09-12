@@ -10,9 +10,11 @@ import logging
 from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Type
 
+import numcodecs
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 
+from .attributes import decode_attrs, encode_attrs
 from .utils import InfoDict, KeyType, encode_class
 
 if TYPE_CHECKING:
@@ -23,6 +25,7 @@ class StorageBase(metaclass=ABCMeta):
     """base class for storing data"""
 
     extensions: List[str] = []
+    default_codec = numcodecs.Pickle()
 
     def __init__(self, *, overwrite: bool = False):
         """
@@ -33,11 +36,30 @@ class StorageBase(metaclass=ABCMeta):
         self.overwrite = overwrite
         self._logger = logging.getLogger(self.__class__.__name__)
 
+    @property
+    def codec(self):
+        try:
+            return self._codec
+        except AttributeError:
+            if "__codec__" in self._root.attrs:
+                self._codec = numcodecs.get_codec(self._root.attrs["__codec__"])
+            else:
+                self._codec = self.default_codec
+                # FIX this to work for all
+                self._root.attrs["__codec__"] = self._codec.get_config()
+        return self._codec
+
     def _get_key(self, key: KeyType):
-        if isinstance(key, str):
-            return key.split("/")
-        else:
-            return key
+        # TODO: use regex to check whether key is only alphanumerical and has no "/"
+        def parse_key(key_data) -> List[str]:
+            if key_data is None:
+                return []
+            elif isinstance(key_data, str):
+                return key_data.split("/")
+            else:
+                return sum((parse_key(k) for k in key_data), start=list())
+
+        return parse_key(key)
 
     def _get_attrs(self, attrs: Optional[InfoDict], cls: Optional[Type] = None):
         if attrs is None:
@@ -82,10 +104,8 @@ class StorageBase(metaclass=ABCMeta):
         ...
 
     def read_attrs(self, key: Sequence[str], *, copy: bool = True) -> InfoDict:
-        if copy:
-            return dict(self._read_attrs(key))
-        else:
-            return self._read_attrs(key)
+        # FIXME: remove `copy` argument
+        return decode_attrs(self._read_attrs(key))
 
     @abstractmethod
     def _write_attrs(self, key: Sequence[str], attrs: InfoDict) -> None:
@@ -93,7 +113,7 @@ class StorageBase(metaclass=ABCMeta):
 
     def write_attrs(self, key: Sequence[str], attrs: Optional[InfoDict]) -> None:
         if attrs is not None and len(attrs) > 0:
-            self._write_attrs(key, attrs)
+            self._write_attrs(key, encode_attrs(attrs))
 
     @abstractmethod
     def _read_array(

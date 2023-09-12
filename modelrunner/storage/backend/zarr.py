@@ -14,7 +14,7 @@ import zarr
 from numpy.typing import ArrayLike, DTypeLike
 from zarr._storage.store import Store
 
-from ..base import InfoDict, StorageBase
+from ..base import StorageBase
 from ..utils import InfoDict
 
 zarrElement = Union[zarr.Group, zarr.Array]
@@ -96,13 +96,29 @@ class ZarrStorage(StorageBase):
 
     def _write_array(self, key: Sequence[str], arr: np.ndarray):
         parent, name = self._get_parent(key, check_write=True)
-        return parent.array(name, arr)
+
+        if arr.dtype == object:
+            return parent.array(name, arr, object_codec=self.codec)
+        else:
+            return parent.array(name, arr)
 
     def _create_dynamic_array(
         self, key: Sequence[str], shape: Tuple[int, ...], dtype: DTypeLike
     ):
         parent, name = self._get_parent(key, check_write=True)
-        return parent.zeros(name, shape=(0,) + shape, chunks=(1,) + shape, dtype=dtype)
+        if dtype == object:
+            return parent.zeros(
+                name,
+                shape=(0,) + shape,
+                chunks=(1,) + shape,
+                dtype=dtype,
+                object_codec=self.codec,
+            )
+
+        else:
+            return parent.zeros(
+                name, shape=(0,) + shape, chunks=(1,) + shape, dtype=dtype
+            )
 
     def _extend_dynamic_array(self, key: Sequence[str], data: ArrayLike):
         self[key].append([data])

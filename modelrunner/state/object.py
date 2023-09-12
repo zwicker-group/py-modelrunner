@@ -24,8 +24,6 @@ class ObjectState(StateBase):
     :meth:`from_data` needs to be overwritten.
     """
 
-    codec = numcodecs.Pickle()
-
     def __init__(self, data: Optional[Any] = None):
         """
         Args:
@@ -39,46 +37,32 @@ class ObjectState(StateBase):
         attrs = storage.read_attrs(key, copy=True)
         attrs.pop("__class__")
         attrs.pop("__version__", None)
-
-        arr = storage.read_array(key, index=index).item()
-        if "__codec__" in attrs:
-            codec = numcodecs.get_codec(attrs.pop("__codec__"))
-        else:
-            codec = self.codec
-        data = codec.decode(arr)
+        data = storage.read_array(key, index=index).item()
         obj._state_init(attrs, data)
         return obj
 
     def _state_update_from_stored_data(
         self, storage, key: str, index: Optional[int] = None
     ):
-        attrs = storage.read_attrs(key, copy=False)
-        if "__codec__" in attrs:
-            codec = numcodecs.get_codec(attrs.pop("__codec__"))
-        else:
-            codec = self.codec
-        arr = storage.read_array(key, index=index).item()
-        self._state_data = codec.decode(arr)
+        self._state_data = storage.read_array(key, index=index).item()
 
     def _state_write_to_storage(self, storage, key: Sequence[str]):
-        data = self.codec.encode(self._state_data)
-        arr = np.array(data, dtype=object)
-
+        # store the data in a single object array
+        arr = np.empty(1, dtype=object)
+        arr[0] = self._state_data_store
         attrs = self._state_attributes_store
-        attrs["__codec__"] = self.codec.get_config()
         return storage.write_array(key, arr, attrs=attrs, cls=self.__class__)
 
     def _state_create_trajectory(self, storage, key: str):
         """prepare the zarr storage for this state"""
         attrs = self._state_attributes_store
-        attrs["__codec__"] = self.codec.get_config()
         storage.create_dynamic_array(
-            key, shape=tuple(), dtype=object, attrs=attrs, cls=self.__class__
+            key, shape=(1,), dtype=object, attrs=attrs, cls=self.__class__
         )
 
     def _state_append_to_trajectory(self, storage, key: str):
-        data = self.codec.encode(self._state_data)
-        arr = np.array(data, dtype=object)
+        arr = np.empty(1, dtype=object)
+        arr[0] = self._state_data_store
         storage.extend_dynamic_array(key, arr)
 
 

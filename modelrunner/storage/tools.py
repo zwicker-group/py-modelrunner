@@ -36,19 +36,19 @@ def _open_storage(storage: StorageID = None, **kwargs) -> StorageBase:
 
     elif isinstance(storage, (str, Path)):
         # guess format from path extension
-        storage = Path(storage)
-        if storage.is_dir():
+        path = Path(storage)
+        if path.is_dir():
             from .backend.zarr import ZarrStorage
 
-            return ZarrStorage(storage, **kwargs)
+            return ZarrStorage(path, **kwargs)
 
-        extension = storage.suffix.lower()
+        extension = path.suffix.lower()
         for storage_cls in AVAILABLE_STORAGE:
             for ext in storage_cls.extensions:
                 if extension == "." + ext:
-                    return storage_cls(storage, **kwargs)
+                    return storage_cls(path, **kwargs)
 
-        raise TypeError(f"Unsupported store with extension {extension}")
+        raise TypeError(f"Unsupported store with extension `{extension}`")
 
     raise TypeError(f"Unsupported store type {storage.__class__.__name__}")
 
