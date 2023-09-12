@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, Optional, Sequence, Type, Union
 
 import numpy as np
 
-KeyType = Union[str, Sequence[str]]
+KeyType = Union[None, str, Sequence[str]]
 InfoDict = Dict[str, Any]
 
 

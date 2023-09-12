@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterator, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Iterator, List, Optional, Sequence, Tuple, Type, Union
 
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
@@ -34,14 +34,17 @@ class Group:
         else:
             raise TypeError
 
-    def _get_key(self, key: Optional[KeyType] = None):
+    def _get_key(self, key: KeyType):
         # TODO: use regex to check whether key is only alphanumerical and has no "/"
-        if key is None:
-            return self.path
-        elif isinstance(key, str):
-            return self.path + key.split("/")
-        else:
-            return self.path + key
+        def parse_key(key_data) -> List[str]:
+            if key_data is None:
+                return []
+            elif isinstance(key_data, str):
+                return key_data.split("/")
+            else:
+                return sum((parse_key(k) for k in key_data), start=list())
+
+        return self.path + parse_key(key)
 
     def __getitem__(self, key: KeyType) -> Any:
         """read state or trajectory from storage"""

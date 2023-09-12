@@ -14,6 +14,8 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Type, TypeVar
 
 import numpy as np
 
+from ..storage.attributes import remove_dunderscore_attrs
+
 if TYPE_CHECKING:
     from ..storage import StorageID
 
@@ -118,6 +120,7 @@ class StateBase(metaclass=ABCMeta):
         """
         if data is not NoData:
             self._state_data = data
+        attributes = remove_dunderscore_attrs(attributes)
         if attributes:
             self._state_attributes = attributes
 

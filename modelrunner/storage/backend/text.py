@@ -18,12 +18,9 @@ from pathlib import Path
 from typing import Optional, Union
 
 import numpy as np
-import zarr
-from zarr.storage import BaseStore
 
 from ..base import StorageBase
 from ..parameters import NoValueType
-from ..storage import get_storage
 
 
 def simplify_data(data):
