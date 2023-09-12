@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from typing import Any, Optional, Sequence
 
-import numcodecs
 import numpy as np
 
 from ..storage import storage_actions
@@ -34,10 +33,16 @@ class ObjectState(StateBase):
     @classmethod
     def _state_from_stored_data(cls, storage, key: str, index: Optional[int] = None):
         obj = cls.__new__(cls)
-        attrs = storage.read_attrs(key, copy=True)
+        attrs = storage.read_attrs(key)
         attrs.pop("__class__")
         attrs.pop("__version__", None)
-        data = storage.read_array(key, index=index).item()
+        print("SHAPE", storage.read_array(key).shape)
+        print("INDEX", index)
+        arr = storage.read_array(key, index=index)
+        if arr.size == 1:
+            data = arr.item()
+        else:
+            raise RuntimeError(f"Data has shape {arr.shape} instead of single item")
         obj._state_init(attrs, data)
         return obj
 

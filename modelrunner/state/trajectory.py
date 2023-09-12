@@ -18,8 +18,8 @@ import numpy as np
 
 from ..storage.group import Group
 from ..storage.tools import open_storage
-from ..storage.utils import KeyType, decode_class, encode_class, storage_actions
-from .base import StateBase
+from ..storage.utils import KeyType, encode_class, storage_actions
+from .base import StateBase, _get_state_cls_from_storage
 
 
 class TrajectoryWriter:
@@ -53,6 +53,7 @@ class TrajectoryWriter:
         key: KeyType = "trajectory",
         *,
         attrs: Optional[Dict[str, Any]] = None,
+        overwrite: bool = False,
     ):
         """
         Args:
@@ -65,32 +66,33 @@ class TrajectoryWriter:
                 If True, delete all pre-existing data in store.
         """
         # create the root group where we store all the data
-        self._storage = storage.create_group(key)
-        self._storage.write_attrs(None, {"__class__": encode_class(Trajectory)})
+        mode = "w" if overwrite else "x"
+        storage = open_storage(storage, mode=mode)
+        self._group = storage.create_group(key)
+        self._group.write_attrs(None, {"__class__": encode_class(Trajectory)})
 
         # make sure we don't overwrite data
-        if "times" in self._storage or "data" in self._storage:
+        if "times" in self._group or "data" in self._group:
             raise IOError("Storage already contains data")
 
         if attrs is not None:
-            self._storage.write_attrs(attrs=attrs)
+            self._group.write_attrs(attrs=attrs)
 
     def append(self, data: StateBase, time: Optional[float] = None) -> None:
-        if "data" not in self._storage:
-            data._state_create_trajectory(self._storage, "data")
-            self._storage.create_dynamic_array("time", shape=tuple(), dtype=float)
+        if "data" not in self._group:
+            data._state_create_trajectory(self._group, "data")
+            self._group.create_dynamic_array("time", shape=tuple(), dtype=float)
             if time is None:
                 time = 0.0
         else:
             if time is None:
-                time = float(self._storage.get_dynamic_array("time")[-1]) + 1.0
+                time = float(self._group.get_dynamic_array("time")[-1]) + 1.0
 
-        data._state_append_to_trajectory(self._storage, "data")
-        self._storage.extend_dynamic_array("time", time)
+        data._state_append_to_trajectory(self._group, "data")
+        self._group.extend_dynamic_array("time", time)
 
     def close(self):
-        ...
-        # self._root.store.close()
+        self._group._storage.close()
 
     def __enter__(self):
         return self
@@ -109,7 +111,7 @@ class Trajectory:
         times (:class:`~numpy.ndarray`): Time points at which data is available
     """
 
-    def __init__(self, storage, key: str, *, ret_copy: bool = True):
+    def __init__(self, storage, key: KeyType = "trajectory", *, ret_copy: bool = True):
         """
         Args:
             storage (MutableMapping or string):
@@ -121,11 +123,15 @@ class Trajectory:
                 from the store, so this setting only affects attributes.
         """
         self.ret_copy = ret_copy
-        self._storage = Group(open_storage(storage, overwrite=False), key)
+
+        # open the storage
+        storage = open_storage(storage, mode="r", overwrite=False)
+        self._storage = Group(storage, key)
+
+        # read some intial data from storage
         self.times = self._storage.read_array("time")
         self._state: Optional[StateBase] = None
-        attrs = self._storage.read_attrs("data", copy=False)
-        self._state_cls = decode_class(attrs["__class__"])
+        self._state_cls = _get_state_cls_from_storage(self._storage, "data")
 
         # check temporal ordering
         assert np.all(np.diff(self.times) > 0)
@@ -133,7 +139,9 @@ class Trajectory:
     @property
     def _state_attributes(self) -> Dict[str, Any]:
         """dict: information about the trajectory"""
-        return self.storage.read.attrs.asdict()  # type: ignore
+        attrs = self._storage.attrs
+        attrs.pop("__class__", None)
+        return attrs
 
     def __len__(self) -> int:
         return len(self.times)

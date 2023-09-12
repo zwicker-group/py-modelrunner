@@ -12,7 +12,7 @@ import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 
 from ..base import StorageBase
-from ..utils import InfoDict
+from ..utils import InfoDict, OpenMode
 
 
 class MemoryStorage(StorageBase):
@@ -20,8 +20,10 @@ class MemoryStorage(StorageBase):
 
     _data: InfoDict
 
-    def __init__(self, *, overwrite: bool = False):
+    def __init__(self, *, mode: OpenMode = "x", overwrite: bool = False):
         super().__init__(overwrite=overwrite)
+        if mode == "r":
+            raise ValueError("Cannot open read-only MemoryStorage")
         self._data = {}
 
     def clear(self) -> None:

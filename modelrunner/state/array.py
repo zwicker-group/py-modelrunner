@@ -16,7 +16,6 @@ from numpy.lib.recfunctions import (
     unstructured_to_structured,
 )
 
-from ..storage import storage_actions
 from .base import NoData, StateBase
 
 
@@ -93,7 +92,7 @@ class ArrayState(StateBase):
     @classmethod
     def _state_from_stored_data(cls, storage, key: str, index: Optional[int] = None):
         obj = cls.__new__(cls)
-        attributes = storage.read_attrs(key, copy=True)
+        attributes = storage.read_attrs(key)
         attributes.pop("__class__")
         data = storage.read_array(key, index=index)
         obj._state_init(attributes, data)
@@ -116,11 +115,12 @@ class ArrayState(StateBase):
         """prepare the zarr storage for this state"""
         data = self._state_data
         storage.create_dynamic_array(
-            key, shape=data.shape, dtype=data.dtype, cls=self.__class__
+            key,
+            shape=data.shape,
+            dtype=data.dtype,
+            attrs=self._state_attributes_store,
+            cls=self.__class__,
         )
 
     def _state_append_to_trajectory(self, storage, key: str):
         storage.extend_dynamic_array(key, self._state_data)
-
-
-storage_actions.register("read_object", ArrayState, ArrayState._state_from_stored_data)

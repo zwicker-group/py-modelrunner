@@ -19,7 +19,8 @@ from tqdm.auto import tqdm
 
 from .model import ModelBase
 from .state import StateBase, make_state
-from .storage import StorageID, open_storage, storage_actions
+from .storage import StorageID, opened_storage, storage_actions
+from .storage.utils import OpenMode
 
 
 class MockModel(ModelBase):
@@ -127,30 +128,34 @@ class Result:
                 Name of the node in which the data was stored. This applies to some
                 hierarchical storage formats.
         """
-        storage = open_storage(storage)
+        with opened_storage(storage, mode="r") as storage:
+            attrs = storage.read_attrs(key)
+            format_version = attrs.pop("__version__", None)
+            if format_version == 1:
+                # older version
+                from .compatibility import result_from_file_version1
 
-        attrs = storage.read_attrs(key, copy=True)
-        format_version = attrs.pop("__version__", None)
-        if format_version == 1:
-            # older version
-            from .compatibility import result_from_file_version1
+                return result_from_file_version1(storage, key, model=model)
 
-            return result_from_file_version1(storage, key, model=model)
+            elif format_version == cls._state_format_version:
+                # current version of storing results
+                info = attrs.pop("__info__", {})  # load additional info
+                model_data = attrs.get("__model__", {})
+                state = storage[key, "state"]  # should load the state automatically
+                return cls.from_data(
+                    model_data=model_data, state=state, model=model, info=info
+                )
 
-        elif format_version == cls._state_format_version:
-            # current version of storing results
-            info = attrs.pop("__info__", {})  # load additional info
-            model_data = attrs.get("__model__", {})
-            state = storage[key, "state"]  # should load the state automatically
-            return cls.from_data(
-                model_data=model_data, state=state, model=model, info=info
-            )
-
-        else:
-            raise RuntimeError(f"Cannot read format version {format_version}")
+            else:
+                raise RuntimeError(f"Cannot read format version {format_version}")
 
     def to_file(
-        self, storage: StorageID, key: str = "result", *, overwrite: bool = False
+        self,
+        storage: StorageID,
+        key: str = "result",
+        *,
+        mode: OpenMode = "x",
+        overwrite: bool = False,
     ) -> None:
         """write this object to a file
 
@@ -163,17 +168,16 @@ class Result:
                 Additional arguments are passed on to the method that implements the
                 writing of the specific format (_write_**).
         """
-        storage = open_storage(storage, overwrite=overwrite)
+        with opened_storage(storage, mode=mode, overwrite=overwrite) as storage:
+            # collect attributes from the result
+            attrs = {"__model__": dict(self.model._state_attributes)}
+            if self.info:
+                attrs["__info__"] = self.info
+            attrs["__version__"] = self._state_format_version
+            group = storage.create_group(key, attrs=attrs, cls=self.__class__)
 
-        # collect attributes from the result
-        attrs = {"__model__": dict(self.model._state_attributes)}
-        if self.info:
-            attrs["__info__"] = self.info
-        attrs["__version__"] = self._state_format_version
-        group = storage.create_group(key, attrs=attrs, cls=self.__class__)
-
-        # write the actual data
-        self.state._state_write_to_storage(group, key="state")
+            # write the actual data
+            self.state._state_write_to_storage(group, key="state")
 
     # @classmethod
     # def _from_simple_objects(cls, content, model: Optional[ModelBase] = None) -> Result:

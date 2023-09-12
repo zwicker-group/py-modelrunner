@@ -14,7 +14,9 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Type, TypeVar
 
 import numpy as np
 
+from ..storage import opened_storage, storage_actions
 from ..storage.attributes import remove_dunderscore_attrs
+from ..storage.utils import OpenMode, decode_class
 
 if TYPE_CHECKING:
     from ..storage import StorageID
@@ -110,6 +112,7 @@ class StateBase(metaclass=ABCMeta):
             if cls.__name__ in StateBase._state_classes:
                 warnings.warn(f"Redefining class {cls.__name__}")
             StateBase._state_classes[cls.__name__] = cls
+            storage_actions.register("read_object", cls, cls._state_from_stored_data)
 
     def _state_init(self, attributes: Dict[str, Any], data=NoData) -> None:
         """initialize the state with attributes and (optionally) data
@@ -204,9 +207,12 @@ class StateBase(metaclass=ABCMeta):
 
     def __eq__(self, other) -> bool:
         if self.__class__ is not other.__class__:
+            print("DIFFERNT CLS")
             return False
         if self._state_attributes != other._state_attributes:
+            print("DIFFERNT ATTRS")
             return False
+        print("COMPARE DATA")
         return _equals(self._state_data, other._state_data)
 
     def __getstate__(self) -> Dict[str, Any]:
@@ -325,8 +331,13 @@ class StateBase(metaclass=ABCMeta):
         return obj
 
     @classmethod
-    def _state_from_stored_data(cls, storage, key, index: Optional[int] = None):
-        raise NotImplementedError(f"Cannot read `{cls.__name__}`")
+    def _state_from_stored_data(cls, storage, key, *, index: Optional[int] = None):
+        # determine the class to reconstruct the data from attribute
+        state_cls = _get_state_cls_from_storage(storage, key)
+        if state_cls == StateBase:
+            raise NotImplementedError(f"Cannot read `{cls.__name__}`")
+        else:
+            return state_cls._state_from_stored_data(storage, key, index=index)
 
     def _state_update_from_stored_data(
         self, storage, key: str, index: Optional[int] = None
@@ -359,13 +370,16 @@ class StateBase(metaclass=ABCMeta):
                 Name of the node in which the data was stored. This applies to some
                 hierarchical storage formats.
         """
-        from ..storage import open_storage
-
-        storage = open_storage(storage)
-        return cls._from_stored_data(storage, key)
+        with opened_storage(storage, mode="r") as storage:
+            return cls._state_from_stored_data(storage, key)
 
     def to_file(
-        self, storage: StorageID, key: str = "state", *, overwrite: bool = False
+        self,
+        storage: StorageID,
+        key: str = "state",
+        *,
+        mode: OpenMode = "x",
+        overwrite: bool = False,
     ) -> None:
         """write this object to a file
 
@@ -378,10 +392,8 @@ class StateBase(metaclass=ABCMeta):
                 Additional arguments are passed on to the method that implements the
                 writing of the specific format (_write_**).
         """
-        from ..storage import open_storage
-
-        storage = open_storage(storage, overwrite=overwrite)
-        self._state_write_to_storage(storage, key=key)
+        with opened_storage(storage, mode=mode, overwrite=overwrite) as storage:
+            self._state_write_to_storage(storage, key=key)
 
     # def _state_write_zarr_attributes(
     #     self, element: zarrElement, attrs: Optional[Dict[str, Any]] = None
@@ -473,3 +485,12 @@ class StateBase(metaclass=ABCMeta):
     #         "attributes": self._state_attributes_store,
     #         "data": self._state_data_store,
     #     }
+
+
+def _get_state_cls_from_storage(storage, key):
+    stored_cls = storage.read_attrs(key).get("__class__", None)
+    _, class_name = stored_cls.rsplit(".", 1)
+    if class_name in StateBase._state_classes:
+        return StateBase._state_classes[class_name]
+    else:
+        return decode_class(stored_cls)
