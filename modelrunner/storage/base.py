@@ -15,7 +15,7 @@ import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 
 from .attributes import decode_attrs, encode_attrs
-from .utils import InfoDict, KeyType, encode_class
+from .utils import InfoDict, KeyType, OpenMode, encode_class
 
 if TYPE_CHECKING:
     from .group import Group  # @UnusedImport
@@ -27,7 +27,7 @@ class StorageBase(metaclass=ABCMeta):
     extensions: List[str] = []
     default_codec = numcodecs.Pickle()
 
-    def __init__(self, *, overwrite: bool = False):
+    def __init__(self, *, mode: OpenMode = "x", overwrite: bool = False):
         """
         Args:
             overwrite (bool):
@@ -35,6 +35,9 @@ class StorageBase(metaclass=ABCMeta):
         """
         self.overwrite = overwrite
         self._logger = logging.getLogger(self.__class__.__name__)
+
+    def close(self):
+        ...
 
     @property
     def codec(self):
@@ -103,7 +106,7 @@ class StorageBase(metaclass=ABCMeta):
     def _read_attrs(self, key: Sequence[str]) -> InfoDict:
         ...
 
-    def read_attrs(self, key: Sequence[str], *, copy: bool = True) -> InfoDict:
+    def read_attrs(self, key: Sequence[str]) -> InfoDict:
         # FIXME: remove `copy` argument
         return decode_attrs(self._read_attrs(key))
 

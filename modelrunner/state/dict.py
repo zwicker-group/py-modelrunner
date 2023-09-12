@@ -9,8 +9,6 @@ from __future__ import annotations
 import itertools
 from typing import Any, Dict, Optional, Sequence, Union
 
-import zarr
-
 from ..storage import Group, storage_actions
 from .base import StateBase
 
@@ -48,7 +46,7 @@ class DictState(StateBase):
     @_state_attributes.setter
     def _state_attributes(self, attributes: Dict[str, Any]) -> None:
         """set the attributes of the state"""
-        attributes.pop("__keys__")  # remove auxillary information
+        attributes.pop("__keys__", None)  # remove auxillary information if present
         super(DictState, DictState)._state_attributes.__set__(self, attributes)  # type: ignore
 
     @classmethod
@@ -111,11 +109,14 @@ class DictState(StateBase):
 
     @classmethod
     def _state_from_stored_data(cls, storage, key: str, index: Optional[int] = None):
-        attrs = storage.read_attrs(key, copy=True)
+        attrs = storage.read_attrs(key)
         attrs.pop("__class__")
 
         group = Group(storage, key)
-        data = {label: group[label] for label in attrs["__keys__"]}
+        data = {
+            label: StateBase._state_from_stored_data(group, label, index=index)
+            for label in attrs["__keys__"]
+        }
 
         return cls.from_data(attrs, data)
 

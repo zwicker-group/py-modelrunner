@@ -121,7 +121,7 @@ class ArrayCollectionState(StateBase):
 
     @classmethod
     def _state_from_stored_data(cls, storage, key: str, index: Optional[int] = None):
-        attrs = storage.read_attrs(key, copy=True)
+        attrs = storage.read_attrs(key)
         attrs.pop("__class__")
 
         group = Group(storage, key)

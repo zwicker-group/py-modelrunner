@@ -6,6 +6,7 @@ Defines a class storing data on the file system using the hierarchical data form
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 from typing import Any, List, Optional, Sequence, Tuple, Union
 
@@ -15,7 +16,7 @@ from numpy.typing import ArrayLike, DTypeLike
 from zarr._storage.store import Store
 
 from ..base import StorageBase
-from ..utils import InfoDict
+from ..utils import InfoDict, OpenMode
 
 zarrElement = Union[zarr.Group, zarr.Array]
 
@@ -25,20 +26,41 @@ class ZarrStorage(StorageBase):
 
     extensions = ["zarr"]
 
-    def __init__(self, store_or_path, *, overwrite: bool = False):
+    def __init__(self, store_or_path, *, mode: OpenMode = "x", overwrite: bool = False):
         super().__init__(overwrite=overwrite)
-        mode = "w" if overwrite else "x"  # zarr.ZipStore does only supports r, w, a, x
 
         if isinstance(store_or_path, (str, Path)):
+            # open zarr storage on file system
             path = Path(store_or_path)
-            if path.suffix != "":
-                self._store = zarr.storage.ZipStore(path, mode=mode)
+            if path.suffix == "":
+                # path seems to be a directory
+                if path.is_dir() and mode == "w":
+                    self._logger.info(f"Delete directory `{path}`")
+                    shutil.rmtree(path)  # remove the directory to reinstate it
+                if mode == "r":
+                    self._logger.info(f"Directory are always opened writable")
+
+                self._store = zarr.DirectoryStore(path)
             else:
-                self._store = zarr.DirectoryStore(path, mode=mode)
+                # path seems to be point to a file
+                if path.exists():
+                    if mode == "x":
+                        self._logger.info('`ZipStore` uses mode="r" instead of "x"')
+                        mode = "r"
+                    if mode == "w":
+                        self._logger.info(f"Delete file `{path}`")
+                        path.unlink()
+                self._store = zarr.storage.ZipStore(path, mode=mode)
+
         elif isinstance(store_or_path, Store):
+            # open abstract zarr storage
             self._store = store_or_path
 
         self._root = zarr.group(store=self._store, overwrite=overwrite)
+
+    def close(self):
+        self._store.close()
+        self._root = None
 
     def _get_parent(self, key: Sequence[str], *, check_write: bool = False):
         path, name = key[:-1], key[-1]

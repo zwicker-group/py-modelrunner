@@ -73,10 +73,8 @@ class Group:
         for key in self.keys():
             yield key, self[key]
 
-    def read_attrs(
-        self, key: Optional[KeyType] = None, *, copy: bool = True
-    ) -> InfoDict:
-        return self._storage.read_attrs(self._get_key(key), copy=copy)
+    def read_attrs(self, key: Optional[KeyType] = None) -> InfoDict:
+        return self._storage.read_attrs(self._get_key(key))
 
     def write_attrs(
         self, key: Optional[KeyType] = None, attrs: InfoDict = None
@@ -88,13 +86,11 @@ class Group:
         return self.read_attrs()
 
     def _read_object(self, key: Sequence[str]):
-        attrs = self._storage.read_attrs(key, copy=False)
-        cls = decode_class(attrs.get("__class__"))
+        attrs = self._storage.read_attrs(key)
+        cls = decode_class(attrs.pop("__class__"))
         if cls is None:
             # return numpy array
             arr = self._storage._read_array(key)
-            attrs = self._storage.read_attrs(key, copy=True)
-            attrs.pop("__class__")
             return Array(arr, attrs=attrs)
         else:
             # create object using a registered action

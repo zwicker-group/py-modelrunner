@@ -57,9 +57,9 @@ def test_state_io(state, ext, tmp_path):
     path = tmp_path / ("file." + ext)
 
     state.to_file(path)
-    with pytest.raises(FileExistsError):
+    with pytest.raises(RuntimeError):
         state.to_file(path, overwrite=False)
-    state.to_file(path, overwrite=True)
+    state.to_file(path, mode="w")  # truncate file
 
     read = StateBase.from_file(path)
     assert state == read

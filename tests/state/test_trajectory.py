@@ -21,18 +21,18 @@ def remove_file_or_folder(path):
 
 @pytest.mark.parametrize("state", get_states())
 @pytest.mark.parametrize("ext", ["", ".zarr"])
-def test_trajectory(state, ext, tmp_path):
+def test_trajectory_basic(state, ext, tmp_path):
     """test simple trajecotry writing"""
     path = tmp_path / ("file" + ext)
 
     # write first batch of data
-    with TrajectoryWriter(path, attrs={"test": "yes"}) as write:
-        write(state, 1)
-        write(state)
+    with TrajectoryWriter(path, attrs={"test": "yes"}) as writer:
+        writer.append(state, 1)
+        writer.append(state)
 
     # check that we can't accidentally overwrite
-    with pytest.raises(IOError):
-        with TrajectoryWriter(path) as write:
+    with pytest.raises(RuntimeError):
+        with TrajectoryWriter(path) as writer:
             ...
 
     # check first batch of data
@@ -83,9 +83,9 @@ def test_trajectory_multiple_reads(ext, tmp_path):
     state = ArrayState(np.arange(5))
 
     # write some data
-    with TrajectoryWriter(path, attrs={"test": "yes"}) as write:
-        write(state, 1)
-        write(state)
+    with TrajectoryWriter(path, attrs={"test": "yes"}) as writer:
+        writer.append(state, 1)
+        writer.append(state)
 
     # read the data
     t1 = Trajectory(path, ret_copy=False)
@@ -111,17 +111,17 @@ def test_trajectory_overwriting(ext, tmp_path):
     state = ArrayState(np.arange(5))
 
     # write some data
-    with TrajectoryWriter(path, attrs={"test": "yes"}) as write:
-        write(state, 1)
-        write(state)
+    with TrajectoryWriter(path, attrs={"test": "yes"}) as writer:
+        writer.append(state, 1)
+        writer.append(state)
 
     # try writing data without overwrite
-    with pytest.raises(OSError):
-        with TrajectoryWriter(path, overwrite=False) as write:
-            write(state)
+    with pytest.raises(RuntimeError):
+        with TrajectoryWriter(path, overwrite=False) as writer:
+            writer.append(state)
 
     # try writing data with overwrite
-    with TrajectoryWriter(path, overwrite=True) as write:
-        write(state)
+    with TrajectoryWriter(path, overwrite=True) as writer:
+        writer.append(state)
 
     remove_file_or_folder(path)

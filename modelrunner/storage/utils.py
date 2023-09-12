@@ -7,12 +7,17 @@ from __future__ import annotations
 import inspect
 from collections import defaultdict
 from importlib import import_module
-from typing import Any, Callable, Dict, Optional, Sequence, Type, Union
+from typing import Any, Callable, Dict, Literal, Optional, Sequence, Type, Union
 
 import numpy as np
 
 KeyType = Union[None, str, Sequence[str]]
 InfoDict = Dict[str, Any]
+OpenMode = Literal[
+    "r",  # open as readable
+    "x",  # open as extensible (read and write)
+    "w",  # open as writeable and truncate
+]
 
 
 class Array(np.ndarray):
@@ -35,7 +40,7 @@ def encode_class(cls: Type) -> str:
     return cls.__module__ + "." + cls.__qualname__
 
 
-def decode_class(class_path: Optional[str]):
+def decode_class(class_path: Optional[str], *, guess: Optional[Type] = None):
     if class_path is None or class_path == "None":
         return None
 
@@ -45,12 +50,23 @@ def decode_class(class_path: Optional[str]):
     except ValueError:
         raise ImportError(f"Cannot import class {class_path}")
 
-    module = import_module(module_path)
-
     try:
-        return getattr(module, class_name)
-    except AttributeError:
-        raise ImportError(f"Module {module_path} does not define {class_name}")
+        module = import_module(module_path)
+    except ModuleNotFoundError:
+        # see whether the class is already defined ...
+        if guess is not None and guess.__name__ == class_name:
+            return guess  # ... as the `guess`
+        elif class_name in globals():
+            return globals()[class_name]  # ... in the global context
+        else:
+            raise ModuleNotFoundError(f"Cannot load `{class_path}`")
+
+    else:
+        # load the class from the module
+        try:
+            return getattr(module, class_name)
+        except AttributeError:
+            raise ImportError(f"Module {module_path} does not define {class_name}")
 
 
 class _StorageRegistry:

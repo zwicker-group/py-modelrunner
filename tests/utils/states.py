@@ -12,7 +12,7 @@ from modelrunner.state import (
     StateBase,
 )
 
-EXTENSIONS = ["zarr"]  # json", "yaml", "zarr"]
+EXTENSIONS = ["", "zarr"]  # json", "yaml", "zarr"]
 
 
 def get_states(add_derived: bool = True):
@@ -35,6 +35,7 @@ def get_states(add_derived: bool = True):
     arr_state = ArrayState(a.copy())
     res = [
         obj_state.copy("clean"),
+        ObjectState(a.copy()),
         arr_state.copy("clean"),
         ArrayState(da.copy()),
         ArrayState(ra.copy()),
