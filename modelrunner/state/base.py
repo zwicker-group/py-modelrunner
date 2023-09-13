@@ -16,7 +16,8 @@ import numpy as np
 
 from ..storage import opened_storage, storage_actions
 from ..storage.attributes import remove_dunderscore_attrs
-from ..storage.utils import OpenMode, decode_class
+from ..storage.utils import decode_class
+from ..storage.access import AccessType
 
 if TYPE_CHECKING:
     from ..storage import StorageID
@@ -207,12 +208,9 @@ class StateBase(metaclass=ABCMeta):
 
     def __eq__(self, other) -> bool:
         if self.__class__ is not other.__class__:
-            print("DIFFERNT CLS")
             return False
         if self._state_attributes != other._state_attributes:
-            print("DIFFERNT ATTRS")
             return False
-        print("COMPARE DATA")
         return _equals(self._state_data, other._state_data)
 
     def __getstate__(self) -> Dict[str, Any]:
@@ -359,7 +357,7 @@ class StateBase(metaclass=ABCMeta):
         )
 
     @classmethod
-    def from_file(cls, storage: StorageID, key: str = "state"):
+    def from_file(cls, storage: StorageID, key: str = "state", **kwargs):
         """load object from a file
 
         Args:
@@ -370,7 +368,8 @@ class StateBase(metaclass=ABCMeta):
                 Name of the node in which the data was stored. This applies to some
                 hierarchical storage formats.
         """
-        with opened_storage(storage, mode="r") as storage:
+        kwargs.setdefault("access", "readonly")
+        with opened_storage(storage, **kwargs) as storage:
             return cls._state_from_stored_data(storage, key)
 
     def to_file(
@@ -378,8 +377,8 @@ class StateBase(metaclass=ABCMeta):
         storage: StorageID,
         key: str = "state",
         *,
-        mode: OpenMode = "x",
-        overwrite: bool = False,
+        access: AccessType = "full",
+        **kwargs,
     ) -> None:
         """write this object to a file
 
@@ -392,7 +391,7 @@ class StateBase(metaclass=ABCMeta):
                 Additional arguments are passed on to the method that implements the
                 writing of the specific format (_write_**).
         """
-        with opened_storage(storage, mode=mode, overwrite=overwrite) as storage:
+        with opened_storage(storage, access=access, **kwargs) as storage:
             self._state_write_to_storage(storage, key=key)
 
     # def _state_write_zarr_attributes(

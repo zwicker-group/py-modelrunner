@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, Literal, Optional, Sequence, Type, Union
 import numpy as np
 
 KeyType = Union[None, str, Sequence[str]]
-InfoDict = Dict[str, Any]
+Attrs = Dict[str, Any]
 OpenMode = Literal[
     "r",  # open as readable
     "x",  # open as extensible (read and write)
@@ -23,7 +23,7 @@ OpenMode = Literal[
 class Array(np.ndarray):
     """Numpy array augmented with attributes"""
 
-    def __new__(cls, input_array, attrs: Optional[InfoDict] = None):
+    def __new__(cls, input_array, attrs: Optional[Attrs] = None):
         obj = np.asarray(input_array).view(cls)
         obj.attrs = {} if attrs is None else attrs
         return obj

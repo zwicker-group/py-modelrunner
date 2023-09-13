@@ -6,7 +6,7 @@ import codecs
 import json
 import pickle
 
-from .utils import InfoDict
+from .utils import Attrs
 
 PICKLE_PROTOCOL = pickle.HIGHEST_PROTOCOL
 
@@ -31,15 +31,18 @@ def _decode_pickled(dct):
     return dct
 
 
-def encode_attrs(attrs: InfoDict) -> InfoDict:
+def encode_attrs(attrs: Attrs) -> Attrs:
     return {k: json.dumps(v, cls=AttrsEncoder) for k, v in attrs.items()}
 
+def encode_attr(value):
+    return json.dumps(value, cls=AttrsEncoder)
 
-def decode_attrs(attrs: InfoDict) -> InfoDict:
+
+def decode_attrs(attrs: Attrs) -> Attrs:
     return {k: json.loads(v, object_hook=_decode_pickled) for k, v in attrs.items()}
 
 
-def remove_dunderscore_attrs(attrs: InfoDict) -> InfoDict:
+def remove_dunderscore_attrs(attrs: Attrs) -> Attrs:
     return {k: v for k, v in attrs.items() if not k.startswith("__")}
 
 

@@ -36,8 +36,6 @@ class ObjectState(StateBase):
         attrs = storage.read_attrs(key)
         attrs.pop("__class__")
         attrs.pop("__version__", None)
-        print("SHAPE", storage.read_array(key).shape)
-        print("INDEX", index)
         arr = storage.read_array(key, index=index)
         if arr.size == 1:
             data = arr.item()
