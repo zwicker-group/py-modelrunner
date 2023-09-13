@@ -18,19 +18,6 @@ from ..parameters import NoValueType
 from .base import StorageBase
 
 
-class NumpyEncoder(json.JSONEncoder):
-    """helper class for encoding python data in JSON"""
-
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        if isinstance(obj, np.generic):
-            return obj.item()
-        if isinstance(obj, NoValueType):
-            return None
-        return json.JSONEncoder.default(self, obj)
-
-
 def write_hdf_dataset(node, data, name: str) -> None:
     """writes data to an HDF node
 
@@ -89,7 +76,7 @@ class HDFStorage(StorageBase):
         self,
         filename: str,
         *,
-        info: Optional[InfoDict] = None,
+        info: Optional[Attrs] = None,
         write_mode: str = "truncate_once",
         max_length: Optional[int] = None,
         compression: bool = True,
@@ -207,7 +194,7 @@ class HDFStorage(StorageBase):
                 **kwargs,
             )
 
-    def _open(self, mode: str = "reading", info: Optional[InfoDict] = None) -> None:
+    def _open(self, mode: str = "reading", info: Optional[Attrs] = None) -> None:
         """open the hdf file in a particular mode
 
         Args:
@@ -370,7 +357,7 @@ class HDFStorage(StorageBase):
 
         super().clear(clear_data_shape=clear_data_shape)
 
-    def start_writing(self, field: FieldBase, info: Optional[InfoDict] = None) -> None:
+    def start_writing(self, field: FieldBase, info: Optional[Attrs] = None) -> None:
         """initialize the storage for writing data
 
         Args:

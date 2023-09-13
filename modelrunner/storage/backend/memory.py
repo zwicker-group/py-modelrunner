@@ -12,18 +12,17 @@ import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 
 from ..base import StorageBase
-from ..utils import InfoDict, OpenMode
+from ..access import AccessType
+from ..utils import Attrs
 
 
 class MemoryStorage(StorageBase):
     """store items in memory"""
 
-    _data: InfoDict
+    _data: Attrs
 
-    def __init__(self, *, mode: OpenMode = "x", overwrite: bool = False):
-        super().__init__(overwrite=overwrite)
-        if mode == "r":
-            raise ValueError("Cannot open read-only MemoryStorage")
+    def __init__(self, *, access: AccessType = "full"):
+        super().__init__(access=access)
         self._data = {}
 
     def clear(self) -> None:
@@ -50,7 +49,7 @@ class MemoryStorage(StorageBase):
             raise TypeError(f"Cannot add item to `{'/'.join(key)}`")
 
         name = key[-1]
-        if check_write and not self.overwrite and name in value:
+        if check_write and not self.access.overwrite and name in value:
             raise RuntimeError(f"Overwriting `{'/'.join(key)}` disabled")
         return value, name
 
@@ -76,19 +75,15 @@ class MemoryStorage(StorageBase):
         parent, name = self._get_parent(key, check_write=True)
         parent[name] = {}
 
-    def _read_attrs(self, key: Sequence[str]) -> InfoDict:
+    def _read_attrs(self, key: Sequence[str]) -> Attrs:
         return self[key].get("__attrs__", {})
 
-    def _write_attrs(self, key: Sequence[str], attrs: InfoDict):
+    def _write_attr(self, key: Sequence[str], name: str, value):
         item = self[key]
         if "__attrs__" not in item:
-            item["__attrs__"] = attrs
+            item["__attrs__"] = {name: value}
         else:
-            if not self.overwrite:
-                for k in attrs.keys():
-                    if k in item["__attrs__"]:
-                        raise KeyError(f"Cannot overwrite attribute `{k}`")
-            item["__attrs__"].update(attrs)
+            item["__attrs__"][name] = value
 
     def _read_array(
         self, key: Sequence[str], *, index: Optional[int] = None
@@ -108,9 +103,9 @@ class MemoryStorage(StorageBase):
         parent, name = self._get_parent(key, check_write=True)
         parent[name] = {"data": [], "shape": shape, "dtype": np.dtype(dtype)}
 
-    def _extend_dynamic_array(self, key: Sequence[str], data: ArrayLike):
+    def _extend_dynamic_array(self, key: Sequence[str], arr: ArrayLike):
         item = self[key]
-        data = np.asanyarray(data)
+        data = np.asanyarray(arr)
         if item["shape"] != data.shape:
             raise TypeError("Shape mismatch")
         if not np.issubdtype(data.dtype, item["dtype"]):

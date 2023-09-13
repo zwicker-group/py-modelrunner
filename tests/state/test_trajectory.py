@@ -54,7 +54,7 @@ def test_trajectory_basic(state, ext, tmp_path):
         path2 = path
 
     # write second batch of data
-    writer = TrajectoryWriter(path2, attrs={"test": "no"}, overwrite=True)
+    writer = TrajectoryWriter(path2, attrs={"test": "no"}, access="full")
     writer.append(state, 2)
     writer.append(state)
     writer.close()
@@ -117,11 +117,11 @@ def test_trajectory_overwriting(ext, tmp_path):
 
     # try writing data without overwrite
     with pytest.raises(RuntimeError):
-        with TrajectoryWriter(path, overwrite=False) as writer:
+        with TrajectoryWriter(path, access="insert") as writer:
             writer.append(state)
 
     # try writing data with overwrite
-    with TrajectoryWriter(path, overwrite=True) as writer:
+    with TrajectoryWriter(path, access="full") as writer:
         writer.append(state)
 
     remove_file_or_folder(path)

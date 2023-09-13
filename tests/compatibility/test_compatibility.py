@@ -8,7 +8,8 @@ from pathlib import Path
 import pytest
 
 from modelrunner.results import Result, StateBase
-from modelrunner.state.base import _equals, simplify_data
+from modelrunner.state.base import _equals
+from modelrunner.storage.backend.text import simplify_data
 
 CWD = Path(__file__).parent.resolve()
 assert CWD.is_dir()

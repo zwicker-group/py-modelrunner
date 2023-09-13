@@ -2,25 +2,13 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-# Dtype needs to be properly pickled
-# Encoding:
-#     dtype_pickled = pickle.dumps(self._state_data.dtype)
-#     codecs.encode(dtype_pickled, "base64").decode()
-# Decoding:
-#     dtype = pickle.loads(codecs.decode(dtype_pickled.encode(), "base64"))
-#     if data.dtype.names is None:
-#         data = unstructured_to_structured(data, dtype=dtype)
-
 from __future__ import annotations
 
 import json
-from pathlib import Path
-from typing import Optional, Union
 
 import numpy as np
 
-from ..base import StorageBase
-from ..parameters import NoValueType
+from ...parameters import NoValueType
 
 
 def simplify_data(data):
@@ -64,13 +52,14 @@ def contains_array(data) -> bool:
         return False
 
 
-class TextBasedStorage(StorageBase):
-    ...
+class NumpyEncoder(json.JSONEncoder):
+    """helper class for encoding python data in JSON"""
 
-
-class JSONStorage(TextBasedStorage):
-    ...
-
-
-class YAMLStorage(TextBasedStorage):
-    ...
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, np.generic):
+            return obj.item()
+        if isinstance(obj, NoValueType):
+            return None
+        return json.JSONEncoder.default(self, obj)

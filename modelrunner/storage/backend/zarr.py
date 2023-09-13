@@ -16,7 +16,8 @@ from numpy.typing import ArrayLike, DTypeLike
 from zarr._storage.store import Store
 
 from ..base import StorageBase
-from ..utils import InfoDict, OpenMode
+from ..utils import Attrs
+from ..access import AccessType
 
 zarrElement = Union[zarr.Group, zarr.Array]
 
@@ -26,23 +27,29 @@ class ZarrStorage(StorageBase):
 
     extensions = ["zarr"]
 
-    def __init__(self, store_or_path, *, mode: OpenMode = "x", overwrite: bool = False):
-        super().__init__(overwrite=overwrite)
+    def __init__(
+        self,
+        store_or_path,
+        *,
+        access: AccessType = "full",
+    ):
+        super().__init__(access=access)
 
         if isinstance(store_or_path, (str, Path)):
             # open zarr storage on file system
             path = Path(store_or_path)
             if path.suffix == "":
                 # path seems to be a directory
-                if path.is_dir() and mode == "w":
+                if path.is_dir() and self.access.file_mode == "w":
                     self._logger.info(f"Delete directory `{path}`")
                     shutil.rmtree(path)  # remove the directory to reinstate it
-                if mode == "r":
+                if self.access.file_mode == "r":
                     self._logger.info(f"Directory are always opened writable")
 
                 self._store = zarr.DirectoryStore(path)
             else:
                 # path seems to be point to a file
+                mode = self.access.file_mode
                 if path.exists():
                     if mode == "x":
                         self._logger.info('`ZipStore` uses mode="r" instead of "x"')
@@ -56,7 +63,7 @@ class ZarrStorage(StorageBase):
             # open abstract zarr storage
             self._store = store_or_path
 
-        self._root = zarr.group(store=self._store, overwrite=overwrite)
+        self._root = zarr.group(store=self._store, overwrite=self.access.overwrite)
 
     def close(self):
         self._store.close()
@@ -71,14 +78,17 @@ class ZarrStorage(StorageBase):
             except KeyError:
                 parent = parent.create_group(part)
 
-        if check_write and not self.overwrite and name in parent:
+        if check_write and not self.access.overwrite and name in parent:
             raise RuntimeError(f"Overwriting `{', '.join(key)}` disabled")
 
         return parent, name
 
     def __getitem__(self, key: Sequence[str]) -> Any:
-        parent, name = self._get_parent(key)
-        return parent[name]
+        if len(key) == 0:
+            return self._root
+        else:
+            parent, name = self._get_parent(key)
+            return parent[name]
 
     def keys(self, key: Optional[Sequence[str]] = None) -> List[str]:
         if key:
@@ -97,16 +107,12 @@ class ZarrStorage(StorageBase):
         parent, name = self._get_parent(key, check_write=True)
         return parent.create_group(name)
 
-    def _read_attrs(self, key: Sequence[str]) -> InfoDict:
+    def _read_attrs(self, key: Sequence[str]) -> Attrs:
         return self[key].attrs
 
-    def _write_attrs(self, key: Sequence[str], attrs: InfoDict) -> None:
+    def _write_attr(self, key: Sequence[str], name: str, value) -> None:
         item = self[key]
-        if not self.overwrite:
-            for k in attrs.keys():
-                if k in item.attrs:
-                    raise KeyError(f"Cannot overwrite attribute `{k}`")
-        item.attrs.update(attrs)
+        item.attrs[name] = value
 
     def _read_array(
         self, key: Sequence[str], *, index: Optional[int] = None

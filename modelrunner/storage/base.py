@@ -4,8 +4,11 @@ Base classes for storing data
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de> 
 """
 
-from __future__ import annotations
+# TODO:
+#   Rename `key` to `loc`?
+#   Rename `Group` to `StorageGroup`?
 
+from __future__ import annotations
 import logging
 from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Type
@@ -14,8 +17,9 @@ import numcodecs
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 
-from .attributes import decode_attrs, encode_attrs
-from .utils import InfoDict, KeyType, OpenMode, encode_class
+from .attributes import decode_attrs, encode_attr
+from .utils import Attrs, KeyType, encode_class
+from .access import Access, AccessType, AccessError
 
 if TYPE_CHECKING:
     from .group import Group  # @UnusedImport
@@ -27,33 +31,40 @@ class StorageBase(metaclass=ABCMeta):
     extensions: List[str] = []
     default_codec = numcodecs.Pickle()
 
-    def __init__(self, *, mode: OpenMode = "x", overwrite: bool = False):
+    def __init__(self, *, access: AccessType = "full"):
         """
         Args:
+            mode (str):
+                The file mode with which the storage is accessed. Might not be used by
+                all storages.
             overwrite (bool):
                 Determines whether existing data can be overwritten
         """
-        self.overwrite = overwrite
+        self.access = Access.parse(access)
         self._logger = logging.getLogger(self.__class__.__name__)
 
     def close(self):
         ...
 
     @property
-    def codec(self):
+    def codec(self) -> numcodecs.abc.Codec:
+        """:class:`~numcodecs.abc.Codec`: A codec used to encode binary data"""
         try:
             return self._codec
         except AttributeError:
-            if "__codec__" in self._root.attrs:
-                self._codec = numcodecs.get_codec(self._root.attrs["__codec__"])
+            attrs = self._read_attrs([])
+            if "__codec__" in attrs:
+                self._codec = numcodecs.get_codec(attrs["__codec__"])
             else:
                 self._codec = self.default_codec
-                # FIX this to work for all
-                self._root.attrs["__codec__"] = self._codec.get_config()
+                self._write_attr([], "__codec__", self._codec.get_config())
         return self._codec
 
-    def _get_key(self, key: KeyType):
+    def _get_key(self, key: KeyType) -> Sequence[str]:
+        """convert `key` to definite format"""
+
         # TODO: use regex to check whether key is only alphanumerical and has no "/"
+        # FIXME: get rid of this function and move all its functionality to `Group`
         def parse_key(key_data) -> List[str]:
             if key_data is None:
                 return []
@@ -64,7 +75,17 @@ class StorageBase(metaclass=ABCMeta):
 
         return parse_key(key)
 
-    def _get_attrs(self, attrs: Optional[InfoDict], cls: Optional[Type] = None):
+    def _get_attrs(
+        self, attrs: Optional[Attrs], *, cls: Optional[Type] = None
+    ) -> Attrs:
+        """create attributes dictionary
+
+        Args:
+            attrs (dict):
+                Dictionary with arbitrary attributes
+            cls (type):
+                Class information that needs to be stored alongside
+        """
         if attrs is None:
             attrs = {}
         else:
@@ -75,6 +96,7 @@ class StorageBase(metaclass=ABCMeta):
 
     @abstractmethod
     def keys(self, key: Sequence[str]) -> List[str]:
+        """return all sub-items defined for at the given `key`"""
         ...
 
     def __contains__(self, key: Sequence[str]):
@@ -92,31 +114,88 @@ class StorageBase(metaclass=ABCMeta):
         self,
         key: Sequence[str],
         *,
-        attrs: Optional[InfoDict] = None,
+        attrs: Optional[Attrs] = None,
         cls: Optional[Type] = None,
     ) -> "Group":
+        """create a new group at a particular location
+
+        Args:
+            key (list of str):
+                The location marking the new group
+            attrs (dict, optional):
+                Attributes stored with the group
+            cls (type):
+                A class associated with this group
+
+        Returns:
+            :class:`Group`: The reference of the new group
+        """
         from .group import Group  # @Reimport to avoid circular import
 
         key = self._get_key(key)
-        self._create_group(key)
-        self.write_attrs(key, self._get_attrs(attrs, cls))
+
+        if key in self:
+            if self.access.overwrite:
+                pass  # group already exists, but we can overwrite things
+            else:
+                # we cannot overwrite anythign
+                raise AccessError(f"Group `{'/'.join(key)}` already exists")
+        else:
+            if not self.access.insert:
+                raise AccessError(f"No right to insert group `{'/'.join(key)}`")
+            self._create_group(key)
+
+        self.write_attrs(key, self._get_attrs(attrs, cls=cls))
         return Group(self, key)
 
     @abstractmethod
-    def _read_attrs(self, key: Sequence[str]) -> InfoDict:
+    def _read_attrs(self, key: Sequence[str]) -> Attrs:
         ...
 
-    def read_attrs(self, key: Sequence[str]) -> InfoDict:
-        # FIXME: remove `copy` argument
+    def read_attrs(self, key: Sequence[str]) -> Attrs:
+        """read attributes associated with a particular location
+
+        Args:
+            key (list of str):
+                The location
+
+        Returns:
+            dict: A copy of the attributes at this location
+        """
+        if not self.access.read:
+            raise AccessError("No right to read attributes")
         return decode_attrs(self._read_attrs(key))
 
     @abstractmethod
-    def _write_attrs(self, key: Sequence[str], attrs: InfoDict) -> None:
+    def _write_attr(self, key: Sequence[str], name: str, value) -> None:
+        """write a single attribute to a particular location"""
         ...
 
-    def write_attrs(self, key: Sequence[str], attrs: Optional[InfoDict]) -> None:
-        if attrs is not None and len(attrs) > 0:
-            self._write_attrs(key, encode_attrs(attrs))
+    def write_attrs(self, key: Sequence[str], attrs: Optional[Attrs]) -> None:
+        """write attributes to a particular location
+
+        Args:
+            key (list of str):
+                The location
+            attrs (dict):
+                The attributes to be added to this location
+        """
+        # check whether we can insert anything
+        if not self.access.insert:
+            raise AccessError(f"No right to insert attributes into `{'/'.join(key)}`")
+        # check whether there are actually any attributes to be written
+        if attrs is None or len(attrs) == 0:
+            return
+
+        if self.access.overwrite:
+            current_attrs = set()  # effectively disables check below
+        else:
+            current_attrs = self.read_attrs(key)  # previous attrs not to be changed
+        for name, value in attrs.items():
+            if name in current_attrs:
+                raise AccessError(f"No right to overwrite attribute {name}")
+            else:
+                self._write_attr(key, name, encode_attr(value))
 
     @abstractmethod
     def _read_array(
@@ -135,6 +214,26 @@ class StorageBase(metaclass=ABCMeta):
         index: Optional[int] = None,
         copy: bool = True,
     ) -> np.ndarray:
+        """read an array from a particular location
+
+        Args:
+            key (list of str):
+                The location where the array is created
+            out (array):
+                An array to which the results are written
+            index (int, optional):
+                An index denoting the subarray that will be read
+            copy (bool):
+                Determines whether a copy of the data is returned. Set this flag to
+                `False` for better performance in cases where the array is not modified.
+
+        Returns:
+            :class:`~numpy.ndarray`:
+                An array containing the data. Identical to `out` if specified.
+        """
+        if not self.access.read:
+            raise AccessError("No right to read array")
+
         key = self._get_key(key)
         if out is not None:
             out[:] = self._read_array(key, index=index)
@@ -145,7 +244,7 @@ class StorageBase(metaclass=ABCMeta):
         return out
 
     @abstractmethod
-    def _write_array(self, key: Sequence[str], arr: np.ndarray, attrs: InfoDict):
+    def _write_array(self, key: Sequence[str], arr: np.ndarray, attrs: Attrs) -> None:
         ...
 
     def write_array(
@@ -153,17 +252,39 @@ class StorageBase(metaclass=ABCMeta):
         key: KeyType,
         arr: np.ndarray,
         *,
-        attrs: Optional[InfoDict] = None,
+        attrs: Optional[Attrs] = None,
         cls: Optional[Type] = None,
-    ):
+    ) -> None:
+        """write an array to a particular location
+
+        Args:
+            key (list of str):
+                The location where the array is read
+            arr (array):
+                The array which will be written
+            attrs (dict, optional):
+                Attributes stored with the array
+            cls (type):
+                A class associated with this array
+        """
         key = self._get_key(key)
+
+        if key in self:
+            # check whether we can overwrite the existing array
+            if not self.access.overwrite:
+                raise RuntimeError(f"Array `{'/'.join(key)}` already exists")
+        else:
+            # check whether we can insert a new array
+            if not self.access.insert:
+                raise RuntimeError(f"No right to insert array `{'/'.join(key)}`")
+
         self._write_array(key, arr)
-        self.write_attrs(key, self._get_attrs(attrs, cls))
+        self.write_attrs(key, self._get_attrs(attrs, cls=cls))
 
     @abstractmethod
     def _create_dynamic_array(
         self, key: Sequence[str], shape: Tuple[int, ...], dtype: DTypeLike
-    ):
+    ) -> None:
         raise NotImplementedError(f"No dynamic arrays for {self.__class__.__name__}")
 
     def create_dynamic_array(
@@ -172,23 +293,60 @@ class StorageBase(metaclass=ABCMeta):
         shape: Tuple[int, ...],
         *,
         dtype: DTypeLike = float,
-        attrs: Optional[InfoDict] = None,
+        attrs: Optional[Attrs] = None,
         cls: Optional[Type] = None,
-    ):
+    ) -> None:
+        """creates a dynamic array of flexible size
+
+        Args:
+            key (list of str):
+                The location where the array is created
+            shape (tuple of int):
+                The shape of the individual arrays. A singular axis is prepended to the
+                shape, which can then be extended subsequently.
+            dtype:
+                The data type of the array to be written
+            attrs (dict, optional):
+                Attributes stored with the array
+            cls (type):
+                A class associated with this array
+        """
         key = self._get_key(key)
-        self._create_dynamic_array(key, shape, dtype=dtype)
-        self.write_attrs(key, self._get_attrs(attrs, cls))
+
+        if key in self:
+            # check whether we can overwrite the existing array
+            if not self.access.overwrite:
+                raise RuntimeError(f"Array `{'/'.join(key)}` already exists")
+            # TODO: Do we need to clear this array?
+        else:
+            # check whether we can insert a new array
+            if not self.access.insert:
+                raise RuntimeError(f"No right to insert array `{'/'.join(key)}`")
+
+        self._create_dynamic_array(key, tuple(shape), dtype=dtype)
+        self.write_attrs(key, self._get_attrs(attrs, cls=cls))
 
     @abstractmethod
-    def _extend_dynamic_array(self, key: Sequence[str], data: ArrayLike):
+    def _extend_dynamic_array(self, key: Sequence[str], arr: ArrayLike) -> None:
         raise NotImplementedError(f"No dynamic arrays for {self.__class__.__name__}")
 
-    def extend_dynamic_array(self, key: KeyType, data: ArrayLike):
-        self._extend_dynamic_array(self._get_key(key), data)
+    def extend_dynamic_array(self, key: KeyType, arr: ArrayLike) -> None:
+        """extend a dynamic array previously created
+
+        Args:
+            key (list of str):
+                The location of the dynamic array
+            arr (array):
+                The array which will be appended to the dynamic array
+        """
+        if not self.access.insert and not self.access.overwrite:
+            raise RuntimeError(f"Cannot add data to `{'/'.join(key)}`")
+        self._extend_dynamic_array(self._get_key(key), arr)
 
     @abstractmethod
     def _get_dynamic_array(self, key: Sequence[str]) -> ArrayLike:
         ...
 
     def get_dynamic_array(self, key: KeyType) -> ArrayLike:
+        # FIXME: get rid of `get_dynamic_array`
         return self._get_dynamic_array(self._get_key(key))

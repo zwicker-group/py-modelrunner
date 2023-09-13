@@ -19,6 +19,7 @@ import numpy as np
 from ..storage.group import Group
 from ..storage.tools import open_storage
 from ..storage.utils import KeyType, encode_class, storage_actions
+from ..storage.access import AccessType
 from .base import StateBase, _get_state_cls_from_storage
 
 
@@ -53,7 +54,7 @@ class TrajectoryWriter:
         key: KeyType = "trajectory",
         *,
         attrs: Optional[Dict[str, Any]] = None,
-        overwrite: bool = False,
+        access: AccessType = "insert",
     ):
         """
         Args:
@@ -66,8 +67,7 @@ class TrajectoryWriter:
                 If True, delete all pre-existing data in store.
         """
         # create the root group where we store all the data
-        mode = "w" if overwrite else "x"
-        storage = open_storage(storage, mode=mode)
+        storage = open_storage(storage, access=access)
         self._group = storage.create_group(key)
         self._group.write_attrs(None, {"__class__": encode_class(Trajectory)})
 
@@ -86,7 +86,7 @@ class TrajectoryWriter:
                 time = 0.0
         else:
             if time is None:
-                time = float(self._group.get_dynamic_array("time")[-1]) + 1.0
+                time = float(self._group.read_array("time", index=-1)) + 1.0
 
         data._state_append_to_trajectory(self._group, "data")
         self._group.extend_dynamic_array("time", time)
@@ -125,7 +125,7 @@ class Trajectory:
         self.ret_copy = ret_copy
 
         # open the storage
-        storage = open_storage(storage, mode="r", overwrite=False)
+        storage = open_storage(storage, access="readonly")
         self._storage = Group(storage, key)
 
         # read some intial data from storage

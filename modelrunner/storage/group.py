@@ -10,7 +10,7 @@ import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 
 from .base import StorageBase
-from .utils import Array, InfoDict, KeyType, decode_class, storage_actions
+from .utils import Array, Attrs, KeyType, decode_class, storage_actions
 
 # TODO: Provide .attrs attribute with a descriptor protocol (implemented by the backend)
 
@@ -73,16 +73,14 @@ class Group:
         for key in self.keys():
             yield key, self[key]
 
-    def read_attrs(self, key: Optional[KeyType] = None) -> InfoDict:
+    def read_attrs(self, key: Optional[KeyType] = None) -> Attrs:
         return self._storage.read_attrs(self._get_key(key))
 
-    def write_attrs(
-        self, key: Optional[KeyType] = None, attrs: InfoDict = None
-    ) -> None:
+    def write_attrs(self, key: Optional[KeyType] = None, attrs: Attrs = None) -> None:
         self._storage.write_attrs(self._get_key(key), attrs=attrs)
 
     @property
-    def attrs(self) -> InfoDict:
+    def attrs(self) -> Attrs:
         return self.read_attrs()
 
     def _read_object(self, key: Sequence[str]):
@@ -101,7 +99,7 @@ class Group:
         self,
         key: str,
         *,
-        attrs: Optional[InfoDict] = None,
+        attrs: Optional[Attrs] = None,
         cls: Optional[Type] = None,
     ) -> Group:
         """key: relative path in current group"""
@@ -125,7 +123,7 @@ class Group:
         key: KeyType,
         arr: np.ndarray,
         *,
-        attrs: Optional[InfoDict] = None,
+        attrs: Optional[Attrs] = None,
         cls: Optional[Type] = None,
     ):
         key = self._get_key(key)
@@ -137,7 +135,7 @@ class Group:
         shape: Tuple[int, ...],
         *,
         dtype: DTypeLike = float,
-        attrs: Optional[InfoDict] = None,
+        attrs: Optional[Attrs] = None,
         cls: Optional[Type] = None,
     ):
         self._storage.create_dynamic_array(

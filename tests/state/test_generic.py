@@ -2,7 +2,6 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-import copy
 import pickle
 
 import numpy as np
@@ -58,11 +57,19 @@ def test_state_io(state, ext, tmp_path):
 
     state.to_file(path)
     with pytest.raises(RuntimeError):
-        state.to_file(path, overwrite=False)
-    state.to_file(path, mode="w")  # truncate file
+        state.to_file(path, access="insert")
+    if ext == "json":
+        state.to_file(path, access="truncate", simplify=False)  # truncate file
+    else:
+        state.to_file(path, access="truncate")  # truncate file
 
     read = StateBase.from_file(path)
-    assert state == read
+    if ext == "json":
+        assert state.__class__ == read.__class__
+        assert state._state_attributes == read._state_attributes
+        assert _equals(state._state_data, read._state_data)
+    else:
+        assert state == read
 
 
 @pytest.mark.parametrize("state_cls", [DictState, ObjectState, ArrayCollectionState])
