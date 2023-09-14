@@ -33,6 +33,7 @@ from .parameters import (
     Parameterized,
 )
 from .state import ObjectState, StateBase
+from .storage import MemoryStorage
 
 if TYPE_CHECKING:
     from .results import Result  # @UnusedImport
@@ -226,7 +227,9 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
             mdl.write_result(output=None, result=result)
         else:
             # display the results on stdout
-            print(result.state._to_simple_objects()["data"])
+            storage = MemoryStorage()
+            result.to_file(storage)
+            print(storage._data)
 
         return result
 

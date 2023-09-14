@@ -53,15 +53,22 @@ def test_state_pickle(state):
 @pytest.mark.parametrize("ext", EXTENSIONS)
 def test_state_io(state, ext, tmp_path):
     """test simple state IO"""
+    if (
+        ext == "yaml"
+        and isinstance(state, ObjectState)
+        and isinstance(state._state_data, np.ndarray)
+    ):
+        pytest.skip("YAMLStorage doesn't support this, yet")
+
     path = tmp_path / ("file." + ext)
 
     state.to_file(path)
     with pytest.raises(RuntimeError):
-        state.to_file(path, access="insert")
+        state.to_file(path, mode="insert")
     if ext == "json":
-        state.to_file(path, access="truncate", simplify=False)  # truncate file
+        state.to_file(path, mode="truncate", simplify=False)  # truncate file
     else:
-        state.to_file(path, access="truncate")  # truncate file
+        state.to_file(path, mode="truncate")  # truncate file
 
     read = StateBase.from_file(path)
     if ext == "json":

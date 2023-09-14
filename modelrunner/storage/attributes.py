@@ -34,6 +34,7 @@ def _decode_pickled(dct):
 def encode_attrs(attrs: Attrs) -> Attrs:
     return {k: json.dumps(v, cls=AttrsEncoder) for k, v in attrs.items()}
 
+
 def encode_attr(value):
     return json.dumps(value, cls=AttrsEncoder)
 

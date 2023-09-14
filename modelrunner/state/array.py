@@ -90,37 +90,39 @@ class ArrayState(StateBase):
         super()._state_init(attributes, data)
 
     @classmethod
-    def _state_from_stored_data(cls, storage, key: str, index: Optional[int] = None):
+    def _state_from_stored_data(
+        cls, storage, loc: Sequence[str], index: Optional[int] = None
+    ):
         obj = cls.__new__(cls)
-        attributes = storage.read_attrs(key)
+        attributes = storage.read_attrs(loc)
         attributes.pop("__class__")
-        data = storage.read_array(key, index=index)
+        data = storage.read_array(loc, index=index)
         obj._state_init(attributes, data)
         return obj
 
     def _state_update_from_stored_data(
-        self, storage, key: str, index: Optional[int] = None
+        self, storage, loc: Sequence[str], index: Optional[int] = None
     ):
-        storage.read_array(key, index=index, out=self._state_data)
+        storage.read_array(loc, index=index, out=self._state_data)
 
-    def _state_write_to_storage(self, storage, key: Sequence[str]):
+    def _state_write_to_storage(self, storage, loc: Sequence[str]):
         storage.write_array(
-            key,
+            loc,
             self._state_data_store,
             attrs=self._state_attributes_store,
             cls=self.__class__,
         )
 
-    def _state_create_trajectory(self, storage, key: str):
+    def _state_create_trajectory(self, storage, loc: Sequence[str]):
         """prepare the zarr storage for this state"""
         data = self._state_data
         storage.create_dynamic_array(
-            key,
+            loc,
             shape=data.shape,
             dtype=data.dtype,
             attrs=self._state_attributes_store,
             cls=self.__class__,
         )
 
-    def _state_append_to_trajectory(self, storage, key: str):
-        storage.extend_dynamic_array(key, self._state_data)
+    def _state_append_to_trajectory(self, storage, loc: Sequence[str]):
+        storage.extend_dynamic_array(loc, self._state_data)

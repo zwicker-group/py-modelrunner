@@ -9,8 +9,8 @@ from io import StringIO
 from pathlib import Path
 from typing import Optional, Union
 
+from ..access_modes import ModeType
 from .memory import MemoryStorage
-from ..access import AccessType
 from .utils import simplify_data
 
 
@@ -19,21 +19,22 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
         self,
         path: Union[str, Path],
         *,
-        access: AccessType = "full",
+        mode: ModeType = "insert",
         simplify: bool = True,
         **kwargs,
     ):
-        super().__init__(access=access)
+        super().__init__(mode=mode)
 
         self.simplify = simplify
         self._path = Path(path)
         self._write_flags = kwargs
-        if self.access.file_mode in {"r", "x", "a"}:
+        if self.mode.file_mode in {"r", "x", "a"}:
             if self._path.exists():
-                self._read_data_from_file()
+                with open(self._path, mode="r") as fp:
+                    self._read_data_from_fp(fp)
 
     def close(self):
-        if self.access.file_mode in {"w", "x", "a"}:
+        if self.mode.file_mode in {"x", "a", "w"}:
             if self.simplify:
                 data = simplify_data(self._data)
             else:
@@ -53,31 +54,9 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
             return fp.getvalue()
 
     @abstractmethod
-    def _read_data_from_file(self) -> None:
+    def _read_data_from_fp(self, fp) -> None:
         ...
 
     @abstractmethod
     def _write_data_to_fp(self, fp, data) -> None:
         ...
-
-    # @abstractmethod
-    # def _write_data_to_file(self) -> None:
-    #     ...
-
-
-#
-# class YAMLStorage(TextBasedStorage):
-#     extensions = ["yaml", "yml"]
-#
-#     def _read_data_from_file(self) -> None:
-#         import yaml
-#
-#         with open(self._path, mode="r") as fp:
-#             self._data = yaml.safe_load(fp)
-#
-#     def _write_data_to_file(self, data) -> None:
-#         import yaml
-#
-#         self._write_flags.setdefault("sort_keys", False)
-#         with open(self._path, mode="w") as fp:
-#             yaml.dump(data, fp, **self._write_flags)
