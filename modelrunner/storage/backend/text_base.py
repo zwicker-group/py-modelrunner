@@ -15,6 +15,11 @@ from .utils import simplify_data
 
 
 class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
+    """storage that stores data in a text file
+
+    Note that the data is only written once the storage is closed.
+    """
+
     def __init__(
         self,
         path: Union[str, Path],
@@ -43,7 +48,7 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
                 with open(self._path, mode="r") as fp:
                     self._read_data_from_fp(fp)
 
-    def close(self):
+    def close(self) -> None:
         if self.mode.file_mode in {"x", "a", "w"}:
             if self.simplify:
                 data = simplify_data(self._data)

@@ -7,8 +7,6 @@ import warnings
 from dataclasses import dataclass
 from typing import ClassVar, Dict, Literal, Union
 
-# TODO: Rename `access` to `mode`?
-
 FileMode = Literal[
     "r",  # open as readable
     "x",  # open as extensible (read and write)
