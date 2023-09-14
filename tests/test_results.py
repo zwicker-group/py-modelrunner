@@ -8,7 +8,7 @@ import pytest
 from modelrunner.results import Result, ResultCollection
 
 
-@pytest.mark.parametrize("extension", [".hdf", ".yaml", ".json"])
+@pytest.mark.parametrize("extension", ["", ".zarr", ".yaml", ".json"])
 def test_result_serialization(extension, tmp_path):
     """test reading and writing results"""
     # prepare test result

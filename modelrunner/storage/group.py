@@ -13,6 +13,7 @@ from .base import StorageBase
 from .utils import Array, Attrs, Location, decode_class, storage_actions
 
 # TODO: Provide .attrs attribute with a descriptor protocol (implemented by the backend)
+# TODO: Provide a simple viewer of the tree structure (e.g. a `tree` method)
 
 
 class StorageGroup:
@@ -30,7 +31,10 @@ class StorageGroup:
         else:
             raise TypeError
 
-    def _get_loc(self, loc: Location):
+    def __repr__(self):
+        return f'StorageGroup(storage={self._storage}, loc="/{"/".join(self.loc)}")'
+
+    def _get_loc(self, loc: Location) -> List[str]:
         # TODO: use regex to check whether loc is only alphanumerical and has no "/"
         def parse_loc(loc_data) -> List[str]:
             if loc_data is None:
@@ -139,6 +143,3 @@ class StorageGroup:
 
     def extend_dynamic_array(self, loc: Location, data: ArrayLike):
         self._storage.extend_dynamic_array(self._get_loc(loc), data)
-
-    def get_dynamic_array(self, loc: Location) -> ArrayLike:
-        return self._storage.get_dynamic_array(self._get_loc(loc))

@@ -131,7 +131,7 @@ class Result:
                 Name of the node in which the data was stored. This applies to some
                 hierarchical storage formats.
         """
-        with open_storage(storage, mode="r") as storage:
+        with open_storage(storage, mode="readonly") as storage:
             attrs = storage.read_attrs(loc)
             format_version = attrs.pop("__version__", None)
             if format_version == 1:

@@ -46,9 +46,14 @@ class AccessMode:
         if isinstance(obj_or_name, AccessMode):
             return obj_or_name
         elif isinstance(obj_or_name, str):
-            return cls._defined[obj_or_name]
+            try:
+                return cls._defined[obj_or_name]
+            except KeyError:
+                raise ValueError(
+                    f"Access mode '{obj_or_name}' not in {list(cls._defined.keys())}"
+                )
         else:
-            raise TypeError(f"Unsupported type `{obj_or_name}`")
+            raise TypeError(f"Unsupported type '{obj_or_name}'")
 
 
 # define default access modes

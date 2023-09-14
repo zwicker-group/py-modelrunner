@@ -8,7 +8,18 @@ from __future__ import annotations
 
 import logging
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Type
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numcodecs
 import numpy as np
@@ -16,7 +27,7 @@ from numpy.typing import ArrayLike, DTypeLike
 
 from .access_modes import AccessError, AccessMode, ModeType
 from .attributes import decode_attrs, encode_attr
-from .utils import Attrs, Location, encode_class
+from .utils import Attrs, encode_class
 
 if TYPE_CHECKING:
     from .group import StorageGroup  # @UnusedImport
@@ -28,19 +39,20 @@ class StorageBase(metaclass=ABCMeta):
     extensions: List[str] = []
     default_codec = numcodecs.Pickle()
 
-    def __init__(self, *, mode: ModeType = "insert"):
+    _codec: numcodecs.abc.Codec
+
+    def __init__(self, *, mode: ModeType = "readonly"):
         """
         Args:
-            mode (str):
-                The file mode with which the storage is accessed. Might not be used by
-                all storages.
-            overwrite (bool):
-                Determines whether existing data can be overwritten
+            mode (str or :class:`~modelrunner.storage.access_modes.AccessMode`):
+                The file mode with which the storage is accessed. Determines allowed
+                operations.
         """
         self.mode = AccessMode.parse(mode)
         self._logger = logging.getLogger(self.__class__.__name__)
 
     def close(self):
+        """closes the storage, potentially writing data to a persistent place"""
         ...
 
     @property
@@ -78,7 +90,15 @@ class StorageBase(metaclass=ABCMeta):
 
     @abstractmethod
     def keys(self, loc: Sequence[str]) -> List[str]:
-        """return all sub-items defined at a given location"""
+        """return all sub-items defined at a given location
+
+        Args:
+            loc (sequence of str):
+                A list of strings determining the location in the storage
+
+        Returns:
+            list: a list of all items defined at this location
+        """
         ...
 
     def __contains__(self, loc: Sequence[str]):
@@ -86,6 +106,15 @@ class StorageBase(metaclass=ABCMeta):
 
     @abstractmethod
     def is_group(self, loc: Sequence[str]) -> bool:
+        """determine whether the location is a group
+
+        Args:
+            loc (sequence of str):
+                A list of strings determining the location in the storage
+
+        Returns:
+            bool: `True` if the loation is a group
+        """
         ...
 
     @abstractmethod
@@ -103,7 +132,7 @@ class StorageBase(metaclass=ABCMeta):
 
         Args:
             loc (list of str):
-                The location marking the new group
+                The location in the storage where the group will be created
             attrs (dict, optional):
                 Attributes stored with the group
             cls (type):
@@ -137,7 +166,7 @@ class StorageBase(metaclass=ABCMeta):
 
         Args:
             loc (list of str):
-                The location
+                The location in the storage where the attributes are read
 
         Returns:
             dict: A copy of the attributes at this location
@@ -156,7 +185,7 @@ class StorageBase(metaclass=ABCMeta):
 
         Args:
             loc (list of str):
-                The location
+                The location in the storage where the attributes are written
             attrs (dict):
                 The attributes to be added to this location
         """
@@ -168,7 +197,9 @@ class StorageBase(metaclass=ABCMeta):
             return
 
         if self.mode.overwrite:
-            current_attrs = set()  # effectively disables check below
+            current_attrs: Union[
+                Set[str], Dict[str, Any]
+            ] = set()  # effectively disables check below
         else:
             current_attrs = self.read_attrs(loc)  # previous attrs not to be changed
         for name, value in attrs.items():
@@ -188,7 +219,7 @@ class StorageBase(metaclass=ABCMeta):
 
     def read_array(
         self,
-        loc: Location,
+        loc: Sequence[str],
         *,
         out: Optional[np.ndarray] = None,
         index: Optional[int] = None,
@@ -198,7 +229,7 @@ class StorageBase(metaclass=ABCMeta):
 
         Args:
             loc (list of str):
-                The location where the array is created
+                The location in the storage where the array is created
             out (array):
                 An array to which the results are written
             index (int, optional):
@@ -223,12 +254,12 @@ class StorageBase(metaclass=ABCMeta):
         return out
 
     @abstractmethod
-    def _write_array(self, loc: Sequence[str], arr: np.ndarray, attrs: Attrs) -> None:
+    def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
         ...
 
     def write_array(
         self,
-        loc: Location,
+        loc: Sequence[str],
         arr: np.ndarray,
         *,
         attrs: Optional[Attrs] = None,
@@ -238,8 +269,8 @@ class StorageBase(metaclass=ABCMeta):
 
         Args:
             loc (list of str):
-                The location where the array is read
-            arr (array):
+                The location in the storage where the array is read
+            arr (:class:`~numpy.ndarray`):
                 The array which will be written
             attrs (dict, optional):
                 Attributes stored with the array
@@ -266,7 +297,7 @@ class StorageBase(metaclass=ABCMeta):
 
     def create_dynamic_array(
         self,
-        loc: Location,
+        loc: Sequence[str],
         shape: Tuple[int, ...],
         *,
         dtype: DTypeLike = float,
@@ -277,7 +308,7 @@ class StorageBase(metaclass=ABCMeta):
 
         Args:
             loc (list of str):
-                The location where the array is created
+                The location in the storage where the dynamic array is created
             shape (tuple of int):
                 The shape of the individual arrays. A singular axis is prepended to the
                 shape, which can then be extended subsequently.
@@ -305,12 +336,12 @@ class StorageBase(metaclass=ABCMeta):
     def _extend_dynamic_array(self, loc: Sequence[str], arr: ArrayLike) -> None:
         raise NotImplementedError(f"No dynamic arrays for {self.__class__.__name__}")
 
-    def extend_dynamic_array(self, loc: Location, arr: ArrayLike) -> None:
+    def extend_dynamic_array(self, loc: Sequence[str], arr: ArrayLike) -> None:
         """extend a dynamic array previously created
 
         Args:
             loc (list of str):
-                The location of the dynamic array
+                The location in the storage where the dynamic array is located
             arr (array):
                 The array which will be appended to the dynamic array
         """

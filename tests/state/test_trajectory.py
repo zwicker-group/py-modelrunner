@@ -20,7 +20,7 @@ def remove_file_or_folder(path):
 
 
 @pytest.mark.parametrize("state", get_states())
-@pytest.mark.parametrize("ext", ["", ".zarr"])
+@pytest.mark.parametrize("ext", ["", ".zarr", ".hdf"])
 def test_trajectory_basic(state, ext, tmp_path):
     """test simple trajecotry writing"""
     path = tmp_path / ("file" + ext)
@@ -76,7 +76,7 @@ def test_trajectory_basic(state, ext, tmp_path):
         remove_file_or_folder(path2)
 
 
-@pytest.mark.parametrize("ext", ["", ".zarr"])
+@pytest.mark.parametrize("ext", ["", ".zarr", ".hdf"])
 def test_trajectory_multiple_reads(ext, tmp_path):
     """test simultaneous reading of trajecotries"""
     path = tmp_path / ("file" + ext)
@@ -104,7 +104,7 @@ def test_trajectory_multiple_reads(ext, tmp_path):
     remove_file_or_folder(path)
 
 
-@pytest.mark.parametrize("ext", ["", ".zarr"])
+@pytest.mark.parametrize("ext", ["", ".zarr", ".hdf"])
 def test_trajectory_overwriting(ext, tmp_path):
     """test whether zarr zip files can be overwritten"""
     path = tmp_path / ("file" + ext)

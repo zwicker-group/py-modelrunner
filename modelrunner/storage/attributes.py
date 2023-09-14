@@ -2,13 +2,9 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-import codecs
 import json
-import pickle
 
-from .utils import Attrs
-
-PICKLE_PROTOCOL = pickle.HIGHEST_PROTOCOL
+from .utils import Attrs, decode_binary, encode_binary
 
 
 class AttrsEncoder(json.JSONEncoder):
@@ -18,16 +14,12 @@ class AttrsEncoder(json.JSONEncoder):
         try:
             return json.JSONEncoder.default(self, obj)
         except TypeError:
-            data_str = codecs.encode(pickle.dumps(obj), "base64").decode()
-            return {"__pickled__": data_str}
-            # return json.dumps(obj_enc)
-            # return json.JSONEncoder.default(self, obj_enc)
+            return {"__pickled__": encode_binary(obj)}
 
 
 def _decode_pickled(dct):
     if "__pickled__" in dct:
-        data = codecs.decode(dct["__pickled__"].encode(), "base64")
-        return pickle.loads(data)
+        return decode_binary(dct["__pickled__"])
     return dct
 
 
@@ -43,8 +35,8 @@ def decode_attrs(attrs: Attrs) -> Attrs:
     return {k: json.loads(v, object_hook=_decode_pickled) for k, v in attrs.items()}
 
 
-def remove_dunderscore_attrs(attrs: Attrs) -> Attrs:
+def attrs_remove_dunderscore(attrs: Attrs) -> Attrs:
     return {k: v for k, v in attrs.items() if not k.startswith("__")}
 
 
-__all__ = ["encode_attrs", "decode_attrs", "remove_dunderscore_attrs"]
+__all__ = ["encode_attrs", "decode_attrs", "attrs_remove_dunderscore"]

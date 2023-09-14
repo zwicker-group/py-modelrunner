@@ -40,7 +40,12 @@ class ObjectState(StateBase):
         attrs.pop("__version__", None)
         arr = storage.read_array(loc, index=index)
         if arr.size == 1:
+            # revert the trick of storing the object in an object array with one item
             data = arr.item()
+        elif arr.shape[0] == 1:
+            # when reconstructing objects that are arrays, the trick above implies that
+            # the actual data is stored in the rest of the dimensions
+            data = arr[0]
         else:
             raise RuntimeError(f"Data has shape {arr.shape} instead of single item")
         obj._state_init(attrs, data)

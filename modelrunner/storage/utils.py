@@ -4,10 +4,15 @@
 
 from __future__ import annotations
 
+import codecs
 import inspect
+import pickle
 from collections import defaultdict
 from importlib import import_module
 from typing import Any, Callable, Dict, Optional, Sequence, Type, Union
+
+PICKLE_PROTOCOL = pickle.HIGHEST_PROTOCOL
+
 
 import numpy as np
 
@@ -15,18 +20,18 @@ Location = Union[None, str, Sequence[str]]
 Attrs = Dict[str, Any]
 
 
-class Array(np.ndarray):
-    """Numpy array augmented with attributes"""
+def encode_binary(obj: Any, *, binary: bool = False) -> Union[str, bytes]:
+    obj_bin = pickle.dumps(obj)
+    if binary:
+        return obj_bin
+    else:
+        return codecs.encode(obj_bin, "base64").decode()
 
-    def __new__(cls, input_array, attrs: Optional[Attrs] = None):
-        obj = np.asarray(input_array).view(cls)
-        obj.attrs = {} if attrs is None else attrs
-        return obj
 
-    def __array_finalize__(self, obj):
-        if obj is None:  # __new__ handles instantiation
-            return
-        self.attrs = getattr(obj, "attrs", {})
+def decode_binary(obj_str: Union[str, bytes]) -> Any:
+    if isinstance(obj_str, str):
+        obj_str = codecs.decode(obj_str.encode(), "base64")
+    return pickle.loads(obj_str)
 
 
 def encode_class(cls: Type) -> str:
@@ -35,7 +40,7 @@ def encode_class(cls: Type) -> str:
     return cls.__module__ + "." + cls.__qualname__
 
 
-def decode_class(class_path: Optional[str], *, guess: Optional[Type] = None):
+def decode_class(class_path: Optional[str], *, guess: Optional[Type] = None) -> Type:
     if class_path is None or class_path == "None":
         return None
 
@@ -64,6 +69,20 @@ def decode_class(class_path: Optional[str], *, guess: Optional[Type] = None):
             raise ImportError(f"Module {module_path} does not define {class_name}")
 
 
+class Array(np.ndarray):
+    """Numpy array augmented with attributes"""
+
+    def __new__(cls, input_array, attrs: Optional[Attrs] = None):
+        obj = np.asarray(input_array).view(cls)
+        obj.attrs = {} if attrs is None else attrs
+        return obj
+
+    def __array_finalize__(self, obj):
+        if obj is None:  # __new__ handles instantiation
+            return
+        self.attrs = getattr(obj, "attrs", {})
+
+
 class _StorageRegistry:
     allowed_actions = {
         "read_object",  # read object from storage
@@ -71,6 +90,8 @@ class _StorageRegistry:
     # TODO: also keep information on whether a method needs to be a classmethod or not
     # (but still allow pure functions). In fact, the registry should convert methods
     # and classmethods to callable functions to provide a unified interface
+
+    _classes: Dict[Type, Dict[str, Callable]]
 
     def __init__(self):
         self._classes = defaultdict(dict)
@@ -105,35 +126,6 @@ class _StorageRegistry:
         """
         if action not in self.allowed_actions:
             raise ValueError(f"Unknown action `{action}` ")
-
-        # if func is None:
-        #     # method is used as a decorator, so return the helper function
-        #     def register_decorator(method_or_func: Callable) -> Callable:
-        #         """helper function to register the action"""
-        #         if isinstance(method_or_func, classmethod):
-        #             # extract class from decorated object
-        #             cls = inspect._findclass(method_or_func)
-        #             self._classes[cls][action] = method_or_func
-        #         elif inspect.ismethod(method_or_func):
-        #             # extract class from decorated object
-        #             cls = inspect._findclass(method_or_func)
-        #             self._classes[cls][action] = method_or_func
-        #         elif inspect.isfunction(method_or_func):
-        #             #
-        #             if cls is None:
-        #                 raise ValueError("`cls` required when decorating a function")
-        #             self._classes[cls][action] = method_or_func
-        #         else:
-        #             raise TypeError(
-        #                 f"`func` needs to be given or `register` needs to be used as a "
-        #                 "decorator"
-        #             )
-        #         return method_or_func
-        #
-        #     return register_decorator
-        # elif cls is None:
-        #     raise ValueError("Need `cls` and `func`")
-        # else:
 
         if isinstance(method_or_func, classmethod):
             # extract class from decorated object
