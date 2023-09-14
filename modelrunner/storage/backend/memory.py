@@ -11,8 +11,7 @@ from typing import Any, List, Optional, Sequence, Tuple
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 
-from modelrunner.storage.access_modes import ModeType
-
+from ..access_modes import ModeType
 from ..base import StorageBase
 from ..utils import Attrs
 
@@ -23,6 +22,12 @@ class MemoryStorage(StorageBase):
     _data: Attrs
 
     def __init__(self, *, mode: ModeType = "insert"):
+        """
+        Args:
+            mode (str or :class:`~modelrunner.storage.access_modes.AccessMode`):
+                The file mode with which the storage is accessed. Determines allowed
+                operations.
+        """
         super().__init__(mode=mode)
         self._data = {}
 
@@ -94,7 +99,7 @@ class MemoryStorage(StorageBase):
         else:
             return self[loc]["data"][index]
 
-    def _write_array(self, loc: Sequence[str], arr: np.ndarray):
+    def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
         parent, name = self._get_parent(loc, check_write=True)
         parent[name] = {"data": np.array(arr, copy=True)}
 

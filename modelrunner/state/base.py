@@ -17,7 +17,7 @@ import numpy as np
 from modelrunner.storage.access_modes import ModeType
 
 from ..storage import open_storage, storage_actions
-from ..storage.attributes import remove_dunderscore_attrs
+from ..storage.attributes import attrs_remove_dunderscore
 from ..storage.utils import Location, decode_class
 
 if TYPE_CHECKING:
@@ -125,7 +125,7 @@ class StateBase(metaclass=ABCMeta):
         """
         if data is not NoData:
             self._state_data = data
-        attributes = remove_dunderscore_attrs(attributes)
+        attributes = attrs_remove_dunderscore(attributes)
         if attributes:
             self._state_attributes = attributes
 

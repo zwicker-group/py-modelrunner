@@ -53,13 +53,6 @@ def test_state_pickle(state):
 @pytest.mark.parametrize("ext", EXTENSIONS)
 def test_state_io(state, ext, tmp_path):
     """test simple state IO"""
-    if (
-        ext == "yaml"
-        and isinstance(state, ObjectState)
-        and isinstance(state._state_data, np.ndarray)
-    ):
-        pytest.skip("YAMLStorage doesn't support this, yet")
-
     path = tmp_path / ("file." + ext)
 
     state.to_file(path)

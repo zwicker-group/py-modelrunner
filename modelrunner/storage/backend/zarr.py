@@ -28,15 +28,21 @@ class ZarrStorage(StorageBase):
     extensions = ["zarr"]
 
     def __init__(
-        self,
-        store_or_path,
-        *,
-        mode: ModeType = "insert",
+        self, store_or_path: Union[str, Path, Store], *, mode: ModeType = "readonly"
     ):
+        """
+        Args:
+            store_or_path (str or :class:`~pathlib.Path` or :class:`~zarr._storage.store.Store`):
+                File path to the file/folder or a :mod:`zarr` Store
+            mode (str or :class:`~modelrunner.storage.access_modes.AccessMode`):
+                The file mode with which the storage is accessed. Determines allowed
+                operations.
+        """
         super().__init__(mode=mode)
 
         if isinstance(store_or_path, (str, Path)):
             # open zarr storage on file system
+            self._close = True
             path = Path(store_or_path)
             if path.suffix == "":
                 # path seems to be a directory
@@ -60,17 +66,21 @@ class ZarrStorage(StorageBase):
                 self._store = zarr.storage.ZipStore(path, mode=file_mode)
 
         elif isinstance(store_or_path, Store):
-            # open abstract zarr storage
+            # use already opened zarr storage
+            self._close = False
             self._store = store_or_path
 
         else:
             raise TypeError(f"Unknown store `{store_or_path}`")
 
-        print(mode, path.exists())
         self._root = zarr.group(store=self._store, overwrite=self.mode.overwrite)
 
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self._root.store}, mode="{self.mode.name}")'
+
     def close(self):
-        self._store.close()
+        if self._close:
+            self._store.close()
         self._root = None
 
     def _get_parent(self, loc: Sequence[str], *, check_write: bool = False):
@@ -107,7 +117,7 @@ class ZarrStorage(StorageBase):
         else:
             return False
 
-    def _create_group(self, loc: str):
+    def _create_group(self, loc: Sequence[str]):
         parent, name = self._get_parent(loc, check_write=True)
         return parent.create_group(name)
 
@@ -115,8 +125,7 @@ class ZarrStorage(StorageBase):
         return self[loc].attrs
 
     def _write_attr(self, loc: Sequence[str], name: str, value) -> None:
-        item = self[loc]
-        item.attrs[name] = value
+        self[loc].attrs[name] = value
 
     def _read_array(
         self, loc: Sequence[str], *, index: Optional[int] = None
@@ -126,7 +135,7 @@ class ZarrStorage(StorageBase):
         else:
             return self[loc][index]
 
-    def _write_array(self, loc: Sequence[str], arr: np.ndarray):
+    def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
         parent, name = self._get_parent(loc, check_write=True)
 
         if arr.dtype == object:

@@ -19,10 +19,20 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
         self,
         path: Union[str, Path],
         *,
-        mode: ModeType = "insert",
+        mode: ModeType = "readonly",
         simplify: bool = True,
         **kwargs,
     ):
+        """
+        Args:
+            path (str or :class:`~pathlib.Path`):
+                File path to the file
+            mode (str or :class:`~modelrunner.storage.access_modes.AccessMode`):
+                The file mode with which the storage is accessed. Determines allowed
+                operations.
+            simplify (bool):
+                Flag indicating whether the data is stored in a simplified form
+        """
         super().__init__(mode=mode)
 
         self.simplify = simplify

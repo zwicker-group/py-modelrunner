@@ -1,7 +1,10 @@
 import importlib
+from typing import List, Type
+
+from ..base import StorageBase
 from .memory import MemoryStorage
 
-AVAILABLE_STORAGE = [MemoryStorage]
+AVAILABLE_STORAGE: List[Type[StorageBase]] = [MemoryStorage]
 
 POTENTIAL_STORAGE = {
     "json": "JSONStorage",

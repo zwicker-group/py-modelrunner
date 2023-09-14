@@ -177,6 +177,7 @@ class Trajectory:
                 self._storage, "data", index=t_index
             )
 
+        assert self._state is not None
         return self._state
 
     def __getitem__(self, key: int) -> StateBase:
@@ -189,7 +190,7 @@ class Trajectory:
     def __iter__(self) -> Iterator[StateBase]:
         """iterate over all stored fields"""
         for i in range(len(self)):
-            yield self[i]  # type: ignore
+            yield self[i]
 
 
 storage_actions.register("read_object", Trajectory, Trajectory)
