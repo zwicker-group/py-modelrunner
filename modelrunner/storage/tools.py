@@ -2,18 +2,19 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-from contextlib import contextmanager
 from pathlib import Path
 from typing import Union
 
 from .backend import AVAILABLE_STORAGE, MemoryStorage
-from .base import StorageBase
-from .group import Group
+from .base import ModeType, StorageBase
+from .group import StorageGroup
 
-StorageID = Union[None, str, Path, Group, StorageBase]
+StorageID = Union[None, str, Path, StorageGroup, StorageBase]
 
 
-def _open_storage(storage: StorageID = None, **kwargs) -> StorageBase:
+def _open_storage(
+    storage: StorageID = None, *, mode: ModeType = "insert", **kwargs
+) -> StorageBase:
     """guess the format of a given store
 
     Args:
@@ -29,11 +30,11 @@ def _open_storage(storage: StorageID = None, **kwargs) -> StorageBase:
     if isinstance(storage, StorageBase):
         return storage
 
-    elif isinstance(storage, Group):
+    elif isinstance(storage, StorageGroup):
         return storage._storage
 
     elif storage is None:
-        return MemoryStorage(**kwargs)
+        return MemoryStorage(mode=mode, **kwargs)
 
     elif isinstance(storage, (str, Path)):
         # guess format from path extension
@@ -42,7 +43,7 @@ def _open_storage(storage: StorageID = None, **kwargs) -> StorageBase:
             # path seems to be a directory
             from .backend.zarr import ZarrStorage
 
-            return ZarrStorage(path, **kwargs)
+            return ZarrStorage(path, mode=mode, **kwargs)
 
         else:
             # path seems to be a file
@@ -50,19 +51,24 @@ def _open_storage(storage: StorageID = None, **kwargs) -> StorageBase:
             for storage_cls in AVAILABLE_STORAGE:
                 for ext in storage_cls.extensions:
                     if extension == "." + ext:
-                        return storage_cls(path, **kwargs)
+                        return storage_cls(path, mode=mode, **kwargs)
 
             raise TypeError(f"Unsupported store with extension `{extension}`")
 
     raise TypeError(f"Unsupported store type {storage.__class__.__name__}")
 
 
-def open_storage(storage: StorageID = None, **kwargs) -> Group:
-    return Group(_open_storage(storage, **kwargs))
+class open_storage(StorageGroup):
+    def __init__(
+        self, storage: StorageID = None, *, mode: ModeType = "insert", **kwargs
+    ):
+        super().__init__(_open_storage(storage, mode=mode, **kwargs))
 
+    def close(self):
+        self._storage.close()
 
-@contextmanager
-def opened_storage(storage: StorageID = None, **kwargs):
-    group = open_storage(storage, **kwargs)
-    yield group
-    group._storage.close()
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()

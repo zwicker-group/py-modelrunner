@@ -11,8 +11,9 @@ from typing import Any, List, Optional, Sequence, Tuple
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 
+from modelrunner.storage.access_modes import ModeType
+
 from ..base import StorageBase
-from ..access import AccessType
 from ..utils import Attrs
 
 
@@ -21,8 +22,8 @@ class MemoryStorage(StorageBase):
 
     _data: Attrs
 
-    def __init__(self, *, access: AccessType = "full"):
-        super().__init__(access=access)
+    def __init__(self, *, mode: ModeType = "insert"):
+        super().__init__(mode=mode)
         self._data = {}
 
     def clear(self) -> None:
@@ -34,9 +35,9 @@ class MemoryStorage(StorageBase):
         """
         self._data = {}
 
-    def _get_parent(self, key: Sequence[str], *, check_write: bool = False):
+    def _get_parent(self, loc: Sequence[str], *, check_write: bool = False):
         value = self._data
-        for part in key[:-1]:
+        for part in loc[:-1]:
             try:
                 value = value[part]
             except KeyError:
@@ -44,67 +45,67 @@ class MemoryStorage(StorageBase):
                     value[part] = {}
                     value = value[part]
                 else:
-                    raise TypeError(f"Cannot add item to `{'/'.join(key)}`")
+                    raise TypeError(f"Cannot add item to `{'/'.join(loc)}`")
         if not isinstance(value, dict):
-            raise TypeError(f"Cannot add item to `{'/'.join(key)}`")
+            raise TypeError(f"Cannot add item to `{'/'.join(loc)}`")
 
-        name = key[-1]
-        if check_write and not self.access.overwrite and name in value:
-            raise RuntimeError(f"Overwriting `{'/'.join(key)}` disabled")
+        name = loc[-1]
+        if check_write and not self.mode.overwrite and name in value:
+            raise RuntimeError(f"Overwriting `{'/'.join(loc)}` disabled")
         return value, name
 
-    def __getitem__(self, key: Sequence[str]) -> Any:
-        parent, name = self._get_parent(key)
+    def __getitem__(self, loc: Sequence[str]) -> Any:
+        parent, name = self._get_parent(loc)
         return parent[name]
 
-    def keys(self, key: Sequence[str]) -> List[str]:
-        if key:
-            return self[key].keys()
+    def keys(self, loc: Sequence[str]) -> List[str]:
+        if loc:
+            return self[loc].keys()
         else:
             return self._data.keys()
 
-    def is_group(self, key: Sequence[str]) -> bool:
-        item = self[key]
+    def is_group(self, loc: Sequence[str]) -> bool:
+        item = self[loc]
         if isinstance(item, dict):
             attrs = item.get("__attrs__", {})
             return "__class__" not in attrs
         else:
             return False
 
-    def _create_group(self, key: Sequence[str]):
-        parent, name = self._get_parent(key, check_write=True)
+    def _create_group(self, loc: Sequence[str]):
+        parent, name = self._get_parent(loc, check_write=True)
         parent[name] = {}
 
-    def _read_attrs(self, key: Sequence[str]) -> Attrs:
-        return self[key].get("__attrs__", {})
+    def _read_attrs(self, loc: Sequence[str]) -> Attrs:
+        return self[loc].get("__attrs__", {})
 
-    def _write_attr(self, key: Sequence[str], name: str, value):
-        item = self[key]
+    def _write_attr(self, loc: Sequence[str], name: str, value):
+        item = self[loc]
         if "__attrs__" not in item:
             item["__attrs__"] = {name: value}
         else:
             item["__attrs__"][name] = value
 
     def _read_array(
-        self, key: Sequence[str], *, index: Optional[int] = None
+        self, loc: Sequence[str], *, index: Optional[int] = None
     ) -> np.ndarray:
         if index is None:
-            return self[key]["data"]
+            return self[loc]["data"]
         else:
-            return self[key]["data"][index]
+            return self[loc]["data"][index]
 
-    def _write_array(self, key: Sequence[str], arr: np.ndarray):
-        parent, name = self._get_parent(key, check_write=True)
+    def _write_array(self, loc: Sequence[str], arr: np.ndarray):
+        parent, name = self._get_parent(loc, check_write=True)
         parent[name] = {"data": np.array(arr, copy=True)}
 
     def _create_dynamic_array(
-        self, key: Sequence[str], shape: Tuple[int, ...], dtype: DTypeLike
+        self, loc: Sequence[str], shape: Tuple[int, ...], dtype: DTypeLike
     ):
-        parent, name = self._get_parent(key, check_write=True)
+        parent, name = self._get_parent(loc, check_write=True)
         parent[name] = {"data": [], "shape": shape, "dtype": np.dtype(dtype)}
 
-    def _extend_dynamic_array(self, key: Sequence[str], arr: ArrayLike):
-        item = self[key]
+    def _extend_dynamic_array(self, loc: Sequence[str], arr: ArrayLike):
+        item = self[loc]
         data = np.asanyarray(arr)
         if item["shape"] != data.shape:
             raise TypeError("Shape mismatch")
@@ -115,6 +116,3 @@ class MemoryStorage(StorageBase):
             item["data"].append(data.item())
         else:
             item["data"].append(np.array(data, copy=True))
-
-    def _get_dynamic_array(self, key: Sequence[str]) -> ArrayLike:
-        return self[key]["data"]

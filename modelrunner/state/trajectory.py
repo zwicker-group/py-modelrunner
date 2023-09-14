@@ -16,10 +16,11 @@ from typing import Any, Dict, Iterator, Optional
 
 import numpy as np
 
-from ..storage.group import Group
+from modelrunner.storage.access_modes import ModeType
+
+from ..storage.group import StorageGroup
 from ..storage.tools import open_storage
-from ..storage.utils import KeyType, encode_class, storage_actions
-from ..storage.access import AccessType
+from ..storage.utils import Location, encode_class, storage_actions
 from .base import StateBase, _get_state_cls_from_storage
 
 
@@ -51,10 +52,10 @@ class TrajectoryWriter:
     def __init__(
         self,
         storage,
-        key: KeyType = "trajectory",
+        key: Location = "trajectory",
         *,
         attrs: Optional[Dict[str, Any]] = None,
-        access: AccessType = "insert",
+        mode: ModeType = "insert",
     ):
         """
         Args:
@@ -67,7 +68,7 @@ class TrajectoryWriter:
                 If True, delete all pre-existing data in store.
         """
         # create the root group where we store all the data
-        storage = open_storage(storage, access=access)
+        storage = open_storage(storage, mode=mode)
         self._group = storage.create_group(key)
         self._group.write_attrs(None, {"__class__": encode_class(Trajectory)})
 
@@ -111,7 +112,7 @@ class Trajectory:
         times (:class:`~numpy.ndarray`): Time points at which data is available
     """
 
-    def __init__(self, storage, key: KeyType = "trajectory", *, ret_copy: bool = True):
+    def __init__(self, storage, key: Location = "trajectory", *, ret_copy: bool = True):
         """
         Args:
             storage (MutableMapping or string):
@@ -125,8 +126,8 @@ class Trajectory:
         self.ret_copy = ret_copy
 
         # open the storage
-        storage = open_storage(storage, access="readonly")
-        self._storage = Group(storage, key)
+        storage = open_storage(storage, mode="readonly")
+        self._storage = StorageGroup(storage, key)
 
         # read some intial data from storage
         self.times = self._storage.read_array("time")

@@ -9,7 +9,7 @@ from __future__ import annotations
 import itertools
 from typing import Any, Dict, Optional, Sequence, Union
 
-from ..storage import Group, storage_actions
+from ..storage import StorageGroup, storage_actions
 from .base import StateBase
 
 
@@ -108,11 +108,13 @@ class DictState(StateBase):
             raise TypeError()
 
     @classmethod
-    def _state_from_stored_data(cls, storage, key: str, index: Optional[int] = None):
-        attrs = storage.read_attrs(key)
+    def _state_from_stored_data(
+        cls, storage, loc: Sequence[str], index: Optional[int] = None
+    ):
+        attrs = storage.read_attrs(loc)
         attrs.pop("__class__")
 
-        group = Group(storage, key)
+        group = StorageGroup(storage, loc)
         data = {
             label: StateBase._state_from_stored_data(group, label, index=index)
             for label in attrs["__keys__"]
@@ -121,31 +123,31 @@ class DictState(StateBase):
         return cls.from_data(attrs, data)
 
     def _state_update_from_stored_data(
-        self, storage, key: str, index: Optional[int] = None
+        self, storage, loc: Sequence[str], index: Optional[int] = None
     ):
-        group = Group(storage, key)
-        for key, substate in self._state_data.items():
-            substate._state_update_from_stored_data(group, key, index=index)
+        group = StorageGroup(storage, loc)
+        for loc, substate in self._state_data.items():
+            substate._state_update_from_stored_data(group, loc, index=index)
 
-    def _state_write_to_storage(self, storage, key: Sequence[str]):
+    def _state_write_to_storage(self, storage, loc: Sequence[str]):
         group = storage.create_group(
-            key, cls=self.__class__, attrs=self._state_attributes_store
+            loc, cls=self.__class__, attrs=self._state_attributes_store
         )
 
         for label, substate in self._state_data_store.items():
             substate._state_write_to_storage(group, label)
 
-    def _state_create_trajectory(self, storage, key: str):
+    def _state_create_trajectory(self, storage, loc: Sequence[str]):
         """prepare the zarr storage for this state"""
         group = storage.create_group(
-            key, cls=self.__class__, attrs=self._state_attributes_store
+            loc, cls=self.__class__, attrs=self._state_attributes_store
         )
 
         for label, substate in self._state_data_store.items():
             substate._state_create_trajectory(group, label)
 
-    def _state_append_to_trajectory(self, storage, key: str):
-        group = Group(storage, key)
+    def _state_append_to_trajectory(self, storage, loc: Sequence[str]):
+        group = StorageGroup(storage, loc)
         for label, substate in self._state_data_store.items():
             substate._state_append_to_trajectory(group, label)
 

@@ -14,10 +14,11 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Type, TypeVar
 
 import numpy as np
 
-from ..storage import opened_storage, storage_actions
+from modelrunner.storage.access_modes import ModeType
+
+from ..storage import open_storage, storage_actions
 from ..storage.attributes import remove_dunderscore_attrs
-from ..storage.utils import decode_class
-from ..storage.access import AccessType
+from ..storage.utils import Location, decode_class
 
 if TYPE_CHECKING:
     from ..storage import StorageID
@@ -329,55 +330,57 @@ class StateBase(metaclass=ABCMeta):
         return obj
 
     @classmethod
-    def _state_from_stored_data(cls, storage, key, *, index: Optional[int] = None):
+    def _state_from_stored_data(
+        cls, storage, loc: Sequence[str], *, index: Optional[int] = None
+    ):
         # determine the class to reconstruct the data from attribute
-        state_cls = _get_state_cls_from_storage(storage, key)
+        state_cls = _get_state_cls_from_storage(storage, loc)
         if state_cls == StateBase:
             raise NotImplementedError(f"Cannot read `{cls.__name__}`")
         else:
-            return state_cls._state_from_stored_data(storage, key, index=index)
+            return state_cls._state_from_stored_data(storage, loc, index=index)
 
     def _state_update_from_stored_data(
-        self, storage, key: str, index: Optional[int] = None
+        self, storage, loc: Sequence[str], index: Optional[int] = None
     ):
         raise NotImplementedError(f"Cannot update `{self.__class__.__name__}`")
 
-    def _state_write_to_storage(self, storage, key: Sequence[str]):
+    def _state_write_to_storage(self, storage, loc: Sequence[str]):
         raise NotImplementedError(f"Cannot write `{self.__class__.__name__}`")
 
-    def _state_create_trajectory(self, storage, key: str):
+    def _state_create_trajectory(self, storage, loc: Sequence[str]):
         """prepare the zarr storage for this state"""
         raise NotImplementedError(
             f"Cannot create trajectory for `{self.__class__.__name__}`"
         )
 
-    def _state_append_to_trajectory(self, storage, key: str):
+    def _state_append_to_trajectory(self, storage, loc: Sequence[str]):
         raise NotImplementedError(
             f"Cannot extend trajectory for `{self.__class__.__name__}`"
         )
 
     @classmethod
-    def from_file(cls, storage: StorageID, key: str = "state", **kwargs):
+    def from_file(cls, storage: StorageID, loc: Location = "state", **kwargs):
         """load object from a file
 
         Args:
             store (str or :class:`zarr.Store`):
                 Path or instance describing the storage, which is either a file path or
                 a :class:`zarr.Storage`.
-            key (str):
+            loc (str):
                 Name of the node in which the data was stored. This applies to some
                 hierarchical storage formats.
         """
-        kwargs.setdefault("access", "readonly")
-        with opened_storage(storage, **kwargs) as storage:
-            return cls._state_from_stored_data(storage, key)
+        kwargs.setdefault("mode", "readonly")
+        with open_storage(storage, **kwargs) as storage:
+            return cls._state_from_stored_data(storage, loc)
 
     def to_file(
         self,
         storage: StorageID,
-        key: str = "state",
+        loc: Location = "state",
         *,
-        access: AccessType = "full",
+        mode: ModeType = "insert",
         **kwargs,
     ) -> None:
         """write this object to a file
@@ -391,8 +394,8 @@ class StateBase(metaclass=ABCMeta):
                 Additional arguments are passed on to the method that implements the
                 writing of the specific format (_write_**).
         """
-        with opened_storage(storage, access=access, **kwargs) as storage:
-            self._state_write_to_storage(storage, key=key)
+        with open_storage(storage, mode=mode, **kwargs) as storage:
+            self._state_write_to_storage(storage, loc=loc)
 
     # def _state_write_zarr_attributes(
     #     self, element: zarrElement, attrs: Optional[Dict[str, Any]] = None

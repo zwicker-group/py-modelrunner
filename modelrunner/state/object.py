@@ -31,12 +31,14 @@ class ObjectState(StateBase):
         self._state_data = data
 
     @classmethod
-    def _state_from_stored_data(cls, storage, key: str, index: Optional[int] = None):
+    def _state_from_stored_data(
+        cls, storage, loc: Sequence[str], index: Optional[int] = None
+    ):
         obj = cls.__new__(cls)
-        attrs = storage.read_attrs(key)
+        attrs = storage.read_attrs(loc)
         attrs.pop("__class__")
         attrs.pop("__version__", None)
-        arr = storage.read_array(key, index=index)
+        arr = storage.read_array(loc, index=index)
         if arr.size == 1:
             data = arr.item()
         else:
@@ -45,28 +47,28 @@ class ObjectState(StateBase):
         return obj
 
     def _state_update_from_stored_data(
-        self, storage, key: str, index: Optional[int] = None
+        self, storage, loc: Sequence[str], index: Optional[int] = None
     ):
-        self._state_data = storage.read_array(key, index=index).item()
+        self._state_data = storage.read_array(loc, index=index).item()
 
-    def _state_write_to_storage(self, storage, key: Sequence[str]):
+    def _state_write_to_storage(self, storage, loc: Sequence[str]):
         # store the data in a single object array
         arr = np.empty(1, dtype=object)
         arr[0] = self._state_data_store
         attrs = self._state_attributes_store
-        return storage.write_array(key, arr, attrs=attrs, cls=self.__class__)
+        return storage.write_array(loc, arr, attrs=attrs, cls=self.__class__)
 
-    def _state_create_trajectory(self, storage, key: str):
+    def _state_create_trajectory(self, storage, loc: Sequence[str]):
         """prepare the zarr storage for this state"""
         attrs = self._state_attributes_store
         storage.create_dynamic_array(
-            key, shape=(1,), dtype=object, attrs=attrs, cls=self.__class__
+            loc, shape=(1,), dtype=object, attrs=attrs, cls=self.__class__
         )
 
-    def _state_append_to_trajectory(self, storage, key: str):
+    def _state_append_to_trajectory(self, storage, loc: Sequence[str]):
         arr = np.empty(1, dtype=object)
         arr[0] = self._state_data_store
-        storage.extend_dynamic_array(key, arr)
+        storage.extend_dynamic_array(loc, arr)
 
 
 storage_actions.register(

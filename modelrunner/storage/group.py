@@ -10,128 +10,123 @@ import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 
 from .base import StorageBase
-from .utils import Array, Attrs, KeyType, decode_class, storage_actions
+from .utils import Array, Attrs, Location, decode_class, storage_actions
 
 # TODO: Provide .attrs attribute with a descriptor protocol (implemented by the backend)
 
 
-class Group:
+class StorageGroup:
     def __init__(
-        self, storage: StorageBase, path: Union[None, str, Sequence[str]] = None
+        self, storage: StorageBase, loc: Union[None, str, Sequence[str]] = None
     ):
-        if path is None:
-            self.path = []
-        elif isinstance(path, str):
-            self.path = path.split("/")
-        else:
-            self.path = path
+        self.loc = []
+        self.loc = self._get_loc(loc)
 
         if isinstance(storage, StorageBase):
             self._storage = storage
-        elif isinstance(storage, Group):
-            self.path = storage.path + self.path
+        elif isinstance(storage, StorageGroup):
+            self.loc = storage.loc + self.loc
             self._storage = storage._storage
         else:
             raise TypeError
 
-    def _get_key(self, key: KeyType):
-        # TODO: use regex to check whether key is only alphanumerical and has no "/"
-        def parse_key(key_data) -> List[str]:
-            if key_data is None:
+    def _get_loc(self, loc: Location):
+        # TODO: use regex to check whether loc is only alphanumerical and has no "/"
+        def parse_loc(loc_data) -> List[str]:
+            if loc_data is None:
                 return []
-            elif isinstance(key_data, str):
-                return key_data.split("/")
+            elif isinstance(loc_data, str):
+                return loc_data.split("/")
             else:
-                return sum((parse_key(k) for k in key_data), start=list())
+                return sum((parse_loc(k) for k in loc_data), start=list())
 
-        return self.path + parse_key(key)
+        return self.loc + parse_loc(loc)
 
-    def __getitem__(self, key: KeyType) -> Any:
+    def __getitem__(self, loc: Location) -> Any:
         """read state or trajectory from storage"""
-        key = self._get_key(key)
-        if self._storage.is_group(key):
+        loc = self._get_loc(loc)
+        if self._storage.is_group(loc):
             # just return a subgroup at this location
-            return Group(self._storage, key)
+            return StorageGroup(self._storage, loc)
         else:
             # reconstruct objected stored at this place
-            return self._read_object(key)
+            return self._read_object(loc)
 
     def keys(self) -> Sequence[str]:
         """return name of all stored items"""
-        return self._storage.keys(self.path)
+        return self._storage.keys(self.loc)
 
     def __iter__(self) -> Iterator[Any]:
         """iterate over all stored items and trajectories"""
-        for key in self.keys():
-            yield self[key]
+        for loc in self.keys():
+            yield self[loc]
 
-    def __contains__(self, key: KeyType):
-        return self._get_key(key) in self._storage
+    def __contains__(self, loc: Location):
+        return self._get_loc(loc) in self._storage
 
     def items(self) -> Iterator[Tuple[str, Any]]:
         """iterate over stored items and trajectories"""
-        for key in self.keys():
-            yield key, self[key]
+        for loc in self.keys():
+            yield loc, self[loc]
 
-    def read_attrs(self, key: Optional[KeyType] = None) -> Attrs:
-        return self._storage.read_attrs(self._get_key(key))
+    def read_attrs(self, loc: Location = None) -> Attrs:
+        return self._storage.read_attrs(self._get_loc(loc))
 
-    def write_attrs(self, key: Optional[KeyType] = None, attrs: Attrs = None) -> None:
-        self._storage.write_attrs(self._get_key(key), attrs=attrs)
+    def write_attrs(self, loc: Location = None, attrs: Attrs = None) -> None:
+        self._storage.write_attrs(self._get_loc(loc), attrs=attrs)
 
     @property
     def attrs(self) -> Attrs:
         return self.read_attrs()
 
-    def _read_object(self, key: Sequence[str]):
-        attrs = self._storage.read_attrs(key)
+    def _read_object(self, loc: Sequence[str]):
+        attrs = self._storage.read_attrs(loc)
         cls = decode_class(attrs.pop("__class__"))
         if cls is None:
             # return numpy array
-            arr = self._storage._read_array(key)
+            arr = self._storage._read_array(loc)
             return Array(arr, attrs=attrs)
         else:
             # create object using a registered action
             create_object = storage_actions.get(cls, "read_object")
-            return create_object(self._storage, key)
+            return create_object(self._storage, loc)
 
     def create_group(
         self,
-        key: str,
+        loc: str,
         *,
         attrs: Optional[Attrs] = None,
         cls: Optional[Type] = None,
-    ) -> Group:
-        """key: relative path in current group"""
-        key = self._get_key(key)
-        return self._storage.create_group(key, attrs=attrs, cls=cls)
+    ) -> StorageGroup:
+        loc = self._get_loc(loc)
+        return self._storage.create_group(loc, attrs=attrs, cls=cls)
 
     def read_array(
         self,
-        key: KeyType,
+        loc: Location,
         *,
         out: Optional[np.ndarray] = None,
         index: Optional[int] = None,
         copy: bool = True,
     ) -> np.ndarray:
         return self._storage.read_array(
-            self._get_key(key), out=out, index=index, copy=copy
+            self._get_loc(loc), out=out, index=index, copy=copy
         )
 
     def write_array(
         self,
-        key: KeyType,
+        loc: Location,
         arr: np.ndarray,
         *,
         attrs: Optional[Attrs] = None,
         cls: Optional[Type] = None,
     ):
-        key = self._get_key(key)
-        self._storage.write_array(key, arr, attrs=attrs, cls=cls)
+        loc = self._get_loc(loc)
+        self._storage.write_array(loc, arr, attrs=attrs, cls=cls)
 
     def create_dynamic_array(
         self,
-        key: KeyType,
+        loc: Location,
         shape: Tuple[int, ...],
         *,
         dtype: DTypeLike = float,
@@ -139,11 +134,11 @@ class Group:
         cls: Optional[Type] = None,
     ):
         self._storage.create_dynamic_array(
-            self._get_key(key), shape, dtype=dtype, attrs=attrs, cls=cls
+            self._get_loc(loc), shape, dtype=dtype, attrs=attrs, cls=cls
         )
 
-    def extend_dynamic_array(self, key: KeyType, data: ArrayLike):
-        self._storage.extend_dynamic_array(self._get_key(key), data)
+    def extend_dynamic_array(self, loc: Location, data: ArrayLike):
+        self._storage.extend_dynamic_array(self._get_loc(loc), data)
 
-    def get_dynamic_array(self, key: KeyType) -> ArrayLike:
-        return self._storage.get_dynamic_array(self._get_key(key))
+    def get_dynamic_array(self, loc: Location) -> ArrayLike:
+        return self._storage.get_dynamic_array(self._get_loc(loc))

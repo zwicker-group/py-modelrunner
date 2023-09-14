@@ -7,17 +7,12 @@ from __future__ import annotations
 import inspect
 from collections import defaultdict
 from importlib import import_module
-from typing import Any, Callable, Dict, Literal, Optional, Sequence, Type, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Type, Union
 
 import numpy as np
 
-KeyType = Union[None, str, Sequence[str]]
+Location = Union[None, str, Sequence[str]]
 Attrs = Dict[str, Any]
-OpenMode = Literal[
-    "r",  # open as readable
-    "x",  # open as extensible (read and write)
-    "w",  # open as writeable and truncate
-]
 
 
 class Array(np.ndarray):

@@ -12,9 +12,11 @@ from .text_base import TextStorageBase
 class YAMLStorage(TextStorageBase):
     extensions = ["yaml", "yml"]
 
-    def _read_data_from_file(self) -> None:
-        with open(self._path, mode="r") as fp:
+    def _read_data_from_fp(self, fp) -> None:
+        try:
             self._data = yaml.safe_load(fp)
+        except yaml.constructor.ConstructorError:
+            raise RuntimeError("Some data cannot be reconstructed from YAML")
 
     def _write_data_to_fp(self, fp, data) -> None:
         self._write_flags.setdefault("sort_keys", False)
