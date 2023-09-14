@@ -51,7 +51,7 @@ class StorageBase(metaclass=ABCMeta):
         self.mode = AccessMode.parse(mode)
         self._logger = logging.getLogger(self.__class__.__name__)
 
-    def close(self):
+    def close(self) -> None:
         """closes the storage, potentially writing data to a persistent place"""
         ...
 
@@ -118,7 +118,7 @@ class StorageBase(metaclass=ABCMeta):
         ...
 
     @abstractmethod
-    def _create_group(self, loc: Sequence[str]):
+    def _create_group(self, loc: Sequence[str]) -> None:
         ...
 
     def create_group(

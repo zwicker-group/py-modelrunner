@@ -23,7 +23,7 @@ zarrElement = Union[zarr.Group, zarr.Array]
 
 
 class ZarrStorage(StorageBase):
-    """store data in an zarr file"""
+    """storage that stores data in an zarr file"""
 
     extensions = ["zarr"]
 
@@ -78,12 +78,14 @@ class ZarrStorage(StorageBase):
     def __repr__(self):
         return f'{self.__class__.__name__}({self._root.store}, mode="{self.mode.name}")'
 
-    def close(self):
+    def close(self) -> None:
         if self._close:
             self._store.close()
         self._root = None
 
-    def _get_parent(self, loc: Sequence[str], *, check_write: bool = False):
+    def _get_parent(
+        self, loc: Sequence[str], *, check_write: bool = False
+    ) -> Tuple[zarr.Group, str]:
         path, name = loc[:-1], loc[-1]
         parent = self._root
         for part in path:
@@ -117,9 +119,9 @@ class ZarrStorage(StorageBase):
         else:
             return False
 
-    def _create_group(self, loc: Sequence[str]):
+    def _create_group(self, loc: Sequence[str]) -> None:
         parent, name = self._get_parent(loc, check_write=True)
-        return parent.create_group(name)
+        parent.create_group(name)
 
     def _read_attrs(self, loc: Sequence[str]) -> Attrs:
         return self[loc].attrs
@@ -139,16 +141,16 @@ class ZarrStorage(StorageBase):
         parent, name = self._get_parent(loc, check_write=True)
 
         if arr.dtype == object:
-            return parent.array(name, arr, object_codec=self.codec)
+            parent.array(name, arr, object_codec=self.codec)
         else:
-            return parent.array(name, arr)
+            parent.array(name, arr)
 
     def _create_dynamic_array(
         self, loc: Sequence[str], shape: Tuple[int, ...], dtype: DTypeLike
-    ):
+    ) -> None:
         parent, name = self._get_parent(loc, check_write=True)
         if dtype == object:
-            return parent.zeros(
+            parent.zeros(
                 name,
                 shape=(0,) + shape,
                 chunks=(1,) + shape,
@@ -157,9 +159,7 @@ class ZarrStorage(StorageBase):
             )
 
         else:
-            return parent.zeros(
-                name, shape=(0,) + shape, chunks=(1,) + shape, dtype=dtype
-            )
+            parent.zeros(name, shape=(0,) + shape, chunks=(1,) + shape, dtype=dtype)
 
-    def _extend_dynamic_array(self, loc: Sequence[str], data: ArrayLike):
+    def _extend_dynamic_array(self, loc: Sequence[str], data: ArrayLike) -> None:
         self[loc].append([data])

@@ -11,6 +11,11 @@ from .text_base import TextStorageBase
 
 
 class JSONStorage(TextStorageBase):
+    """storage that stores data in a JSON text file
+
+    Note that the data is only written once the storage is closed.
+    """
+
     extensions = ["json"]
 
     def _read_data_from_fp(self, fp) -> None:

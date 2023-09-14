@@ -6,7 +6,7 @@ Defines a class storing data in memory.
 
 from __future__ import annotations
 
-from typing import Any, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
@@ -40,7 +40,9 @@ class MemoryStorage(StorageBase):
         """
         self._data = {}
 
-    def _get_parent(self, loc: Sequence[str], *, check_write: bool = False):
+    def _get_parent(
+        self, loc: Sequence[str], *, check_write: bool = False
+    ) -> Tuple[Dict, str]:
         value = self._data
         for part in loc[:-1]:
             try:
@@ -77,14 +79,14 @@ class MemoryStorage(StorageBase):
         else:
             return False
 
-    def _create_group(self, loc: Sequence[str]):
+    def _create_group(self, loc: Sequence[str]) -> None:
         parent, name = self._get_parent(loc, check_write=True)
         parent[name] = {}
 
     def _read_attrs(self, loc: Sequence[str]) -> Attrs:
         return self[loc].get("__attrs__", {})
 
-    def _write_attr(self, loc: Sequence[str], name: str, value):
+    def _write_attr(self, loc: Sequence[str], name: str, value) -> None:
         item = self[loc]
         if "__attrs__" not in item:
             item["__attrs__"] = {name: value}
@@ -105,11 +107,11 @@ class MemoryStorage(StorageBase):
 
     def _create_dynamic_array(
         self, loc: Sequence[str], shape: Tuple[int, ...], dtype: DTypeLike
-    ):
+    ) -> None:
         parent, name = self._get_parent(loc, check_write=True)
         parent[name] = {"data": [], "shape": shape, "dtype": np.dtype(dtype)}
 
-    def _extend_dynamic_array(self, loc: Sequence[str], arr: ArrayLike):
+    def _extend_dynamic_array(self, loc: Sequence[str], arr: ArrayLike) -> None:
         item = self[loc]
         data = np.asanyarray(arr)
         if item["shape"] != data.shape:
