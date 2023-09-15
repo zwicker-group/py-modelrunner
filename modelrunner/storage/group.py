@@ -4,13 +4,24 @@
 
 from __future__ import annotations
 
-from typing import Any, Iterator, List, Optional, Sequence, Tuple, Type, Union
+from typing import (
+    Any,
+    Collection,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 
+from .attributes import Attrs
 from .base import StorageBase
-from .utils import Array, Attrs, Location, decode_class, storage_actions
+from .utils import Array, Location, decode_class, storage_actions
 
 # TODO: Provide .attrs attribute with a descriptor protocol (implemented by the backend)
 # TODO: Provide a simple viewer of the tree structure (e.g. a `tree` method)
@@ -18,7 +29,9 @@ from .utils import Array, Attrs, Location, decode_class, storage_actions
 
 class StorageGroup:
     def __init__(
-        self, storage: StorageBase, loc: Union[None, str, Sequence[str]] = None
+        self,
+        storage: Union[StorageBase, StorageGroup],
+        loc: Union[None, str, Sequence[str]] = None,
     ):
         self.loc = []
         self.loc = self._get_loc(loc)
@@ -56,7 +69,7 @@ class StorageGroup:
             # reconstruct objected stored at this place
             return self._read_object(loc)
 
-    def keys(self) -> Sequence[str]:
+    def keys(self) -> Collection[str]:
         """return name of all stored items"""
         return self._storage.keys(self.loc)
 
@@ -76,7 +89,7 @@ class StorageGroup:
     def read_attrs(self, loc: Location = None) -> Attrs:
         return self._storage.read_attrs(self._get_loc(loc))
 
-    def write_attrs(self, loc: Location = None, attrs: Attrs = None) -> None:
+    def write_attrs(self, loc: Location = None, attrs: Optional[Attrs] = None) -> None:
         self._storage.write_attrs(self._get_loc(loc), attrs=attrs)
 
     @property
@@ -85,7 +98,7 @@ class StorageGroup:
 
     def _read_object(self, loc: Sequence[str]):
         attrs = self._storage.read_attrs(loc)
-        cls = decode_class(attrs.pop("__class__"))
+        cls = decode_class(attrs.pop("__class__", None))
         if cls is None:
             # return numpy array
             arr = self._storage._read_array(loc)
@@ -95,6 +108,18 @@ class StorageGroup:
             create_object = storage_actions.get(cls, "read_object")
             return create_object(self._storage, loc)
 
+    def is_group(self, loc: Location) -> bool:
+        """determine whether the location is a group
+
+        Args:
+            loc (sequence of str):
+                A list of strings determining the location in the storage
+
+        Returns:
+            bool: `True` if the loation is a group
+        """
+        return self._storage.is_group(self._get_loc(loc))
+
     def create_group(
         self,
         loc: str,
@@ -102,8 +127,8 @@ class StorageGroup:
         attrs: Optional[Attrs] = None,
         cls: Optional[Type] = None,
     ) -> StorageGroup:
-        loc = self._get_loc(loc)
-        return self._storage.create_group(loc, attrs=attrs, cls=cls)
+        loc_list = self._get_loc(loc)
+        return self._storage.create_group(loc_list, attrs=attrs, cls=cls)
 
     def read_array(
         self,
@@ -125,8 +150,8 @@ class StorageGroup:
         attrs: Optional[Attrs] = None,
         cls: Optional[Type] = None,
     ):
-        loc = self._get_loc(loc)
-        self._storage.write_array(loc, arr, attrs=attrs, cls=cls)
+        loc_list = self._get_loc(loc)
+        self._storage.write_array(loc_list, arr, attrs=attrs, cls=cls)
 
     def create_dynamic_array(
         self,

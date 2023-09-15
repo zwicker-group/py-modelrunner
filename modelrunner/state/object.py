@@ -6,11 +6,11 @@ Classes that describe the state of a simulation as a single python object
 
 from __future__ import annotations
 
-from typing import Any, Optional, Sequence
+from typing import Any, Optional
 
 import numpy as np
 
-from ..storage import storage_actions
+from ..storage import Location, StorageGroup, storage_actions
 from .base import StateBase
 
 
@@ -32,7 +32,7 @@ class ObjectState(StateBase):
 
     @classmethod
     def _state_from_stored_data(
-        cls, storage, loc: Sequence[str], index: Optional[int] = None
+        cls, storage: StorageGroup, loc: Location, index: Optional[int] = None
     ):
         obj = cls.__new__(cls)
         attrs = storage.read_attrs(loc)
@@ -52,25 +52,25 @@ class ObjectState(StateBase):
         return obj
 
     def _state_update_from_stored_data(
-        self, storage, loc: Sequence[str], index: Optional[int] = None
+        self, storage: StorageGroup, loc: Location, index: Optional[int] = None
     ):
         self._state_data = storage.read_array(loc, index=index).item()
 
-    def _state_write_to_storage(self, storage, loc: Sequence[str]):
+    def _state_write_to_storage(self, storage: StorageGroup, loc: Location):
         # store the data in a single object array
         arr = np.empty(1, dtype=object)
         arr[0] = self._state_data_store
         attrs = self._state_attributes_store
         return storage.write_array(loc, arr, attrs=attrs, cls=self.__class__)
 
-    def _state_create_trajectory(self, storage, loc: Sequence[str]):
+    def _state_create_trajectory(self, storage: StorageGroup, loc: Location):
         """prepare the zarr storage for this state"""
         attrs = self._state_attributes_store
         storage.create_dynamic_array(
             loc, shape=(1,), dtype=object, attrs=attrs, cls=self.__class__
         )
 
-    def _state_append_to_trajectory(self, storage, loc: Sequence[str]):
+    def _state_append_to_trajectory(self, storage: StorageGroup, loc: Location):
         arr = np.empty(1, dtype=object)
         arr[0] = self._state_data_store
         storage.extend_dynamic_array(loc, arr)

@@ -12,7 +12,7 @@ from modelrunner.state import (
     StateBase,
 )
 
-EXTENSIONS = ["", "hdf", "json", "yaml", "zarr"]
+EXTENSIONS = ["", "hdf", "json", "sqldb", "yaml", "zarr"]
 
 
 def get_states(add_derived: bool = True):

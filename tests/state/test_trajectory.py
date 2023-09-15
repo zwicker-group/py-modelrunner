@@ -20,7 +20,7 @@ def remove_file_or_folder(path):
 
 
 @pytest.mark.parametrize("state", get_states())
-@pytest.mark.parametrize("ext", ["", ".zarr", ".hdf"])
+@pytest.mark.parametrize("ext", [".zarr", ".hdf"])  # ".sqldb",
 def test_trajectory_basic(state, ext, tmp_path):
     """test simple trajecotry writing"""
     path = tmp_path / ("file" + ext)
@@ -46,23 +46,18 @@ def test_trajectory_basic(state, ext, tmp_path):
 
     for s in traj:
         assert s == state
-
-    if ext == ".zarr":
-        # zarr does not support deletion of data, so we choose a new path
-        path2 = tmp_path / ("file2" + ext)
-    else:
-        path2 = path
+    traj.close()  # close file from reading, so it can be written again
 
     # write second batch of data
-    writer = TrajectoryWriter(path2, attrs={"test": "no"}, mode="full")
-    writer.append(state, 2)
+    writer = TrajectoryWriter(path, mode="append", attrs={"test": "no"})
+    writer.append(state, 5)
     writer.append(state)
     writer.close()
 
     # check second batch of data
-    traj = Trajectory(path2, ret_copy=True)
-    assert len(traj) == 2
-    np.testing.assert_allclose(traj.times, [2, 3])
+    traj = Trajectory(path, ret_copy=True)
+    assert len(traj) == 4
+    np.testing.assert_allclose(traj.times, [1, 2, 5, 6])
     assert traj[1] == state
     assert traj[-1] == state
     assert traj[1] is not traj[-1]
@@ -70,7 +65,27 @@ def test_trajectory_basic(state, ext, tmp_path):
 
     for s in traj:
         assert s == state
+    traj.close()  # close file from reading, so it can be written again
 
+    if ext == ".zarr":
+        # zarr does not support deletion of data, so we choose a new path
+        path2 = tmp_path / ("file2" + ext)
+    else:
+        path2 = path
+
+    # overwrite trajectory with third batch of data
+    # write second batch of data
+    with TrajectoryWriter(path2, mode="truncate") as writer:
+        writer.append(state, 2)
+        writer.append(state)
+
+    # check third batch of data
+    traj = Trajectory(path2, ret_copy=True)
+    assert len(traj) == 2
+    np.testing.assert_allclose(traj.times, [2, 3])
+    assert traj[1] == traj[-1] == state
+
+    # clean up
     remove_file_or_folder(path)
     if ext == ".zarr":
         remove_file_or_folder(path2)

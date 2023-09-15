@@ -12,6 +12,7 @@ Classes that describe the state of a simulation over time
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Dict, Iterator, Optional
 
 import numpy as np
@@ -20,7 +21,7 @@ from modelrunner.storage.access_modes import ModeType
 
 from ..storage.group import StorageGroup
 from ..storage.tools import open_storage
-from ..storage.utils import Location, encode_class, storage_actions
+from ..storage.utils import Location, storage_actions
 from .base import StateBase, _get_state_cls_from_storage
 
 
@@ -34,7 +35,7 @@ class TrajectoryWriter:
         .. code-block:: python
 
             # write data using context manager
-            with TrajectoryWriter("test.zarr", key="trajectory") as writer:
+            with TrajectoryWriter("test.zarr", loc="trajectory") as writer:
                 for t, data in simulation:
                     writer.append(data, t)
 
@@ -52,10 +53,10 @@ class TrajectoryWriter:
     def __init__(
         self,
         storage,
-        key: Location = "trajectory",
+        loc: Location = "trajectory",
         *,
         attrs: Optional[Dict[str, Any]] = None,
-        mode: ModeType = "insert",
+        mode: Optional[ModeType] = None,
     ):
         """
         Args:
@@ -68,32 +69,47 @@ class TrajectoryWriter:
                 If True, delete all pre-existing data in store.
         """
         # create the root group where we store all the data
+        if mode is None:
+            if isinstance(storage, (str, Path)) and Path(storage).exists():
+                raise RuntimeError(
+                    'Storage already exists. Use `mode="truncate"` to overwrite file '
+                    'or `mode="append"` to insert new data into the file.'
+                )
+            mode = "full"
+
         storage = open_storage(storage, mode=mode)
-        self._group = storage.create_group(key)
-        self._group.write_attrs(None, {"__class__": encode_class(Trajectory)})
+
+        if storage._storage.mode.insert:
+            self._trajectory = storage.create_group(loc, cls=Trajectory)
+        else:
+            self._trajectory = StorageGroup(storage, loc)
 
         # make sure we don't overwrite data
-        if "times" in self._group or "data" in self._group:
-            raise IOError("Storage already contains data")
+        if (
+            "times" in self._trajectory
+            or "data" in self._trajectory
+            and not storage._storage.mode.dynamic_append
+        ):
+            raise IOError("Storage already contains data and we cannot append")
 
         if attrs is not None:
-            self._group.write_attrs(attrs=attrs)
+            self._trajectory.write_attrs(attrs=attrs)
 
     def append(self, data: StateBase, time: Optional[float] = None) -> None:
-        if "data" not in self._group:
-            data._state_create_trajectory(self._group, "data")
-            self._group.create_dynamic_array("time", shape=tuple(), dtype=float)
+        if "data" not in self._trajectory:
+            data._state_create_trajectory(self._trajectory, "data")
+            self._trajectory.create_dynamic_array("time", shape=tuple(), dtype=float)
             if time is None:
                 time = 0.0
         else:
             if time is None:
-                time = float(self._group.read_array("time", index=-1)) + 1.0
+                time = float(self._trajectory.read_array("time", index=-1)) + 1.0
 
-        data._state_append_to_trajectory(self._group, "data")
-        self._group.extend_dynamic_array("time", time)
+        data._state_append_to_trajectory(self._trajectory, "data")
+        self._trajectory.extend_dynamic_array("time", time)
 
     def close(self):
-        self._group._storage.close()
+        self._trajectory._storage.close()
 
     def __enter__(self):
         return self
@@ -112,7 +128,13 @@ class Trajectory:
         times (:class:`~numpy.ndarray`): Time points at which data is available
     """
 
-    def __init__(self, storage, key: Location = "trajectory", *, ret_copy: bool = True):
+    def __init__(
+        self,
+        storage: StorageGroup,
+        loc: Location = "trajectory",
+        *,
+        ret_copy: bool = True,
+    ):
         """
         Args:
             storage (MutableMapping or string):
@@ -127,20 +149,25 @@ class Trajectory:
 
         # open the storage
         storage = open_storage(storage, mode="readonly")
-        self._storage = StorageGroup(storage, key)
+        self._trajectory = StorageGroup(storage, loc)
 
         # read some intial data from storage
-        self.times = self._storage.read_array("time")
+        self.times = self._trajectory.read_array("time")
         self._state: Optional[StateBase] = None
-        self._state_cls = _get_state_cls_from_storage(self._storage, "data")
+        self._state_cls = _get_state_cls_from_storage(self._trajectory, "data")
 
         # check temporal ordering
-        assert np.all(np.diff(self.times) > 0)
+        if np.any(np.diff(self.times) < 0):
+            raise ValueError(f"Times are not monotonously increasing: {self.times}")
+
+    def close(self) -> None:
+        """close the openend storage"""
+        self._trajectory._storage.close()
 
     @property
     def _state_attributes(self) -> Dict[str, Any]:
         """dict: information about the trajectory"""
-        attrs = self._storage.attrs
+        attrs = self._trajectory.attrs
         attrs.pop("__class__", None)
         return attrs
 
@@ -168,13 +195,13 @@ class Trajectory:
         if self.ret_copy or self._state is None:
             # create the state with the data of the given index
             self._state = self._state_cls._state_from_stored_data(
-                self._storage, "data", index=t_index
+                self._trajectory, "data", index=t_index
             )
 
         else:
             # update the state with the data of the given index
             self._state._state_update_from_stored_data(
-                self._storage, "data", index=t_index
+                self._trajectory, "data", index=t_index
             )
 
         assert self._state is not None

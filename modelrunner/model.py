@@ -1,5 +1,5 @@
 """
-Base class describing a model.
+Base class describing a model
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -33,7 +33,7 @@ from .parameters import (
     Parameterized,
 )
 from .state import ObjectState, StateBase
-from .storage import MemoryStorage
+from .storage import MemoryStorage  # type: ignore
 
 if TYPE_CHECKING:
     from .results import Result  # @UnusedImport

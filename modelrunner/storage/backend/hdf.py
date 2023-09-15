@@ -7,14 +7,14 @@ Defines a class storing data on the file system using the hierarchical data form
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Collection, Dict, Optional, Sequence, Tuple, Union
 
 import h5py
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 
 from ..access_modes import AccessError, ModeType
-from ..attributes import Attrs, encode_attr
+from ..attributes import AttrsLike, encode_attr
 from ..base import StorageBase
 from ..utils import decode_binary, encode_binary
 
@@ -70,7 +70,10 @@ class HDFStorage(StorageBase):
         )
 
     def close(self) -> None:
-        # TODO: Shorten dynamic arrays to correct size
+        # shorten dynamic arrays to correct size
+        for hdf_path, size in self._dynamic_array_size.items():
+            self._file[hdf_path].resize(size, axis=0)
+
         if self._close:
             self._file.close()
 
@@ -111,11 +114,11 @@ class HDFStorage(StorageBase):
             parent, name = self._get_parent(loc)
             return parent[name]
 
-    def keys(self, loc: Optional[Sequence[str]] = None) -> List[str]:
+    def keys(self, loc: Optional[Sequence[str]] = None) -> Collection[str]:
         if loc:
-            return self[loc].keys()
+            return self[loc].keys()  # type: ignore
         else:
-            return self._file.keys()
+            return self._file.keys()  # type: ignore
 
     def is_group(self, loc: Sequence[str]) -> bool:
         item = self[loc]
@@ -128,31 +131,33 @@ class HDFStorage(StorageBase):
         parent, name = self._get_parent(loc, check_write=True)
         return parent.create_group(name)
 
-    def _read_attrs(self, loc: Sequence[str]) -> Attrs:
-        return self[loc].attrs
+    def _read_attrs(self, loc: Sequence[str]) -> AttrsLike:
+        return self[loc].attrs  # type: ignore
 
     def _write_attr(self, loc: Sequence[str], name: str, value) -> None:
         self[loc].attrs[name] = value
 
     def _read_array(
         self, loc: Sequence[str], *, index: Optional[int] = None
-    ) -> np.ndarray:
+    ) -> ArrayLike:
         if index is None:
             arr = self[loc]
         else:
             arr = self[loc][index]
 
         if self._read_attrs(loc).get("__pickled__", False):
-            return decode_binary(arr[()].tobytes())
+            return decode_binary(np.asarray(arr).item())  # type: ignore
+        # elif isinstance(arr, h5py.Dataset):
         else:
-            return arr
+            return arr  # type: ignore
+            # raise RuntimeError(f"No array at location `{'/'.join(loc)}`")
 
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
         parent, name = self._get_parent(loc, check_write=True)
 
         if arr.dtype == object:
             arr_str = encode_binary(arr, binary=True)
-            dataset = parent.create_dataset(name, data=np.void(arr_str))
+            dataset = parent.create_dataset(name, data=np.void(arr_str))  # type: ignore
             dataset.attrs["__pickled__"] = encode_attr(True)
         else:
             args = {"compression": "gzip"} if self.compression else {}
@@ -163,8 +168,9 @@ class HDFStorage(StorageBase):
     ) -> None:
         parent, name = self._get_parent(loc, check_write=True)
         if dtype == object:
+            dt = h5py.special_dtype(vlen=np.dtype("uint8"))
             dataset = parent.create_dataset(
-                name, shape=(1,) + shape, maxshape=(None,) + shape, dtype=np.void
+                name, shape=(1,) + shape, maxshape=(None,) + shape, dtype=dt
             )
             dataset.attrs["__pickled__"] = encode_attr(True)
         else:
@@ -175,17 +181,27 @@ class HDFStorage(StorageBase):
         self._dynamic_array_size[self._get_hdf_path(loc)] = 0
 
     def _extend_dynamic_array(self, loc: Sequence[str], arr: ArrayLike) -> None:
+        # load the dataset
         hdf_path = self._get_hdf_path(loc)
         dataset = self._file[hdf_path]
-        size0 = self._dynamic_array_size[hdf_path]
-        if size0 >= dataset.shape[0]:
-            # need to resize array
-            dataset.resize(size0 + 10, axis=0)
+
+        # determine size of the currently written data
+        size = self._dynamic_array_size.get(hdf_path, None)
+        if size is None:
+            # we extend a dataset that has not been created by this instance. Assume
+            # that it has the correct size
+            size = dataset.shape[0]
+
+        if dataset.shape[0] <= size:
+            # the old data barely fits into the current size => We need to extend the
+            # array to make space for an additional record. We directly extend by a bit
+            # so we don't need to resize every iteration
+            dataset.resize(size + 1, axis=0)
 
         if dataset.attrs.get("__pickled__", False):
-            arr_str = encode_binary(arr, binary=True)
-            dataset[size0] = np.void(arr_str)
+            arr_bin = encode_binary(arr, binary=True)
+            dataset[size] = np.fromstring(arr_bin, dtype="uint8")  # type: ignore
         else:
-            dataset[size0] = arr
+            dataset[size] = arr
 
-        self._dynamic_array_size[hdf_path] += 1
+        self._dynamic_array_size[hdf_path] = dataset.shape[0]

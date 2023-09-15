@@ -10,15 +10,14 @@ from __future__ import annotations
 import copy
 import warnings
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, Optional, Type, TypeVar
 
 import numpy as np
 
-from modelrunner.storage.access_modes import ModeType
-
-from ..storage import open_storage, storage_actions
+from ..storage import Location, StorageGroup, open_storage, storage_actions
+from ..storage.access_modes import ModeType
 from ..storage.attributes import attrs_remove_dunderscore
-from ..storage.utils import Location, decode_class
+from ..storage.utils import decode_class
 
 if TYPE_CHECKING:
     from ..storage import StorageID
@@ -331,7 +330,7 @@ class StateBase(metaclass=ABCMeta):
 
     @classmethod
     def _state_from_stored_data(
-        cls, storage, loc: Sequence[str], *, index: Optional[int] = None
+        cls, storage: StorageGroup, loc: Location, *, index: Optional[int] = None
     ):
         # determine the class to reconstruct the data from attribute
         state_cls = _get_state_cls_from_storage(storage, loc)
@@ -341,20 +340,20 @@ class StateBase(metaclass=ABCMeta):
             return state_cls._state_from_stored_data(storage, loc, index=index)
 
     def _state_update_from_stored_data(
-        self, storage, loc: Sequence[str], index: Optional[int] = None
+        self, storage: StorageGroup, loc: Location, index: Optional[int] = None
     ):
         raise NotImplementedError(f"Cannot update `{self.__class__.__name__}`")
 
-    def _state_write_to_storage(self, storage, loc: Sequence[str]):
+    def _state_write_to_storage(self, storage: StorageGroup, loc: Location):
         raise NotImplementedError(f"Cannot write `{self.__class__.__name__}`")
 
-    def _state_create_trajectory(self, storage, loc: Sequence[str]):
+    def _state_create_trajectory(self, storage: StorageGroup, loc: Location):
         """prepare the zarr storage for this state"""
         raise NotImplementedError(
             f"Cannot create trajectory for `{self.__class__.__name__}`"
         )
 
-    def _state_append_to_trajectory(self, storage, loc: Sequence[str]):
+    def _state_append_to_trajectory(self, storage: StorageGroup, loc: Location):
         raise NotImplementedError(
             f"Cannot extend trajectory for `{self.__class__.__name__}`"
         )
@@ -372,8 +371,8 @@ class StateBase(metaclass=ABCMeta):
                 hierarchical storage formats.
         """
         kwargs.setdefault("mode", "readonly")
-        with open_storage(storage, **kwargs) as storage:
-            return cls._state_from_stored_data(storage, loc)
+        with open_storage(storage, **kwargs) as opened_storage:
+            return cls._state_from_stored_data(opened_storage, loc)
 
     def to_file(
         self,
@@ -394,99 +393,8 @@ class StateBase(metaclass=ABCMeta):
                 Additional arguments are passed on to the method that implements the
                 writing of the specific format (_write_**).
         """
-        with open_storage(storage, mode=mode, **kwargs) as storage:
-            self._state_write_to_storage(storage, loc=loc)
-
-    # def _state_write_zarr_attributes(
-    #     self, element: zarrElement, attrs: Optional[Dict[str, Any]] = None
-    # ) -> zarrElement:
-    #     """prepare the zarr element for this state"""
-    #     # write the attributes of the state
-    #     element.attrs.update(simplify_data(self._state_attributes_store))
-    #
-    #     # write additional attributes provided as argument
-    #     if attrs is not None:
-    #         element.attrs.update(simplify_data(attrs))
-    #
-    #     return element
-    #
-    # def _state_write_zarr_data(
-    #     self, zarr_group: zarr.Group, *, name: str = "data", **kwargs
-    # ) -> zarrElement:
-    #     raise NotImplementedError
-    #
-    # def _write_zarr(
-    #     self, zarr_group: zarr.Group, attrs: Optional[Dict[str, Any]] = None, **kwargs
-    # ) -> zarrElement:
-    #     """writes the state to a zarr storage
-    #
-    #     Args:
-    #         zarr_group (:class:`zarr.Group`): Group into which the data is written
-    #         attrs (dict): Additional attributes that are stored
-    #
-    #     Returns:
-    #         :class:`zarr.Group` or :class:`zarr.Array`: The written zarr element
-    #     """
-    #     element = self._state_write_zarr_data(zarr_group, **kwargs)
-    #     self._state_write_zarr_attributes(element, attrs)
-    #     return element
-    #
-    # @classmethod
-    # def _from_zarr(cls, zarr_element: zarrElement, *, index=...) -> StateBase:
-    #     """create instance of correct subclass from data stored in zarr"""
-    #     # determine the class that knows how to read this data
-    #     class_name = zarr_element.attrs["__class__"]
-    #     state_cls = cls._state_classes[class_name]
-    #
-    #     # read the attributes and the data using this class
-    #     attributes = zarr_element.attrs.asdict()
-    #     data = state_cls._state_read_zarr_data(zarr_element, index=index)
-    #
-    #     # create an instance of this class
-    #     return state_cls.from_data(attributes, data)
-    #
-    # @classmethod
-    # def _state_read_zarr_data(cls, zarr_element: zarrElement, *, index=...) -> Any:
-    #     """read data stored in zarr element"""
-    #     raise NotImplementedError
-    #
-    # def _state_update_from_zarr(self, element: zarrElement, *, index=...) -> None:
-    #     """update the current state from an zarr element"""
-    #     raise NotImplementedError
-    #
-    # def _state_prepare_zarr_trajectory(
-    #     self, zarr_group: zarr.Group, attrs: Optional[Dict[str, Any]] = None, **kwargs
-    # ) -> zarrElement:
-    #     """prepare the zarr element for this state"""
-    #     raise NotImplementedError
-    #
-    # def _state_append_to_zarr_trajectory(self, zarr_element: zarrElement) -> None:
-    #     """append current data to the prepared zarr element"""
-    #     raise NotImplementedError
-    #
-    # @classmethod
-    # def _from_simple_objects(
-    #     cls, content: Dict[str, Any], *, state_cls: Optional[StateBase] = None
-    # ) -> StateBase:
-    #     """create state from text data
-    #
-    #     Args:
-    #         content: The loaded data
-    #     """
-    #     if state_cls is None:
-    #         # general branch that determines the state class to use to load the object
-    #         state_cls = cls._state_classes[content["attributes"]["__class__"]]
-    #         return state_cls._from_simple_objects(content, state_cls=state_cls)
-    #     else:
-    #         # specific (basic) implementation that just reads the state
-    #         return state_cls.from_data(content["attributes"], content["data"])
-    #
-    # def _to_simple_objects(self) -> Dict[str, Any]:
-    #     """return object data suitable for encoding as text"""
-    #     return {
-    #         "attributes": self._state_attributes_store,
-    #         "data": self._state_data_store,
-    #     }
+        with open_storage(storage, mode=mode, **kwargs) as opened_storage:
+            self._state_write_to_storage(opened_storage, loc=loc)
 
 
 def _get_state_cls_from_storage(storage, key):

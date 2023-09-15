@@ -8,26 +8,15 @@ from __future__ import annotations
 
 import logging
 from abc import ABCMeta, abstractmethod
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    List,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import TYPE_CHECKING, Collection, List, Optional, Sequence, Tuple, Type
 
 import numcodecs
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 
 from .access_modes import AccessError, AccessMode, ModeType
-from .attributes import decode_attrs, encode_attr
-from .utils import Attrs, encode_class
+from .attributes import Attrs, AttrsLike, decode_attrs, encode_attr
+from .utils import encode_class
 
 if TYPE_CHECKING:
     from .group import StorageGroup  # @UnusedImport
@@ -89,7 +78,7 @@ class StorageBase(metaclass=ABCMeta):
         return attrs
 
     @abstractmethod
-    def keys(self, loc: Sequence[str]) -> List[str]:
+    def keys(self, loc: Sequence[str]) -> Collection[str]:
         """return all sub-items defined at a given location
 
         Args:
@@ -143,12 +132,14 @@ class StorageBase(metaclass=ABCMeta):
         """
         from .group import StorageGroup  # @Reimport to avoid circular import
 
+        # TODO: allow creating many hierachies at once
+
         if loc in self:
             if self.mode.overwrite:
                 pass  # group already exists, but we can overwrite things
             else:
-                # we cannot overwrite anythign
-                raise AccessError(f"StorageGroup `{'/'.join(loc)}` already exists")
+                # we cannot overwrite anything
+                raise AccessError(f"Group `{'/'.join(loc)}` already exists")
         else:
             if not self.mode.insert:
                 raise AccessError(f"No right to insert group `{'/'.join(loc)}`")
@@ -158,7 +149,7 @@ class StorageBase(metaclass=ABCMeta):
         return StorageGroup(self, loc)
 
     @abstractmethod
-    def _read_attrs(self, loc: Sequence[str]) -> Attrs:
+    def _read_attrs(self, loc: Sequence[str]) -> AttrsLike:
         ...
 
     def read_attrs(self, loc: Sequence[str]) -> Attrs:
@@ -190,23 +181,14 @@ class StorageBase(metaclass=ABCMeta):
                 The attributes to be added to this location
         """
         # check whether we can insert anything
-        if not self.mode.insert:
-            raise AccessError(f"No right to insert attributes into `{'/'.join(loc)}`")
+        if not self.mode.set_attrs:
+            raise AccessError(f"No right to set attributes of `{'/'.join(loc)}`")
         # check whether there are actually any attributes to be written
         if attrs is None or len(attrs) == 0:
             return
 
-        if self.mode.overwrite:
-            current_attrs: Union[
-                Set[str], Dict[str, Any]
-            ] = set()  # effectively disables check below
-        else:
-            current_attrs = self.read_attrs(loc)  # previous attrs not to be changed
         for name, value in attrs.items():
-            if name in current_attrs:
-                raise AccessError(f"No right to overwrite attribute {name}")
-            else:
-                self._write_attr(loc, name, encode_attr(value))
+            self._write_attr(loc, name, encode_attr(value))
 
     @abstractmethod
     def _read_array(
@@ -214,7 +196,7 @@ class StorageBase(metaclass=ABCMeta):
         loc: Sequence[str],
         *,
         index: Optional[int] = None,
-    ) -> np.ndarray:
+    ) -> ArrayLike:
         ...
 
     def read_array(
@@ -250,7 +232,7 @@ class StorageBase(metaclass=ABCMeta):
         elif copy:
             out = np.array(self._read_array(loc, index=index), copy=True)
         else:
-            out = self._read_array(loc, index=index)
+            out = np.asanyarray(self._read_array(loc, index=index))
         return out
 
     @abstractmethod
