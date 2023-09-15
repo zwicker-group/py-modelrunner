@@ -27,16 +27,20 @@ def _decode_pickled(dct: AttrsLike):
     return dct
 
 
-def encode_attrs(attrs: AttrsLike) -> Attrs:
-    return {k: json.dumps(v, cls=AttrsEncoder) for k, v in attrs.items()}
-
-
 def encode_attr(value) -> str:
     return json.dumps(value, cls=AttrsEncoder)
 
 
+def encode_attrs(attrs: AttrsLike) -> Attrs:
+    return {k: encode_attr(v) for k, v in attrs.items()}
+
+
+def decode_attr(value: str) -> Any:
+    return json.loads(value, object_hook=_decode_pickled)
+
+
 def decode_attrs(attrs: AttrsLike) -> Attrs:
-    return {k: json.loads(v, object_hook=_decode_pickled) for k, v in attrs.items()}
+    return {k: decode_attr(v) for k, v in attrs.items()}
 
 
 def attrs_remove_dunderscore(attrs: AttrsLike) -> Attrs:

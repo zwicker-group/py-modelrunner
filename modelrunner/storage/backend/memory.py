@@ -9,10 +9,14 @@ from __future__ import annotations
 from typing import Any, Collection, Dict, Optional, Sequence, Tuple
 
 import numpy as np
+from numpy.lib.recfunctions import (
+    structured_to_unstructured,
+    unstructured_to_structured,
+)
 from numpy.typing import ArrayLike, DTypeLike
 
-from ..access_modes import ModeType
-from ..attributes import Attrs
+from ..access_modes import AccessError, ModeType
+from ..attributes import Attrs, decode_attr, encode_attr
 from ..base import StorageBase
 
 
@@ -56,14 +60,21 @@ class MemoryStorage(StorageBase):
         if not isinstance(value, dict):
             raise TypeError(f"Cannot add item to `{'/'.join(loc)}`")
 
-        name = loc[-1]
+        try:
+            name = loc[-1]
+        except IndexError:
+            raise KeyError(f"Location `{'/'.join(loc)}` has no parent")
+
         if check_write and not self.mode.overwrite and name in value:
-            raise RuntimeError(f"Overwriting `{'/'.join(loc)}` disabled")
+            raise AccessError(f"Overwriting `{'/'.join(loc)}` disabled")
         return value, name
 
     def __getitem__(self, loc: Sequence[str]) -> Any:
-        parent, name = self._get_parent(loc)
-        return parent[name]
+        if loc:
+            parent, name = self._get_parent(loc)
+            return parent[name]
+        else:
+            return self._data
 
     def keys(self, loc: Sequence[str]) -> Collection[str]:
         if loc:
@@ -106,13 +117,30 @@ class MemoryStorage(StorageBase):
             arr = self[loc]["data"][index]
 
         if hasattr(arr, "__iter__"):  # minimal sanity check
+            dtype = decode_attr(self[loc]["__dtype__"])
+            if dtype.names is not None:
+                arr = unstructured_to_structured(np.asarray(arr), dtype=dtype)
+            else:
+                arr = np.array(arr, dtype=dtype)
+            if self[loc].get("__record_array__", False):
+                arr = arr.view(np.recarray)
             return arr
         else:
             raise RuntimeError(f"No array at {'/'.join(loc)}")
 
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
         parent, name = self._get_parent(loc, check_write=True)
-        parent[name] = {"data": np.array(arr, copy=True)}
+
+        dtype = arr.dtype
+        if dtype.names is not None:
+            # structured array
+            arr = structured_to_unstructured(arr)
+
+        parent[name] = {
+            "data": np.array(arr, copy=True),
+            "__dtype__": encode_attr(dtype),
+            "__record_array__": True,
+        }
 
     def _create_dynamic_array(
         self, loc: Sequence[str], shape: Tuple[int, ...], dtype: DTypeLike

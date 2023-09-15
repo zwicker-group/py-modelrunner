@@ -48,6 +48,9 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
                 with open(self._path, mode="r") as fp:
                     self._read_data_from_fp(fp)
 
+    def __repr__(self):
+        return f'{self.__class__.__name__}("{self._path}", ' f'mode="{self.mode.name}")'
+
     def close(self) -> None:
         if self.mode.file_mode in {"x", "a", "w"}:
             if self.simplify:
