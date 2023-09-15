@@ -26,7 +26,7 @@ from .base import StateBase, _get_state_cls_from_storage
 
 
 class TrajectoryWriter:
-    """writes trajectories of states using :mod:`zarr`
+    """writes trajectories of states into a storage
 
     Stored data can then be read using :class:`Trajectory`.
 
@@ -35,19 +35,19 @@ class TrajectoryWriter:
         .. code-block:: python
 
             # write data using context manager
-            with TrajectoryWriter("test.zarr", loc="trajectory") as writer:
+            with TrajectoryWriter("test.zarr") as writer:
                 for t, data in simulation:
                     writer.append(data, t)
 
-            # write using explicit class interface
-            writer = TrajectoryWriter("test.zarr", overwrite=True)
+            # append to same file using explicit class interface
+            writer = TrajectoryWriter("test.zarr", mode="append")
             writer.append(data0)
             writer.append(data1)
             writer.close()
 
             # read data
             trajectory = Trajectory("test.zarr")
-            assert trajectory[0] == data0
+            assert trajectory[-1] == data1
     """
 
     def __init__(
@@ -62,11 +62,18 @@ class TrajectoryWriter:
         Args:
             store (MutableMapping or string):
                 Store or path to directory in file system or name of zip file.
+            loc (str or list of str):
+                The location in the storage where the trajectory data is written.
             attrs (dict):
                 Additional attributes stored in the trajectory. The attributes of the
                 state are also stored in any case.
-            overwrite (bool):
-                If True, delete all pre-existing data in store.
+            mode (str or :class:`~modelrunner.storage.access_modes.AccessMode`):
+                The file mode with which the storage is accessed. Determines allowed
+                operations. The meaning of the special (default) value `None` depends on
+                whether the file given by `store` already exists. If yes, a RuntimeError
+                is raised, otherwise the choice corresponds to `mode="full"` and thus
+                creates a new trajectory. If the file exists, use `mode="truncate"` to
+                overwrite file or `mode="append"` to insert new data into the file.
         """
         # create the root group where we store all the data
         if mode is None:
@@ -122,7 +129,7 @@ class Trajectory:
     """Reads trajectories of states written with :class:`TrajectoryWriter`
 
     The class permits direct access to indivdual states using the square bracket
-    notation. It is also possible to directly iterate over all states.
+    notation. It is also possible to iterate over all states.
 
     Attributes:
         times (:class:`~numpy.ndarray`): Time points at which data is available
@@ -139,6 +146,8 @@ class Trajectory:
         Args:
             storage (MutableMapping or string):
                 Store or path to directory in file system or name of zip file.
+            loc (str or list of str):
+                The location in the storage where the trajectory data is read.
             ret_copy (bool):
                 If True, copies of states are returned, e.g., when iterating. If the
                 returned state is not modified, this flag can be set to False to

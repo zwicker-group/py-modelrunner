@@ -10,7 +10,7 @@ from typing import Any, Optional
 
 import numpy as np
 
-from ..storage import Location, StorageGroup, storage_actions
+from ..storage import Location, StorageGroup
 from .base import StateBase
 
 
@@ -53,29 +53,24 @@ class ObjectState(StateBase):
 
     def _state_update_from_stored_data(
         self, storage: StorageGroup, loc: Location, index: Optional[int] = None
-    ):
+    ) -> None:
         self._state_data = storage.read_array(loc, index=index).item()
 
-    def _state_write_to_storage(self, storage: StorageGroup, loc: Location):
+    def _state_write_to_storage(self, storage: StorageGroup, loc: Location) -> None:
         # store the data in a single object array
         arr = np.empty(1, dtype=object)
         arr[0] = self._state_data_store
         attrs = self._state_attributes_store
         return storage.write_array(loc, arr, attrs=attrs, cls=self.__class__)
 
-    def _state_create_trajectory(self, storage: StorageGroup, loc: Location):
+    def _state_create_trajectory(self, storage: StorageGroup, loc: Location) -> None:
         """prepare the zarr storage for this state"""
         attrs = self._state_attributes_store
         storage.create_dynamic_array(
             loc, shape=(1,), dtype=object, attrs=attrs, cls=self.__class__
         )
 
-    def _state_append_to_trajectory(self, storage: StorageGroup, loc: Location):
+    def _state_append_to_trajectory(self, storage: StorageGroup, loc: Location) -> None:
         arr = np.empty(1, dtype=object)
         arr[0] = self._state_data_store
         storage.extend_dynamic_array(loc, arr)
-
-
-storage_actions.register(
-    "read_object", ObjectState, ObjectState._state_from_stored_data
-)

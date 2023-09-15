@@ -105,7 +105,7 @@ class MemoryStorage(StorageBase):
         else:
             arr = self[loc]["data"][index]
 
-        if hasattr(arr, "__iter__"):  # minimal check
+        if hasattr(arr, "__iter__"):  # minimal sanity check
             return arr
         else:
             raise RuntimeError(f"No array at {'/'.join(loc)}")

@@ -93,7 +93,7 @@ class ArrayState(StateBase):
     @classmethod
     def _state_from_stored_data(
         cls, storage: StorageGroup, loc: Location, index: Optional[int] = None
-    ):
+    ) -> None:
         obj = cls.__new__(cls)
         attributes = storage.read_attrs(loc)
         attributes.pop("__class__")
@@ -103,10 +103,10 @@ class ArrayState(StateBase):
 
     def _state_update_from_stored_data(
         self, storage: StorageGroup, loc: Location, index: Optional[int] = None
-    ):
+    ) -> None:
         storage.read_array(loc, index=index, out=self._state_data)
 
-    def _state_write_to_storage(self, storage: StorageGroup, loc: Location):
+    def _state_write_to_storage(self, storage: StorageGroup, loc: Location) -> None:
         storage.write_array(
             loc,
             self._state_data_store,
@@ -114,7 +114,7 @@ class ArrayState(StateBase):
             cls=self.__class__,
         )
 
-    def _state_create_trajectory(self, storage: StorageGroup, loc: Location):
+    def _state_create_trajectory(self, storage: StorageGroup, loc: Location) -> None:
         """prepare the zarr storage for this state"""
         data = self._state_data
         storage.create_dynamic_array(
@@ -125,5 +125,5 @@ class ArrayState(StateBase):
             cls=self.__class__,
         )
 
-    def _state_append_to_trajectory(self, storage: StorageGroup, loc: Location):
+    def _state_append_to_trajectory(self, storage: StorageGroup, loc: Location) -> None:
         storage.extend_dynamic_array(loc, self._state_data)
