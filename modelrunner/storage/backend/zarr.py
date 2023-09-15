@@ -15,7 +15,7 @@ import zarr
 from numpy.typing import ArrayLike, DTypeLike
 from zarr._storage.store import Store
 
-from ..access_modes import ModeType
+from ..access_modes import AccessError, ModeType
 from ..attributes import AttrsLike
 from ..base import StorageBase
 
@@ -45,7 +45,7 @@ class ZarrStorage(StorageBase):
             self._close = True
             path = Path(store_or_path)
             if path.suffix in {"", ".zarr"}:
-                # path seems to be a directory
+                # path seems to be a directory or a zarr direction => DirectoryStore
                 if path.is_dir() and self.mode.file_mode == "w":
                     self._logger.info(f"Delete directory `{path}`")
                     shutil.rmtree(path)  # remove the directory to reinstate it
@@ -55,7 +55,7 @@ class ZarrStorage(StorageBase):
                 self._store = zarr.DirectoryStore(path)
 
             elif path.suffix == ".zip":
-                # path seems to be point to a file
+                # create a ZipStore
                 file_mode = self.mode.file_mode
                 if path.exists():
                     if file_mode == "x":
@@ -67,9 +67,11 @@ class ZarrStorage(StorageBase):
                 self._store = zarr.storage.ZipStore(path, mode=file_mode)
 
             elif path.suffix == ".sqldb":
+                # create a SQLiteStore
+                if self.mode.file_mode == "w" and path.exists():
+                    self._logger.info(f"Delete file `{path}`")
+                    path.unlink()
                 self._store = zarr.SQLiteStore(path)
-                # if self.mode.fi
-                # zarr.convenience.open(path, mode=self.mode.file_mode)
 
         elif isinstance(store_or_path, Store):
             # use already opened zarr storage
@@ -79,7 +81,7 @@ class ZarrStorage(StorageBase):
         else:
             raise TypeError(f"Unknown store `{store_or_path}`")
 
-        self._root = zarr.group(store=self._store, overwrite=self.mode.overwrite)
+        self._root = zarr.group(store=self._store, overwrite=False)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self._root.store}, mode="{self.mode.name}")'
@@ -92,16 +94,20 @@ class ZarrStorage(StorageBase):
     def _get_parent(
         self, loc: Sequence[str], *, check_write: bool = False
     ) -> Tuple[zarr.Group, str]:
-        path, name = loc[:-1], loc[-1]
+        try:
+            path, name = loc[:-1], loc[-1]
+        except IndexError:
+            raise KeyError(f"Location `{'/'.join(loc)}` has no parent")
+
         parent = self._root
         for part in path:
             try:
                 parent = parent[part]
             except KeyError:
-                parent = parent.create_group(part)
+                parent = parent.create_group(part, overwrite=False)
 
         if check_write and not self.mode.overwrite and name in parent:
-            raise RuntimeError(f"Overwriting `{', '.join(loc)}` disabled")
+            raise AccessError(f"Overwriting `{', '.join(loc)}` disabled")
 
         return parent, name
 
@@ -151,10 +157,17 @@ class ZarrStorage(StorageBase):
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
         parent, name = self._get_parent(loc, check_write=True)
 
-        if arr.dtype == object:
-            parent.array(name, arr, object_codec=self.codec)
+        if name in parent:
+            # update an existing array assuming it has the same shape. The credentials
+            # for this operation need to be checked by the caller!
+            parent[name][...] = arr
+
         else:
-            parent.array(name, arr)
+            # create a new data set
+            if arr.dtype == object:
+                parent.array(name, arr, object_codec=self.codec)
+            else:
+                parent.array(name, arr)
 
     def _create_dynamic_array(
         self, loc: Sequence[str], shape: Tuple[int, ...], dtype: DTypeLike

@@ -1,3 +1,4 @@
+from .access_modes import AccessError
 from .backend import *
 from .base import StorageBase  # @Reimport
 from .group import StorageGroup

@@ -87,7 +87,11 @@ class HDFStorage(StorageBase):
         create_groups: bool = True,
         check_write: bool = False,
     ) -> Tuple[h5py.Group, str]:
-        path, name = loc[:-1], loc[-1]
+        try:
+            path, name = loc[:-1], loc[-1]
+        except IndexError:
+            raise KeyError(f"Location `{'/'.join(loc)}` has no parent")
+
         if create_groups:
             # creat
             parent = self._file
@@ -103,7 +107,7 @@ class HDFStorage(StorageBase):
             parent = self._file[self._get_hdf_path(path)]
 
         if check_write and not self.mode.overwrite and name in parent:
-            raise RuntimeError(f"Overwriting `{', '.join(loc)}` disabled")
+            raise AccessError(f"Overwriting `{', '.join(loc)}` disabled")
 
         return parent, name
 
@@ -155,13 +159,25 @@ class HDFStorage(StorageBase):
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
         parent, name = self._get_parent(loc, check_write=True)
 
-        if arr.dtype == object:
-            arr_str = encode_binary(arr, binary=True)
-            dataset = parent.create_dataset(name, data=np.void(arr_str))  # type: ignore
-            dataset.attrs["__pickled__"] = encode_attr(True)
+        if name in parent:
+            # update an existing array assuming it has the same shape. The credentials
+            # for this operation need to be checked by the caller!
+            dataset = parent[name]
+            if dataset.attrs.get("__pickled__", None) == encode_attr(True):
+                arr_str = encode_binary(arr, binary=True)
+                dataset[...] = np.void(arr_str)
+            else:
+                dataset[...] = arr
+
         else:
-            args = {"compression": "gzip"} if self.compression else {}
-            parent.create_dataset(name, data=arr, **args)
+            # create a new data set
+            if arr.dtype == object:
+                arr_str = encode_binary(arr, binary=True)
+                dataset = parent.create_dataset(name, data=np.void(arr_str))  # type: ignore
+                dataset.attrs["__pickled__"] = encode_attr(True)
+            else:
+                args = {"compression": "gzip"} if self.compression else {}
+                parent.create_dataset(name, data=arr, **args)
 
     def _create_dynamic_array(
         self, loc: Sequence[str], shape: Tuple[int, ...], dtype: DTypeLike

@@ -91,7 +91,10 @@ class StorageBase(metaclass=ABCMeta):
         ...
 
     def __contains__(self, loc: Sequence[str]):
-        return loc[-1] in self.keys(loc[:-1])
+        try:
+            return loc[-1] in self.keys(loc[:-1])
+        except KeyError:
+            return False
 
     @abstractmethod
     def is_group(self, loc: Sequence[str]) -> bool:
@@ -132,18 +135,23 @@ class StorageBase(metaclass=ABCMeta):
         """
         from .group import StorageGroup  # @Reimport to avoid circular import
 
-        # TODO: allow creating many hierachies at once
-
         if loc in self:
+            # group already exists
             if self.mode.overwrite:
                 pass  # group already exists, but we can overwrite things
             else:
                 # we cannot overwrite anything
                 raise AccessError(f"Group `{'/'.join(loc)}` already exists")
+
         else:
+            # group needs to be created
             if not self.mode.insert:
                 raise AccessError(f"No right to insert group `{'/'.join(loc)}`")
-            self._create_group(loc)
+
+            # create all parent groups
+            for i in range(len(loc)):
+                if loc[: i + 1] not in self:
+                    self._create_group(loc[: i + 1])
 
         self.write_attrs(loc, self._get_attrs(attrs, cls=cls))
         return StorageGroup(self, loc)
@@ -164,7 +172,8 @@ class StorageBase(metaclass=ABCMeta):
         """
         if not self.mode.read:
             raise AccessError("No right to read attributes")
-        return decode_attrs(self._read_attrs(loc))
+        attrs = self._read_attrs(loc)
+        return decode_attrs(attrs)
 
     @abstractmethod
     def _write_attr(self, loc: Sequence[str], name: str, value) -> None:
@@ -262,11 +271,15 @@ class StorageBase(metaclass=ABCMeta):
         if loc in self:
             # check whether we can overwrite the existing array
             if not self.mode.overwrite:
-                raise RuntimeError(f"Array `{'/'.join(loc)}` already exists")
+                raise AccessError(f"Array `{'/'.join(loc)}` already exists")
         else:
             # check whether we can insert a new array
             if not self.mode.insert:
-                raise RuntimeError(f"No right to insert array `{'/'.join(loc)}`")
+                raise AccessError(f"No right to insert array `{'/'.join(loc)}`")
+
+            if len(loc) > 1 and loc[:-1] not in self:
+                # create parent group
+                self.create_group(loc[:-1])
 
         self._write_array(loc, arr)
         self.write_attrs(loc, self._get_attrs(attrs, cls=cls))
@@ -309,7 +322,7 @@ class StorageBase(metaclass=ABCMeta):
         else:
             # check whether we can insert a new array
             if not self.mode.insert:
-                raise RuntimeError(f"No right to insert array `{'/'.join(loc)}`")
+                raise AccessError(f"No right to insert array `{'/'.join(loc)}`")
 
         self._create_dynamic_array(loc, tuple(shape), dtype=dtype)
         self.write_attrs(loc, self._get_attrs(attrs, cls=cls))
@@ -328,5 +341,5 @@ class StorageBase(metaclass=ABCMeta):
                 The array which will be appended to the dynamic array
         """
         if not self.mode.dynamic_append:
-            raise RuntimeError(f"Cannot append data to dynamic array `{'/'.join(loc)}`")
+            raise AccessError(f"Cannot append data to dynamic array `{'/'.join(loc)}`")
         self._extend_dynamic_array(loc, arr)
