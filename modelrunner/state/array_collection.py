@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
-from ..storage import Location, StorageGroup, storage_actions
+from ..storage import Location, StorageGroup
 from .base import StateBase
 
 
@@ -122,7 +122,7 @@ class ArrayCollectionState(StateBase):
     @classmethod
     def _state_from_stored_data(
         cls, storage: StorageGroup, loc: Location, index: Optional[int] = None
-    ):
+    ) -> None:
         attrs = storage.read_attrs(loc)
         attrs.pop("__class__")
 
@@ -133,12 +133,12 @@ class ArrayCollectionState(StateBase):
 
     def _state_update_from_stored_data(
         self, storage: StorageGroup, loc: Location, index: Optional[int] = None
-    ):
+    ) -> None:
         group = StorageGroup(storage, loc)
         for label, data_arr in zip(self.labels, self._state_data):
             group.read_array(label, index=index, out=data_arr)
 
-    def _state_write_to_storage(self, storage: StorageGroup, loc: Location):
+    def _state_write_to_storage(self, storage: StorageGroup, loc: Location) -> None:
         group = storage.create_group(
             loc, cls=self.__class__, attrs=self._state_attributes_store
         )
@@ -146,7 +146,7 @@ class ArrayCollectionState(StateBase):
         for sublabel, substate in zip(self.labels, self._state_data_store):
             group.write_array(sublabel, substate)
 
-    def _state_create_trajectory(self, storage: StorageGroup, loc: Location):
+    def _state_create_trajectory(self, storage: StorageGroup, loc: Location) -> None:
         """prepare the zarr storage for this state"""
         group = storage.create_group(
             loc, cls=self.__class__, attrs=self._state_attributes_store
@@ -157,12 +157,7 @@ class ArrayCollectionState(StateBase):
                 sublabel, shape=subdata.shape, dtype=subdata.dtype
             )
 
-    def _state_append_to_trajectory(self, storage: StorageGroup, loc: Location):
+    def _state_append_to_trajectory(self, storage: StorageGroup, loc: Location) -> None:
         group = StorageGroup(storage, loc)
         for label, subdata in zip(self.labels, self._state_data_store):
             group.extend_dynamic_array(label, subdata)
-
-
-storage_actions.register(
-    "read_object", ArrayCollectionState, ArrayCollectionState._state_from_stored_data
-)

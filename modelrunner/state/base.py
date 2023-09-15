@@ -341,19 +341,19 @@ class StateBase(metaclass=ABCMeta):
 
     def _state_update_from_stored_data(
         self, storage: StorageGroup, loc: Location, index: Optional[int] = None
-    ):
+    ) -> None:
         raise NotImplementedError(f"Cannot update `{self.__class__.__name__}`")
 
-    def _state_write_to_storage(self, storage: StorageGroup, loc: Location):
+    def _state_write_to_storage(self, storage: StorageGroup, loc: Location) -> None:
         raise NotImplementedError(f"Cannot write `{self.__class__.__name__}`")
 
-    def _state_create_trajectory(self, storage: StorageGroup, loc: Location):
+    def _state_create_trajectory(self, storage: StorageGroup, loc: Location) -> None:
         """prepare the zarr storage for this state"""
         raise NotImplementedError(
             f"Cannot create trajectory for `{self.__class__.__name__}`"
         )
 
-    def _state_append_to_trajectory(self, storage: StorageGroup, loc: Location):
+    def _state_append_to_trajectory(self, storage: StorageGroup, loc: Location) -> None:
         raise NotImplementedError(
             f"Cannot extend trajectory for `{self.__class__.__name__}`"
         )
