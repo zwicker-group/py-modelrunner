@@ -10,6 +10,7 @@ from typing import ClassVar, Dict, Literal, Union
 FileMode = Literal[
     "r",  # open as readable
     "x",  # open as extensible (read and write)
+    "a",  # open to append (read and write)
     "w",  # open as writeable and truncate
 ]
 
@@ -22,8 +23,9 @@ class AccessMode:
     description: str  # human-readable description of the mode
     file_mode: FileMode  # how to open files
     read: bool = False  # allow reading data
-    overwrite: bool = False  # allow overwriting existing data
+    set_attrs: bool = False  # allows setting attributes
     insert: bool = False  # allow inserting new items
+    overwrite: bool = False  # allow overwriting existing data
     dynamic_append: bool = False  # allow appending to dynamic arrays
 
     _defined: ClassVar[
@@ -64,26 +66,41 @@ access_readonly = AccessMode(
 access_insert = AccessMode(
     name="insert",
     description="Allows inserting new items, but not changing existing items",
-    file_mode="x",
+    file_mode="a",
     read=True,
+    set_attrs=True,
     insert=True,
+    overwrite=False,
     dynamic_append=True,
 )
 access_overwrite = AccessMode(
     name="overwrite",
     description="Allows changing existing items, but not inserting new items",
-    file_mode="x",
+    file_mode="a",
     read=True,
+    set_attrs=True,
+    insert=False,
     overwrite=True,
     dynamic_append=True,
 )
 access_full = AccessMode(
     name="full",
     description="Allows changing existing items and inserting new items",
-    file_mode="x",
+    file_mode="a",
     read=True,
+    set_attrs=True,
     overwrite=True,
     insert=True,
+    dynamic_append=True,
+)
+access_append = AccessMode(
+    name="append",
+    description="Only allows appending to already existing dynamic arrays",
+    file_mode="a",
+    read=True,
+    set_attrs=True,
+    overwrite=False,
+    insert=False,
     dynamic_append=True,
 )
 access_truncate = AccessMode(
@@ -91,6 +108,7 @@ access_truncate = AccessMode(
     description="Removes all old items and allows inserting and changing new items",
     file_mode="w",
     read=True,
+    set_attrs=True,
     overwrite=True,
     insert=True,
     dynamic_append=True,

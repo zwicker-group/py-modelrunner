@@ -6,14 +6,14 @@ Defines a class storing data in memory.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Collection, Dict, Optional, Sequence, Tuple
 
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 
 from ..access_modes import ModeType
+from ..attributes import Attrs
 from ..base import StorageBase
-from ..utils import Attrs
 
 
 class MemoryStorage(StorageBase):
@@ -65,9 +65,9 @@ class MemoryStorage(StorageBase):
         parent, name = self._get_parent(loc)
         return parent[name]
 
-    def keys(self, loc: Sequence[str]) -> List[str]:
+    def keys(self, loc: Sequence[str]) -> Collection[str]:
         if loc:
-            return self[loc].keys()
+            return self[loc].keys()  # type: ignore
         else:
             return self._data.keys()
 
@@ -84,7 +84,11 @@ class MemoryStorage(StorageBase):
         parent[name] = {}
 
     def _read_attrs(self, loc: Sequence[str]) -> Attrs:
-        return self[loc].get("__attrs__", {})
+        res = self[loc].get("__attrs__", {})
+        if isinstance(res, dict):
+            return res
+        else:
+            raise RuntimeError(f"No attributes at {'/'.join(loc)}")
 
     def _write_attr(self, loc: Sequence[str], name: str, value) -> None:
         item = self[loc]
@@ -97,9 +101,14 @@ class MemoryStorage(StorageBase):
         self, loc: Sequence[str], *, index: Optional[int] = None
     ) -> np.ndarray:
         if index is None:
-            return self[loc]["data"]
+            arr = self[loc]["data"]
         else:
-            return self[loc]["data"][index]
+            arr = self[loc]["data"][index]
+
+        if hasattr(arr, "__iter__"):  # minimal check
+            return arr
+        else:
+            raise RuntimeError(f"No array at {'/'.join(loc)}")
 
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
         parent, name = self._get_parent(loc, check_write=True)

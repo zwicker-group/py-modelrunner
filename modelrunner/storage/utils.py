@@ -9,15 +9,17 @@ import inspect
 import pickle
 from collections import defaultdict
 from importlib import import_module
-from typing import Any, Callable, Dict, Optional, Sequence, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Type, Union
+
+import numpy as np
+
+if TYPE_CHECKING:
+    from .attributes import Attrs  # @UnusedImport
 
 PICKLE_PROTOCOL = pickle.HIGHEST_PROTOCOL
 
 
-import numpy as np
-
 Location = Union[None, str, Sequence[str]]
-Attrs = Dict[str, Any]
 
 
 def encode_binary(obj: Any, *, binary: bool = False) -> Union[str, bytes]:
@@ -40,7 +42,9 @@ def encode_class(cls: Type) -> str:
     return cls.__module__ + "." + cls.__qualname__
 
 
-def decode_class(class_path: Optional[str], *, guess: Optional[Type] = None) -> Type:
+def decode_class(
+    class_path: Optional[str], *, guess: Optional[Type] = None
+) -> Optional[Type]:
     if class_path is None or class_path == "None":
         return None
 
@@ -55,16 +59,18 @@ def decode_class(class_path: Optional[str], *, guess: Optional[Type] = None) -> 
     except ModuleNotFoundError:
         # see whether the class is already defined ...
         if guess is not None and guess.__name__ == class_name:
-            return guess  # ... as the `guess`
+            # ... as the `guess`
+            return guess
         elif class_name in globals():
-            return globals()[class_name]  # ... in the global context
+            # ... in the global context
+            return globals()[class_name]  # type: ignore
         else:
             raise ModuleNotFoundError(f"Cannot load `{class_path}`")
 
     else:
         # load the class from the module
         try:
-            return getattr(module, class_name)
+            return getattr(module, class_name)  # type: ignore
         except AttributeError:
             raise ImportError(f"Module {module_path} does not define {class_name}")
 
@@ -72,7 +78,7 @@ def decode_class(class_path: Optional[str], *, guess: Optional[Type] = None) -> 
 class Array(np.ndarray):
     """Numpy array augmented with attributes"""
 
-    def __new__(cls, input_array, attrs: Optional[Attrs] = None):
+    def __new__(cls, input_array, attrs: Optional["Attrs"] = None):
         obj = np.asarray(input_array).view(cls)
         obj.attrs = {} if attrs is None else attrs
         return obj

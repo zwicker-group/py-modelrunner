@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Tuple, Union
+from typing import Any, Collection, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import zarr
@@ -16,8 +16,8 @@ from numpy.typing import ArrayLike, DTypeLike
 from zarr._storage.store import Store
 
 from ..access_modes import ModeType
+from ..attributes import AttrsLike
 from ..base import StorageBase
-from ..utils import Attrs
 
 zarrElement = Union[zarr.Group, zarr.Array]
 
@@ -25,7 +25,7 @@ zarrElement = Union[zarr.Group, zarr.Array]
 class ZarrStorage(StorageBase):
     """storage that stores data in an zarr file"""
 
-    extensions = ["zarr"]
+    extensions = ["zarr", "zip", "sqldb", "lmdb"]
 
     def __init__(
         self, store_or_path: Union[str, Path, Store], *, mode: ModeType = "readonly"
@@ -44,16 +44,17 @@ class ZarrStorage(StorageBase):
             # open zarr storage on file system
             self._close = True
             path = Path(store_or_path)
-            if path.suffix == "":
+            if path.suffix in {"", ".zarr"}:
                 # path seems to be a directory
                 if path.is_dir() and self.mode.file_mode == "w":
                     self._logger.info(f"Delete directory `{path}`")
                     shutil.rmtree(path)  # remove the directory to reinstate it
                 if self.mode.file_mode == "r":
-                    self._logger.info(f"Directory are always opened writable")
+                    self._logger.info(f"DirectoryStore is always opened writable")
 
                 self._store = zarr.DirectoryStore(path)
-            else:
+
+            elif path.suffix == ".zip":
                 # path seems to be point to a file
                 file_mode = self.mode.file_mode
                 if path.exists():
@@ -64,6 +65,11 @@ class ZarrStorage(StorageBase):
                         self._logger.info(f"Delete file `{path}`")
                         path.unlink()
                 self._store = zarr.storage.ZipStore(path, mode=file_mode)
+
+            elif path.suffix == ".sqldb":
+                self._store = zarr.SQLiteStore(path)
+                # if self.mode.fi
+                # zarr.convenience.open(path, mode=self.mode.file_mode)
 
         elif isinstance(store_or_path, Store):
             # use already opened zarr storage
@@ -106,11 +112,11 @@ class ZarrStorage(StorageBase):
             parent, name = self._get_parent(loc)
             return parent[name]
 
-    def keys(self, loc: Optional[Sequence[str]] = None) -> List[str]:
+    def keys(self, loc: Optional[Sequence[str]] = None) -> Collection[str]:
         if loc:
-            return self[loc].keys()
+            return self[loc].keys()  # type: ignore
         else:
-            return self._root.keys()
+            return self._root.keys()  # type: ignore
 
     def is_group(self, loc: Sequence[str]) -> bool:
         item = self[loc]
@@ -123,19 +129,24 @@ class ZarrStorage(StorageBase):
         parent, name = self._get_parent(loc, check_write=True)
         parent.create_group(name)
 
-    def _read_attrs(self, loc: Sequence[str]) -> Attrs:
-        return self[loc].attrs
+    def _read_attrs(self, loc: Sequence[str]) -> AttrsLike:
+        return self[loc].attrs  # type: ignore
 
     def _write_attr(self, loc: Sequence[str], name: str, value) -> None:
         self[loc].attrs[name] = value
 
     def _read_array(
         self, loc: Sequence[str], *, index: Optional[int] = None
-    ) -> np.ndarray:
+    ) -> ArrayLike:
         if index is None:
-            return self[loc]
+            arr = self[loc]
         else:
-            return self[loc][index]
+            arr = self[loc][index]
+        return arr
+        # if isinstance(arr, zarr.Array):
+        #     return arr  # type: ignore
+        # else:
+        #     raise RuntimeError(f"No array at location `{'/'.join(loc)}`")
 
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
         parent, name = self._get_parent(loc, check_write=True)
