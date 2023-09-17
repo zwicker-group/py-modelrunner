@@ -1,5 +1,7 @@
 """
-Defines a class storing data on the file system using the hierarchical data format (hdf)
+Defines a class storing data in various storages
+
+Requires the optional :mod:`zarr` module.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de> 
 """
@@ -23,7 +25,7 @@ zarrElement = Union[zarr.Group, zarr.Array]
 
 
 class ZarrStorage(StorageBase):
-    """storage that stores data in an zarr file"""
+    """storage that stores data in an zarr file or database"""
 
     extensions = ["zarr", "zip", "sqldb", "lmdb"]
 
@@ -94,6 +96,18 @@ class ZarrStorage(StorageBase):
     def _get_parent(
         self, loc: Sequence[str], *, check_write: bool = False
     ) -> Tuple[zarr.Group, str]:
+        """get the parent group for a particular location
+
+        Args:
+            loc (list of str):
+                The location in the storage where the group will be created
+            check_write (bool):
+                Check whether the parent group is writable if `True`
+
+        Returns:
+            (group, str):
+                A tuple consisting of the parent group and the name of the current item
+        """
         try:
             path, name = loc[:-1], loc[-1]
         except IndexError:
@@ -148,11 +162,10 @@ class ZarrStorage(StorageBase):
             arr = self[loc]
         else:
             arr = self[loc][index]
-        return arr
-        # if isinstance(arr, zarr.Array):
-        #     return arr  # type: ignore
-        # else:
-        #     raise RuntimeError(f"No array at location `{'/'.join(loc)}`")
+        if isinstance(arr, (zarr.Array, np.ndarray, np.generic)):
+            return arr  # type: ignore
+        else:
+            raise RuntimeError(f"Found {arr.__class__} at location `{'/'.join(loc)}`")
 
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
         parent, name = self._get_parent(loc, check_write=True)
@@ -170,20 +183,27 @@ class ZarrStorage(StorageBase):
                 parent.array(name, arr)
 
     def _create_dynamic_array(
-        self, loc: Sequence[str], shape: Tuple[int, ...], dtype: DTypeLike
+        self,
+        loc: Sequence[str],
+        shape: Tuple[int, ...],
+        dtype: DTypeLike,
+        record_array: bool = False,
     ) -> None:
         parent, name = self._get_parent(loc, check_write=True)
-        if dtype == object:
-            parent.zeros(
-                name,
-                shape=(0,) + shape,
-                chunks=(1,) + shape,
-                dtype=dtype,
-                object_codec=self.codec,
-            )
+        try:
+            if dtype == object:
+                parent.zeros(
+                    name,
+                    shape=(0,) + shape,
+                    chunks=(1,) + shape,
+                    dtype=dtype,
+                    object_codec=self.codec,
+                )
 
-        else:
-            parent.zeros(name, shape=(0,) + shape, chunks=(1,) + shape, dtype=dtype)
+            else:
+                parent.zeros(name, shape=(0,) + shape, chunks=(1,) + shape, dtype=dtype)
+        except zarr.errors.ContainsArrayError:
+            raise RuntimeError(f"Array `{'/'.join(loc)}` already exists")
 
     def _extend_dynamic_array(self, loc: Sequence[str], data: ArrayLike) -> None:
         self[loc].append([data])

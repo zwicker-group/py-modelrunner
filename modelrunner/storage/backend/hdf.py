@@ -1,6 +1,8 @@
 """
 Defines a class storing data on the file system using the hierarchical data format (hdf)
 
+Requires the optional :mod:`h5py` module.
+
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de> 
 """
 
@@ -87,6 +89,20 @@ class HDFStorage(StorageBase):
         create_groups: bool = True,
         check_write: bool = False,
     ) -> Tuple[h5py.Group, str]:
+        """get the parent group for a particular location
+
+        Args:
+            loc (list of str):
+                The location in the storage where the group will be created
+            create_groups (bool):
+                Create all intermediate groups if they not already exist
+            check_write (bool):
+                Check whether the parent group is writable if `True`
+
+        Returns:
+            (group, str):
+                A tuple consisting of the parent group and the name of the current item
+        """
         try:
             path, name = loc[:-1], loc[-1]
         except IndexError:
@@ -151,10 +167,10 @@ class HDFStorage(StorageBase):
 
         if self._read_attrs(loc).get("__pickled__", False):
             return decode_binary(np.asarray(arr).item())  # type: ignore
-        # elif isinstance(arr, h5py.Dataset):
-        else:
+        elif isinstance(arr, (h5py.Dataset, np.ndarray, np.generic)):
             return arr  # type: ignore
-            # raise RuntimeError(f"No array at location `{'/'.join(loc)}`")
+        else:
+            raise RuntimeError(f"Found {arr.__class__} at location `{'/'.join(loc)}`")
 
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
         parent, name = self._get_parent(loc, check_write=True)
@@ -173,27 +189,43 @@ class HDFStorage(StorageBase):
             # create a new data set
             if arr.dtype == object:
                 arr_str = encode_binary(arr, binary=True)
-                dataset = parent.create_dataset(name, data=np.void(arr_str))  # type: ignore
+                dataset = parent.create_dataset(name, data=np.void(arr_str))
                 dataset.attrs["__pickled__"] = encode_attr(True)
             else:
                 args = {"compression": "gzip"} if self.compression else {}
                 parent.create_dataset(name, data=arr, **args)
 
     def _create_dynamic_array(
-        self, loc: Sequence[str], shape: Tuple[int, ...], dtype: DTypeLike
+        self,
+        loc: Sequence[str],
+        shape: Tuple[int, ...],
+        *,
+        dtype: DTypeLike,
+        record_array: bool = False,
     ) -> None:
         parent, name = self._get_parent(loc, check_write=True)
         if dtype == object:
             dt = h5py.special_dtype(vlen=np.dtype("uint8"))
-            dataset = parent.create_dataset(
-                name, shape=(1,) + shape, maxshape=(None,) + shape, dtype=dt
-            )
+            try:
+                dataset = parent.create_dataset(
+                    name, shape=(1,) + shape, maxshape=(None,) + shape, dtype=dt
+                )
+            except ValueError:
+                raise RuntimeError(f"Array `{'/'.join(loc)}` already exists")
             dataset.attrs["__pickled__"] = encode_attr(True)
+
         else:
             args = {"compression": "gzip"} if self.compression else {}
-            parent.create_dataset(
-                name, shape=(1,) + shape, maxshape=(None,) + shape, dtype=dtype, **args
-            )
+            try:
+                parent.create_dataset(
+                    name,
+                    shape=(1,) + shape,
+                    maxshape=(None,) + shape,
+                    dtype=dtype,
+                    **args,
+                )
+            except ValueError:
+                raise RuntimeError(f"Array `{'/'.join(loc)}` already exists")
         self._dynamic_array_size[self._get_hdf_path(loc)] = 0
 
     def _extend_dynamic_array(self, loc: Sequence[str], arr: ArrayLike) -> None:
@@ -216,7 +248,7 @@ class HDFStorage(StorageBase):
 
         if dataset.attrs.get("__pickled__", False):
             arr_bin = encode_binary(arr, binary=True)
-            dataset[size] = np.fromstring(arr_bin, dtype="uint8")  # type: ignore
+            dataset[size] = np.frombuffer(arr_bin, dtype="uint8")
         else:
             dataset[size] = arr
 

@@ -93,7 +93,7 @@ class ArrayState(StateBase):
     @classmethod
     def _state_from_stored_data(
         cls, storage: StorageGroup, loc: Location, index: Optional[int] = None
-    ) -> None:
+    ):
         obj = cls.__new__(cls)
         attributes = storage.read_attrs(loc)
         attributes.pop("__class__")

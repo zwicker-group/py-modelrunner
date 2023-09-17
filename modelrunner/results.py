@@ -131,20 +131,20 @@ class Result:
                 Name of the node in which the data was stored. This applies to some
                 hierarchical storage formats.
         """
-        with open_storage(storage, mode="readonly") as storage:
-            attrs = storage.read_attrs(loc)
+        with open_storage(storage, mode="readonly") as storage_obj:
+            attrs = storage_obj.read_attrs(loc)
             format_version = attrs.pop("__version__", None)
             if format_version == 1:
                 # older version
                 from .compatibility import result_from_file_version1
 
-                return result_from_file_version1(storage, loc, model=model)
+                return result_from_file_version1(storage_obj, loc, model=model)
 
             elif format_version == cls._state_format_version:
                 # current version of storing results
                 info = attrs.pop("__info__", {})  # load additional info
                 model_data = attrs.get("__model__", {})
-                state = storage[loc, "state"]  # should load the state automatically
+                state = storage_obj[loc, "state"]  # should load the state automatically
                 return cls.from_data(
                     model_data=model_data, state=state, model=model, info=info
                 )
@@ -166,13 +166,13 @@ class Result:
                 Additional arguments are passed on to the method that implements the
                 writing of the specific format (_write_**).
         """
-        with open_storage(storage, mode=mode) as storage:
+        with open_storage(storage, mode=mode) as storage_obj:
             # collect attributes from the result
             attrs = {"__model__": dict(self.model._state_attributes)}
             if self.info:
                 attrs["__info__"] = self.info
             attrs["__version__"] = self._state_format_version
-            group = storage.create_group(loc, attrs=attrs, cls=self.__class__)
+            group = storage_obj.create_group(loc, attrs=attrs, cls=self.__class__)
 
             # write the actual data
             self.state._state_write_to_storage(group, loc="state")

@@ -61,7 +61,7 @@ class ObjectState(StateBase):
         arr = np.empty(1, dtype=object)
         arr[0] = self._state_data_store
         attrs = self._state_attributes_store
-        return storage.write_array(loc, arr, attrs=attrs, cls=self.__class__)
+        storage.write_array(loc, arr, attrs=attrs, cls=self.__class__)
 
     def _state_create_trajectory(self, storage: StorageGroup, loc: Location) -> None:
         """prepare the zarr storage for this state"""

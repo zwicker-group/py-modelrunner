@@ -43,6 +43,15 @@ class AccessMode:
 
     @classmethod
     def parse(cls, obj_or_name: Union[str, AccessMode]) -> AccessMode:
+        """gets access mode from various formats
+
+        Args:
+            obj_or_name (str or :class:`AccessMode`):
+                An :class:`AccessMode` object or the name of a registered access mode
+
+        Returns:
+            :class:`AccessMode`: the access mode object
+        """
         if isinstance(obj_or_name, AccessMode):
             return obj_or_name
         elif isinstance(obj_or_name, str):
@@ -118,4 +127,6 @@ ModeType = Union[str, AccessMode]
 
 
 class AccessError(RuntimeError):
+    """an error indicating that an access credential was not present"""
+
     ...

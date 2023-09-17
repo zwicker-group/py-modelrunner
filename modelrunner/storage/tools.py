@@ -13,7 +13,31 @@ StorageID = Union[None, str, Path, StorageGroup, StorageBase]
 
 
 class open_storage(StorageGroup):
+    """open a storage and return the root :class:`StorageGroup`
+
+    Example:
+        This can be either used like a function
+
+        .. code-block:: python
+
+            storage = open_storage(...)
+            # use the storage
+            storage.close()
+
+        or as a context manager
+
+        .. code-block:: python
+
+            with open_storage(...) as storage:
+                # use the storage
+    """
+
     def __init__(self, storage: StorageID = None, **kwargs):
+        """
+        Args:
+            storage:
+                The path to a file or directory or a :class:`StorageBase` instance
+        """
         store_obj: Optional[StorageBase] = None
         if isinstance(storage, StorageBase):
             self._close = False
@@ -55,7 +79,8 @@ class open_storage(StorageGroup):
 
         super().__init__(store_obj)
 
-    def close(self):
+    def close(self) -> None:
+        """close the storage (and flush all data to persistent storage if necessary)"""
         if self._close:
             self._storage.close()
 

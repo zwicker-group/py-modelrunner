@@ -26,9 +26,12 @@ class StorageBase(metaclass=ABCMeta):
     """base class for storing data"""
 
     extensions: List[str] = []
+    """list of str: all file extensions supported by this storage"""
     default_codec = numcodecs.Pickle()
+    """:class:`numcodecs.Codec`: the default codec used for encoding binary data"""
 
     _codec: numcodecs.abc.Codec
+    """:class:`numcodecs.Codec`: the specific codec used for encoding binary data"""
 
     def __init__(self, *, mode: ModeType = "readonly"):
         """
@@ -262,7 +265,7 @@ class StorageBase(metaclass=ABCMeta):
             loc (list of str):
                 The location in the storage where the array is read
             arr (:class:`~numpy.ndarray`):
-                The array which will be written
+                The array that will be written
             attrs (dict, optional):
                 Attributes stored with the array
             cls (type):
@@ -286,7 +289,12 @@ class StorageBase(metaclass=ABCMeta):
 
     @abstractmethod
     def _create_dynamic_array(
-        self, loc: Sequence[str], shape: Tuple[int, ...], dtype: DTypeLike
+        self,
+        loc: Sequence[str],
+        shape: Tuple[int, ...],
+        *,
+        dtype: DTypeLike,
+        record_array: bool = False,
     ) -> None:
         raise NotImplementedError(f"No dynamic arrays for {self.__class__.__name__}")
 
@@ -296,6 +304,7 @@ class StorageBase(metaclass=ABCMeta):
         shape: Tuple[int, ...],
         *,
         dtype: DTypeLike = float,
+        record_array: bool = False,
         attrs: Optional[Attrs] = None,
         cls: Optional[Type] = None,
     ) -> None:
@@ -309,6 +318,8 @@ class StorageBase(metaclass=ABCMeta):
                 shape, which can then be extended subsequently.
             dtype:
                 The data type of the array to be written
+            record_array (bool):
+                Flag indicating whether the array is of type :class:`~numpy.recarray`
             attrs (dict, optional):
                 Attributes stored with the array
             cls (type):
@@ -324,7 +335,9 @@ class StorageBase(metaclass=ABCMeta):
             if not self.mode.insert:
                 raise AccessError(f"No right to insert array `{'/'.join(loc)}`")
 
-        self._create_dynamic_array(loc, tuple(shape), dtype=dtype)
+        self._create_dynamic_array(
+            loc, tuple(shape), dtype=dtype, record_array=record_array
+        )
         self.write_attrs(loc, self._get_attrs(attrs, cls=cls))
 
     @abstractmethod
@@ -338,7 +351,7 @@ class StorageBase(metaclass=ABCMeta):
             loc (list of str):
                 The location in the storage where the dynamic array is located
             arr (array):
-                The array which will be appended to the dynamic array
+                The array that will be appended to the dynamic array
         """
         if not self.mode.dynamic_append:
             raise AccessError(f"Cannot append data to dynamic array `{'/'.join(loc)}`")
