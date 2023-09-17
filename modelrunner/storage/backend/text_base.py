@@ -15,7 +15,7 @@ from .utils import simplify_data
 
 
 class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
-    """storage that stores data in a text file
+    """base class for storage that stores data in a text file
 
     Note that the data is only written once the storage is closed.
     """
@@ -52,6 +52,7 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
         return f'{self.__class__.__name__}("{self._path}", ' f'mode="{self.mode.name}")'
 
     def close(self) -> None:
+        """close the file and write the data to the file"""
         if self.mode.file_mode in {"x", "a", "w"}:
             if self.simplify:
                 data = simplify_data(self._data)
@@ -61,6 +62,13 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
                 self._write_data_to_fp(fp, data)
 
     def to_text(self, simplify: Optional[bool] = None) -> str:
+        """serialize the data and return it as a string
+
+        Args:
+            simplify (bool):
+                Flag indicating whether the data is stored in a simplified form. If
+                `None`, the object-level value is used.
+        """
         if simplify is None:
             simplify = self.simplify
         if simplify:

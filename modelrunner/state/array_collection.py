@@ -122,7 +122,7 @@ class ArrayCollectionState(StateBase):
     @classmethod
     def _state_from_stored_data(
         cls, storage: StorageGroup, loc: Location, index: Optional[int] = None
-    ) -> None:
+    ):
         attrs = storage.read_attrs(loc)
         attrs.pop("__class__")
 

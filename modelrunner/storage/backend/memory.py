@@ -23,6 +23,10 @@ from ..base import StorageBase
 class MemoryStorage(StorageBase):
     """store items in memory"""
 
+    encode_internal_attrs: bool = False
+    """bool: Flag determining whether flags used by this class internally are encoded as
+    a string. This can be important if the data is stored to a file later"""
+
     _data: Attrs
 
     def __init__(self, *, mode: ModeType = "insert"):
@@ -34,6 +38,18 @@ class MemoryStorage(StorageBase):
         """
         super().__init__(mode=mode)
         self._data = {}
+
+    def _encode_internal_attr(self, attr: Any) -> Any:
+        if self.encode_internal_attrs:
+            return encode_attr(attr)
+        else:
+            return attr
+
+    def _decode_internal_attr(self, attr: Any) -> Any:
+        if self.encode_internal_attrs:
+            return decode_attr(attr)
+        else:
+            return attr
 
     def clear(self) -> None:
         """truncate the storage by removing all stored data.
@@ -47,6 +63,18 @@ class MemoryStorage(StorageBase):
     def _get_parent(
         self, loc: Sequence[str], *, check_write: bool = False
     ) -> Tuple[Dict, str]:
+        """get the parent group for a particular location
+
+        Args:
+            loc (list of str):
+                The location in the storage where the group will be created
+            check_write (bool):
+                Check whether the parent group is writable if `True`
+
+        Returns:
+            (group, str):
+                A tuple consisting of the parent group and the name of the current item
+        """
         value = self._data
         for part in loc[:-1]:
             try:
@@ -117,44 +145,65 @@ class MemoryStorage(StorageBase):
             arr = self[loc]["data"][index]
 
         if hasattr(arr, "__iter__"):  # minimal sanity check
-            dtype = decode_attr(self[loc]["__dtype__"])
+            dtype = self._decode_internal_attr(self[loc]["dtype"])
             if dtype.names is not None:
                 arr = unstructured_to_structured(np.asarray(arr), dtype=dtype)
             else:
                 arr = np.array(arr, dtype=dtype)
-            if self[loc].get("__record_array__", False):
+            if self[loc].get("record_array", False):
                 arr = arr.view(np.recarray)
-            return arr
+            return arr  # type: ignore
         else:
             raise RuntimeError(f"No array at {'/'.join(loc)}")
 
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
         parent, name = self._get_parent(loc, check_write=True)
 
-        dtype = arr.dtype
+        dtype = arr.dtype  # extract dtype here since `arr` is changed later
         if dtype.names is not None:
             # structured array
             arr = structured_to_unstructured(arr)
 
         parent[name] = {
             "data": np.array(arr, copy=True),
-            "__dtype__": encode_attr(dtype),
-            "__record_array__": True,
+            "dtype": self._encode_internal_attr(dtype),
         }
+        if isinstance(arr, np.record):
+            parent[name]["record_array"] = True
 
     def _create_dynamic_array(
-        self, loc: Sequence[str], shape: Tuple[int, ...], dtype: DTypeLike
+        self,
+        loc: Sequence[str],
+        shape: Tuple[int, ...],
+        dtype: DTypeLike,
+        *,
+        record_array: bool = False,
     ) -> None:
         parent, name = self._get_parent(loc, check_write=True)
-        parent[name] = {"data": [], "shape": shape, "dtype": np.dtype(dtype)}
+        if name in parent:
+            raise RuntimeError(f"Array `{'/'.join(loc)}` already exists")
+        parent[name] = {
+            "data": [],
+            "shape": shape,
+            "dtype": self._encode_internal_attr(np.dtype(dtype)),
+        }
+        if record_array:
+            parent[name]["record_array"] = True
 
     def _extend_dynamic_array(self, loc: Sequence[str], arr: ArrayLike) -> None:
         item = self[loc]
         data = np.asanyarray(arr)
-        if item["shape"] != data.shape:
-            raise TypeError("Shape mismatch")
-        if not np.issubdtype(data.dtype, item["dtype"]):
-            raise TypeError("Dtype mismatch")
+
+        stored_shape = tuple(item["shape"])
+        if stored_shape != data.shape:
+            raise TypeError(f"Shape mismatch ({stored_shape} != {data.shape})")
+
+        stored_dtype = self._decode_internal_attr(item["dtype"])
+        if not np.issubdtype(data.dtype, stored_dtype):
+            raise TypeError(f"Dtype mismatch ({data.dtype} != {stored_dtype}")
+        if data.dtype.names is not None:
+            # structured array
+            data = structured_to_unstructured(data)
 
         if data.ndim == 0:
             item["data"].append(data.item())

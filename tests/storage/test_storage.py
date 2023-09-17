@@ -23,11 +23,14 @@ def test_storage_persistence(arr, ext, tmp_path):
     with open_storage(tmp_path / f"file.{ext}", mode="truncate") as storage:
         storage.create_group("empty")
         storage.write_array("group/test/arr", arr)
+        storage.create_dynamic_array("dyn", arr=arr)
+        storage.extend_dynamic_array("dyn", arr)
 
     # read from storage
     with open_storage(tmp_path / f"file.{ext}", mode="readonly") as storage:
         assert storage.is_group("empty") and len(storage["empty"].keys()) == 0
         np.testing.assert_array_equal(storage.read_array("group/test/arr"), arr)
+        np.testing.assert_array_equal(storage.read_array("dyn", index=0), arr)
 
 
 @pytest.mark.parametrize("ext", STORAGE_EXTENSIONS)
@@ -44,6 +47,10 @@ def test_storage_readonly(ext, tmp_path):
             storage.create_group("a")
         with pytest.raises(AccessError):
             storage.write_array("arr", np.arange(5))
+        with pytest.raises(AccessError):
+            storage.create_dynamic_array("dyn", arr=np.arange(5))
+        with pytest.raises(AccessError):
+            storage.extend_dynamic_array("dyn", np.arange(5))
 
 
 @pytest.mark.parametrize("ext", STORAGE_EXTENSIONS)
@@ -52,6 +59,7 @@ def test_storage_insert(ext, tmp_path):
     with open_storage(tmp_path / f"file.{ext}", mode="truncate") as storage:
         storage.create_group("a")
         storage.write_array("arr1", np.arange(3))
+        storage.create_dynamic_array("dyn", arr=np.arange(2))
 
     with open_storage(tmp_path / f"file.{ext}", mode="insert") as storage:
         storage.write_attrs(None, {"a": 1})
@@ -59,6 +67,7 @@ def test_storage_insert(ext, tmp_path):
         storage.write_array("arr2", np.arange(5))
         with pytest.raises(AccessError):
             storage.write_array("arr2", np.zeros(5))
+        storage.extend_dynamic_array("dyn", np.arange(2))
 
         # test reading
         assert storage.is_group("a")
@@ -69,6 +78,7 @@ def test_storage_insert(ext, tmp_path):
         assert storage.is_group("b")
         np.testing.assert_array_equal(storage.read_array("arr1"), np.arange(3))
         np.testing.assert_array_equal(storage.read_array("arr2"), np.arange(5))
+        np.testing.assert_array_equal(storage.read_array("dyn", index=0), np.arange(2))
 
 
 @pytest.mark.parametrize("ext", STORAGE_EXTENSIONS)
@@ -76,6 +86,8 @@ def test_storage_overwrite(ext, tmp_path):
     """test overwrite mode"""
     with open_storage(tmp_path / f"file.{ext}", mode="truncate") as storage:
         storage.write_array("arr", np.arange(5))
+        storage.create_dynamic_array("dyn", arr=np.arange(2, dtype=float))
+        storage.extend_dynamic_array("dyn", np.arange(2, dtype=float))
 
     with open_storage(tmp_path / f"file.{ext}", mode="overwrite") as storage:
         storage.write_attrs(None, {"a": 1})
@@ -87,8 +99,13 @@ def test_storage_overwrite(ext, tmp_path):
         with pytest.raises(AccessError):
             storage.write_array("b", np.arange(5))
 
+        with pytest.raises(RuntimeError):
+            storage.create_dynamic_array("dyn", arr=np.arange(3))
+        storage.extend_dynamic_array("dyn", np.ones(2, dtype=float))
+
     with open_storage(tmp_path / f"file.{ext}", mode="readonly") as storage:
         np.testing.assert_array_equal(storage.read_array("arr"), np.zeros(5))
+        np.testing.assert_array_equal(storage.read_array("dyn", index=1), np.ones(2))
 
 
 @pytest.mark.parametrize("ext", STORAGE_EXTENSIONS)
@@ -96,6 +113,8 @@ def test_storage_full(ext, tmp_path):
     """test full mode"""
     with open_storage(tmp_path / f"file.{ext}", mode="truncate") as storage:
         storage.write_array("arr", np.arange(5))
+        storage.create_dynamic_array("dyn", arr=np.arange(2, dtype=float))
+        storage.extend_dynamic_array("dyn", np.full(2, 1.0))
 
     with open_storage(tmp_path / f"file.{ext}", mode="full") as storage:
         storage.write_attrs(None, {"a": 1})
@@ -104,9 +123,11 @@ def test_storage_full(ext, tmp_path):
         np.testing.assert_array_equal(storage.read_array("arr"), np.arange(5))
         storage.write_array("arr", np.zeros(5))
         storage.write_array("b", np.arange(5))
+        storage.extend_dynamic_array("dyn", np.full(2, 2.0))
 
     with open_storage(tmp_path / f"file.{ext}", mode="readonly") as storage:
         np.testing.assert_array_equal(storage.read_array("arr"), np.zeros(5))
+        np.testing.assert_array_equal(storage.read_array("dyn", index=0), np.ones(2))
 
 
 @pytest.mark.parametrize("ext", STORAGE_EXTENSIONS)
@@ -116,11 +137,15 @@ def test_storage_truncate(ext, tmp_path):
         storage.create_group("a")
         storage.write_attrs(None, {"a": 1})
         storage.write_array("arr", np.arange(5))
+        storage.create_dynamic_array("dyn", arr=np.arange(2, dtype=float))
+        storage.extend_dynamic_array("dyn", np.full(2, 2.0))
 
     with open_storage(tmp_path / f"file.{ext}", mode="truncate") as storage:
         storage.create_group("c/b/a")
         storage.write_attrs(None, {"test": 1})
         storage.write_array("arr2", np.arange(5))
+        storage.create_dynamic_array("dyn", arr=np.arange(2, dtype=float))
+        storage.extend_dynamic_array("dyn", np.full(2, 1.0))
 
     with open_storage(tmp_path / f"file.{ext}", mode="readonly") as storage:
         assert "a" not in storage
@@ -129,3 +154,4 @@ def test_storage_truncate(ext, tmp_path):
 
         assert "c/b/a" in storage
         np.testing.assert_array_equal(storage.read_array("arr2"), np.arange(5))
+        np.testing.assert_array_equal(storage.read_array("dyn", index=0), np.ones(2))

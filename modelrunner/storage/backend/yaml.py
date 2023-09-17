@@ -1,4 +1,8 @@
 """
+Defines a class storing data in memory and writing it to a file in YAML format
+
+Requires the optional :mod:`yaml` module.
+
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
@@ -16,6 +20,7 @@ class YAMLStorage(TextStorageBase):
     """
 
     extensions = ["yaml", "yml"]
+    encode_internal_attrs = True
 
     def _read_data_from_fp(self, fp) -> None:
         try:

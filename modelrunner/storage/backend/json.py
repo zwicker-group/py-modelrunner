@@ -1,4 +1,6 @@
 """
+Defines a class storing data in memory and writing it to a file in JSON format
+
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
