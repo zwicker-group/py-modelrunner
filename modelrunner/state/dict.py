@@ -109,8 +109,19 @@ class DictState(StateBase):
 
     @classmethod
     def _state_from_stored_data(
-        cls, storage: StorageGroup, loc: Location, index: Optional[int] = None
+        cls, storage: StorageGroup, loc: Location, *, index: Optional[int] = None
     ):
+        """create the state from storage
+
+        Args:
+            storage (:class:`StorageGroup`):
+                A storage opened with :func:`~modelrunner.storage.open_storage`
+            loc (str or list of str):
+                The location in the storage where the state is read
+            index (int, optional):
+                If the location contains a trajectory of the state, `index` must denote
+                the index determining which state should be created
+        """
         attrs = storage.read_attrs(loc)
         attrs.pop("__class__")
 
@@ -125,11 +136,30 @@ class DictState(StateBase):
     def _state_update_from_stored_data(
         self, storage: StorageGroup, loc: Location, index: Optional[int] = None
     ) -> None:
+        """update the state data (but not its attributes) from storage
+
+        Args:
+            storage (:class:`StorageGroup`):
+                A storage opened with :func:`~modelrunner.storage.open_storage`
+            loc (str or list of str):
+                The location in the storage where the state is read
+            index (int, optional):
+                If the location contains a trajectory of the state, `index` must denote
+                the index determining which state should be created
+        """
         group = StorageGroup(storage, loc)
         for loc, substate in self._state_data.items():
             substate._state_update_from_stored_data(group, loc, index=index)
 
     def _state_write_to_storage(self, storage: StorageGroup, loc: Location) -> None:
+        """write the state to storage
+
+        Args:
+            storage (:class:`StorageGroup`):
+                A storage opened with :func:`~modelrunner.storage.open_storage`
+            loc (str or list of str):
+                The location in the storage where the state is written
+        """
         group = storage.create_group(
             loc, cls=self.__class__, attrs=self._state_attributes_store
         )
@@ -138,7 +168,14 @@ class DictState(StateBase):
             substate._state_write_to_storage(group, label)
 
     def _state_create_trajectory(self, storage: StorageGroup, loc: Location) -> None:
-        """prepare the zarr storage for this state"""
+        """prepare a trajectory of the current state
+
+        Args:
+            storage (:class:`StorageGroup`):
+                A storage opened with :func:`~modelrunner.storage.open_storage`
+            loc (str or list of str):
+                The location in the storage where the trajectory is written
+        """
         group = storage.create_group(
             loc, cls=self.__class__, attrs=self._state_attributes_store
         )
@@ -147,6 +184,14 @@ class DictState(StateBase):
             substate._state_create_trajectory(group, label)
 
     def _state_append_to_trajectory(self, storage: StorageGroup, loc: Location) -> None:
+        """append the current state to a prepared trajectory
+
+        Args:
+            storage (:class:`StorageGroup`):
+                A storage opened with :func:`~modelrunner.storage.open_storage`
+            loc (str or list of str):
+                The location in the storage where the trajectory is written
+        """
         group = StorageGroup(storage, loc)
         for label, substate in self._state_data_store.items():
             substate._state_append_to_trajectory(group, label)

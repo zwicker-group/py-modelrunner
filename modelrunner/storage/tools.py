@@ -37,6 +37,10 @@ class open_storage(StorageGroup):
         Args:
             storage:
                 The path to a file or directory or a :class:`StorageBase` instance
+            mode (str or :class:`~modelrunner.storage.access_modes.AccessMode`):
+                The file mode with which the storage is accessed, which determines the
+                allowed operations. Common options are "readonly", "full", "append", and
+                "truncate".
         """
         store_obj: Optional[StorageBase] = None
         if isinstance(storage, StorageBase):

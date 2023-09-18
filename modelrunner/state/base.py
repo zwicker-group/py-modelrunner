@@ -332,6 +332,17 @@ class StateBase(metaclass=ABCMeta):
     def _state_from_stored_data(
         cls, storage: StorageGroup, loc: Location, *, index: Optional[int] = None
     ):
+        """create the state from storage
+
+        Args:
+            storage (:class:`StorageGroup`):
+                A storage opened with :func:`~modelrunner.storage.open_storage`
+            loc (str or list of str):
+                The location in the storage where the state is read
+            index (int, optional):
+                If the location contains a trajectory of the state, `index` must denote
+                the index determining which state should be created
+        """
         # determine the class to reconstruct the data from attribute
         state_cls = _get_state_cls_from_storage(storage, loc)
         if state_cls == StateBase:
@@ -342,33 +353,69 @@ class StateBase(metaclass=ABCMeta):
     def _state_update_from_stored_data(
         self, storage: StorageGroup, loc: Location, index: Optional[int] = None
     ) -> None:
+        """update the state data (but not its attributes) from storage
+
+        Args:
+            storage (:class:`StorageGroup`):
+                A storage opened with :func:`~modelrunner.storage.open_storage`
+            loc (str or list of str):
+                The location in the storage where the state is read
+            index (int, optional):
+                If the location contains a trajectory of the state, `index` must denote
+                the index determining which state should be created
+        """
         raise NotImplementedError(f"Cannot update `{self.__class__.__name__}`")
 
     def _state_write_to_storage(self, storage: StorageGroup, loc: Location) -> None:
+        """write the state to storage
+
+        Args:
+            storage (:class:`StorageGroup`):
+                A storage opened with :func:`~modelrunner.storage.open_storage`
+            loc (str or list of str):
+                The location in the storage where the state is written
+        """
         raise NotImplementedError(f"Cannot write `{self.__class__.__name__}`")
 
     def _state_create_trajectory(self, storage: StorageGroup, loc: Location) -> None:
-        """prepare the zarr storage for this state"""
+        """prepare a trajectory of the current state
+
+        Args:
+            storage (:class:`StorageGroup`):
+                A storage opened with :func:`~modelrunner.storage.open_storage`
+            loc (str or list of str):
+                The location in the storage where the trajectory is written
+        """
         raise NotImplementedError(
             f"Cannot create trajectory for `{self.__class__.__name__}`"
         )
 
     def _state_append_to_trajectory(self, storage: StorageGroup, loc: Location) -> None:
+        """append the current state to a prepared trajectory
+
+        Args:
+            storage (:class:`StorageGroup`):
+                A storage opened with :func:`~modelrunner.storage.open_storage`
+            loc (str or list of str):
+                The location in the storage where the trajectory is written
+        """
         raise NotImplementedError(
             f"Cannot extend trajectory for `{self.__class__.__name__}`"
         )
 
     @classmethod
     def from_file(cls, storage: StorageID, loc: Location = "state", **kwargs):
-        """load object from a file
+        r"""load object from a file
 
         Args:
-            store (str or :class:`zarr.Store`):
-                Path or instance describing the storage, which is either a file path or
-                a :class:`zarr.Storage`.
-            loc (str):
-                Name of the node in which the data was stored. This applies to some
-                hierarchical storage formats.
+            storage (str or :class:`~modelrunner.storage.StorageBase`):
+                Path or instance describing the storage. The simplest choice is a path
+                to a file, where the data is written in a format deduced from the file
+                extension.
+            loc (str or list of str):
+                Name of the location where the data was stored.
+            **kwargs:
+                Arguments passed to :func:`~modelrunner.storage.open_storage`
         """
         kwargs.setdefault("mode", "readonly")
         with open_storage(storage, **kwargs) as opened_storage:
@@ -385,20 +432,38 @@ class StateBase(metaclass=ABCMeta):
         """write this object to a file
 
         Args:
-            store (str or :class:`zarr.Store`):
-                Where to write the data to
-            overwrite (bool):
-                If True, overwrites files even if they already exist
+            storage (str or :class:`~modelrunner.storage.StorageBase`):
+                Path or instance describing the storage. The simplest choice is a path
+                to a file, where the data is written in a format deduced from the file
+                extension.
+            loc (str or list of str):
+                Name of the location where the data will be stored.
+            mode (str or :class:`~modelrunner.storage.access_modes.AccessMode`):
+                The file mode with which the storage is accessed, which determines the
+                allowed operations. Common options are "readonly", "full", "append", and
+                "truncate".
             **kwargs:
-                Additional arguments are passed on to the method that implements the
-                writing of the specific format (_write_**).
+                Arguments passed to :func:`~modelrunner.storage.open_storage`
         """
         with open_storage(storage, mode=mode, **kwargs) as opened_storage:
             self._state_write_to_storage(opened_storage, loc=loc)
 
 
-def _get_state_cls_from_storage(storage, key):
-    stored_cls = storage.read_attrs(key).get("__class__", None)
+def _get_state_cls_from_storage(
+    storage: StorageGroup, loc: Location
+) -> Type[StateBase]:
+    """obtain class of state stored in a particular location
+
+    Args:
+        storage (str or :class:`~modelrunner.storage.StorageBase`):
+                A storage opened with :func:`~modelrunner.storage.open_storage`
+        loc (str or list of str):
+            Name of the location where the data will be stored.
+
+    Returns:
+        A subclass of :class:`StateBase`
+    """
+    stored_cls = storage.read_attrs(loc).get("__class__", None)
     _, class_name = stored_cls.rsplit(".", 1)
     if class_name in StateBase._state_classes:
         return StateBase._state_classes[class_name]
