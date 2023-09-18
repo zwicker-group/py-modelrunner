@@ -131,16 +131,18 @@ class Result:
                 Name of the node in which the data was stored. This applies to some
                 hierarchical storage formats.
         """
+        if isinstance(storage, (str, Path)):
+            from .compatibility.triage import result_check_load_old_version
+
+            result = result_check_load_old_version(Path(storage), loc=loc, model=model)
+            if result is not None:
+                return result
+
+        # assume that file is written with latest version
         with open_storage(storage, mode="readonly") as storage_obj:
             attrs = storage_obj.read_attrs(loc)
             format_version = attrs.pop("__version__", None)
-            if format_version == 1:
-                # older version
-                from .compatibility import result_from_file_version1
-
-                return result_from_file_version1(storage_obj, loc, model=model)
-
-            elif format_version == cls._state_format_version:
+            if format_version == cls._state_format_version:
                 # current version of storing results
                 info = attrs.pop("__info__", {})  # load additional info
                 model_data = attrs.get("__model__", {})
