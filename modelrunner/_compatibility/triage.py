@@ -1,5 +1,5 @@
 """
-Contains code necessary for loading results from old format version
+Contains code necessary for deciding which format version was used to write a file
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """

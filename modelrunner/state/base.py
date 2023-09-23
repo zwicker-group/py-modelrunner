@@ -10,7 +10,7 @@ from __future__ import annotations
 import copy
 import warnings
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, Type, TypeVar
 
 import numpy as np
 
@@ -269,7 +269,9 @@ class StateBase(metaclass=ABCMeta):
         else:
             raise ValueError(f"Incompatible state class {cls_name}")
 
-    def copy(self: TState, method: str, data=None) -> TState:
+    def copy(
+        self: TState, method: Literal["clean", "shallow", "data"], data=None
+    ) -> TState:
         """create a copy of the state
 
         There are several methods of copying the state:

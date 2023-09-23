@@ -7,7 +7,7 @@ Classes that describe the state of a simulation using a dictionary of states
 from __future__ import annotations
 
 import itertools
-from typing import Any, Dict, Optional, Sequence, Union
+from typing import Any, Dict, Literal, Optional, Sequence, Union
 
 from ..storage import Location, StorageGroup
 from .base import StateBase
@@ -64,7 +64,7 @@ class DictState(StateBase):
             data = {k: v for k, v in zip(keys, data)}
         return super().from_data(attributes, data)
 
-    def copy(self, method: str, data=None):
+    def copy(self, method: Literal["clean", "shallow", "data"], data=None):
         """create a copy of the state
 
         Args:
