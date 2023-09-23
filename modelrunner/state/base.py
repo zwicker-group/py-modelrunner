@@ -16,7 +16,7 @@ import numpy as np
 
 from ..storage import Location, StorageGroup, open_storage, storage_actions
 from ..storage.access_modes import ModeType
-from ..storage.attributes import attrs_remove_dunderscore
+from ..storage.attributes import Attrs, attrs_remove_dunderscore
 from ..storage.utils import decode_class
 
 if TYPE_CHECKING:
@@ -82,10 +82,10 @@ class StateBase(metaclass=ABCMeta):
     .. autoproperty:: StateBase._state_data_store
     """
 
-    _state_format_version = 1
+    _state_format_version = 2
     """int: number indicating the version of the file format"""
 
-    _state_classes: Dict[str, StateBase] = {}
+    _state_classes: Dict[str, Type[StateBase]] = {}
     """dict: class-level list of all subclasses of StateBase"""
 
     _state_attributes_attr_name: Optional[str] = None
@@ -329,6 +329,37 @@ class StateBase(metaclass=ABCMeta):
         return obj
 
     @classmethod
+    def _state_get_attrs_from_storage(
+        cls, storage: StorageGroup, loc: Location, *, check_version: bool = True
+    ) -> Attrs:
+        """read attributes from storage and optionally check format version
+
+        Args:
+            storage (str or :class:`~modelrunner.storage.StorageBase`):
+                A storage opened with :func:`~modelrunner.storage.open_storage`
+            loc (str or list of str):
+                Name of the location where the data will be stored.
+            check_version (bool):
+                A number indicating whether the format version should be checked
+
+        Raises:
+            `RuntimeError`: If format version is specified, but not matched
+
+        Returns:
+            dict: Attributes without the `__class__` and `__version__` item
+        """
+        # read relevant attributes of the state
+        attrs = storage.read_attrs(loc)
+        attrs.pop("__class__", None)  # remove this information
+
+        # check whether the data can be read
+        version = attrs.pop("__version__", None)
+        if check_version is not None and version != cls._state_format_version:
+            raise RuntimeError(f"Cannot read format version {version}")
+
+        return attrs
+
+    @classmethod
     def _state_from_stored_data(
         cls, storage: StorageGroup, loc: Location, *, index: Optional[int] = None
     ):
@@ -456,7 +487,7 @@ def _get_state_cls_from_storage(
 
     Args:
         storage (str or :class:`~modelrunner.storage.StorageBase`):
-                A storage opened with :func:`~modelrunner.storage.open_storage`
+            A storage opened with :func:`~modelrunner.storage.open_storage`
         loc (str or list of str):
             Name of the location where the data will be stored.
 
@@ -468,4 +499,7 @@ def _get_state_cls_from_storage(
     if class_name in StateBase._state_classes:
         return StateBase._state_classes[class_name]
     else:
-        return decode_class(stored_cls)
+        cls = decode_class(stored_cls)
+        if cls is None:
+            raise RuntimeError(f"Could not decode class `{stored_cls}`")
+        return cls

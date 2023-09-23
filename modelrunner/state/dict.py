@@ -122,16 +122,17 @@ class DictState(StateBase):
                 If the location contains a trajectory of the state, `index` must denote
                 the index determining which state should be created
         """
-        attrs = storage.read_attrs(loc)
-        attrs.pop("__class__")
+        attrs = cls._state_get_attrs_from_storage(storage, loc, check_version=True)
 
+        # create the state from the read data
         group = StorageGroup(storage, loc)
         data = {
             label: StateBase._state_from_stored_data(group, label, index=index)
             for label in attrs["__keys__"]
         }
-
-        return cls.from_data(attrs, data)
+        obj = cls.__new__(cls)
+        obj._state_init(attrs, data)
+        return obj
 
     def _state_update_from_stored_data(
         self, storage: StorageGroup, loc: Location, index: Optional[int] = None

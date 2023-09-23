@@ -1,5 +1,5 @@
 """
-Contains code necessary for loading results from previous version
+Contains code necessary for loading results from format version 0
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -68,18 +68,13 @@ def _Result_from_hdf(hdf_element, model: Optional[ModelBase] = None) -> Result:
     return Result.from_data(model_data=model_data, state=result, model=model, info=info)
 
 
-def result_from_file_v0(path: Path, *, label: str = "data", **kwargs):
+def result_from_file_v0(path: Path, **kwargs) -> Result:
     """load object from a file using format version 1
 
     Args:
         store (str or :class:`zarr.Store`):
             Path or instance describing the storage, which is either a file path or
             a :class:`zarr.Storage`.
-        fmt (str):
-            Explicit file format. Determined from `store` if omitted.
-        label (str):
-            Name of the node in which the data was stored. This applies to some
-            hierarchical storage formats.
     """
     fmt = guess_format(path)
     if fmt == "json":

@@ -45,10 +45,9 @@ class ObjectState(StateBase):
                 If the location contains a trajectory of the state, `index` must denote
                 the index determining which state should be created
         """
-        obj = cls.__new__(cls)
-        attrs = storage.read_attrs(loc)
-        attrs.pop("__class__")
-        attrs.pop("__version__", None)
+        attrs = cls._state_get_attrs_from_storage(storage, loc, check_version=True)
+
+        # create the state from the read data
         arr = storage.read_array(loc, index=index)
         if arr.size == 1:
             # revert the trick of storing the object in an object array with one item
@@ -59,6 +58,8 @@ class ObjectState(StateBase):
             data = arr[0]
         else:
             raise RuntimeError(f"Data has shape {arr.shape} instead of single item")
+
+        obj = cls.__new__(cls)
         obj._state_init(attrs, data)
         return obj
 

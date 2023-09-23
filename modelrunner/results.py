@@ -21,6 +21,7 @@ from .model import ModelBase
 from .state import StateBase, make_state
 from .storage import StorageID, open_storage, storage_actions
 from .storage.access_modes import ModeType
+from .storage.attributes import Attrs
 
 # TODO: Do results need to returns states, or could this simply be anything
 # The new IO protocol should be able to serialize many objects
@@ -64,7 +65,7 @@ class Result:
         assert isinstance(model, ModelBase)
         assert isinstance(state, StateBase)
         self.model = model
-        self.info = info
+        self.info: Attrs = {} if info is None else info
         self.state = state
 
     @property
@@ -132,20 +133,25 @@ class Result:
                 hierarchical storage formats.
         """
         if isinstance(storage, (str, Path)):
-            from .compatibility.triage import result_check_load_old_version
+            # check whether the file was written with an old format version
+            from ._compatibility.triage import result_check_load_old_version
 
             result = result_check_load_old_version(Path(storage), loc=loc, model=model)
+            print("RESUYLT", result)
             if result is not None:
-                return result
+                return result  # Result created from old version
 
-        # assume that file is written with latest version
+        # assume that file was written with latest format version
         with open_storage(storage, mode="readonly") as storage_obj:
             attrs = storage_obj.read_attrs(loc)
+            print("ATTRS", attrs)
             format_version = attrs.pop("__version__", None)
+            print("FORMAT", format_version)
             if format_version == cls._state_format_version:
                 # current version of storing results
                 info = attrs.pop("__info__", {})  # load additional info
                 model_data = attrs.get("__model__", {})
+                print("MODEL_DATA", model_data)
                 state = storage_obj[loc, "state"]  # should load the state automatically
                 return cls.from_data(
                     model_data=model_data, state=state, model=model, info=info
@@ -170,7 +176,7 @@ class Result:
         """
         with open_storage(storage, mode=mode) as storage_obj:
             # collect attributes from the result
-            attrs = {"__model__": dict(self.model._state_attributes)}
+            attrs: Attrs = {"__model__": dict(self.model._state_attributes)}
             if self.info:
                 attrs["__info__"] = self.info
             attrs["__version__"] = self._state_format_version
@@ -178,153 +184,6 @@ class Result:
 
             # write the actual data
             self.state._state_write_to_storage(group, loc="state")
-
-    # @classmethod
-    # def _from_simple_objects(cls, content, model: Optional[ModelBase] = None) -> Result:
-    #     """read result from a JSON file
-    #
-    #     Args:
-    #         path (str or :class:`~pathlib.Path`): The path to the file
-    #         model (:class:`ModelBase`): The model from which the result was obtained
-    #     """
-    #     format_version = content.pop("__version__", None)
-    #     if format_version is None:
-    #         return cls._from_simple_objects_version0(content, model)
-    #     elif format_version != cls._state_format_version:
-    #         raise RuntimeError(f"Cannot read format version {format_version}")
-    #
-    #     return cls.from_data(
-    #         model_data=content.get("model", {}),
-    #         state=StateBase._from_simple_objects(content["state"]),
-    #         info=content.get("info"),
-    #     )
-    #
-    # def _to_simple_objects(self) -> Any:
-    #     """convert result to simple objects
-    #
-    #     Args:
-    #         path (str or :class:`~pathlib.Path`): The path to the file
-    #     """
-    #     content = {
-    #         "__version__": self._state_format_version,
-    #         "model": simplify_data(self.model._state_attributes),
-    #         "state": self.state._to_simple_objects(),
-    #     }
-    #     if self.info:
-    #         content["info"] = self.info
-    #     return content
-    #
-    # @classmethod
-    # def _from_hdf_version0(
-    #     cls, hdf_element, model: Optional[ModelBase] = None
-    # ) -> Result:
-    #     """old reader for backward compatible reading"""
-    #     model_data = {
-    #         key: json.loads(value) for key, value in hdf_element.attrs.items()
-    #     }
-    #     if "result" in hdf_element:
-    #         result = read_hdf_data(hdf_element["result"])
-    #     else:
-    #         result = model_data.pop("result")
-    #     # check for other nodes, which might not be read
-    #
-    #     info = model_data.pop("__info__") if "__info__" in model_data else {}
-    #
-    #     return cls.from_data(
-    #         model_data=model_data, state=result, model=model, info=info
-    #     )
-    #
-    # @classmethod
-    # def _from_hdf(cls, hdf_element, model: Optional[ModelBase] = None) -> Result:
-    #     """read result from a HDf file
-    #
-    #     Args:
-    #         hdf_element: The path to the file
-    #         model (:class:`ModelBase`): The model from which the result was obtained
-    #     """
-    #     attributes = {
-    #         key: json.loads(value) for key, value in hdf_element.attrs.items()
-    #     }
-    #     # extract version information from attributes
-    #     format_version = attributes.pop("__version__", None)
-    #     if format_version is None:
-    #         return cls._from_hdf_version0(hdf_element, model)
-    #     elif format_version != cls._state_format_version:
-    #         raise RuntimeError(f"Cannot read format version {format_version}")
-    #     info = attributes.pop("__info__", {})  # load additional info
-    #
-    #     # the remaining attributes correspond to the model
-    #     model_data = attributes
-    #
-    #     # load state
-    #     state_attributes = read_hdf_data(hdf_element["state"])
-    #     state_data = read_hdf_data(hdf_element["data"])
-    #     state = StateBase.from_data(state_attributes, state_data)
-    #
-    #     return cls.from_data(model_data=model_data, state=state, model=model, info=info)
-    #
-    # def _write_hdf(self, root) -> None:
-    #     """write result to HDF file
-    #
-    #     Args:
-    #         path (str or :class:`~pathlib.Path`): The path to the file
-    #     """
-    #     warnings.warn(
-    #         "The HDF format is deprecated. Use `zarr` instead", DeprecationWarning
-    #     )
-    #
-    #     # write attributes
-    #     for key, value in self.model._state_attributes.items():
-    #         root.attrs[key] = json.dumps(value, cls=NumpyEncoder)
-    #     if self.info:
-    #         root.attrs["__info__"] = json.dumps(self.info, cls=NumpyEncoder)
-    #     root.attrs["__version__"] = json.dumps(self._state_format_version)
-    #
-    #     # write the actual data
-    #     write_hdf_dataset(root, self.state._state_attributes_store, "state")
-    #     write_hdf_dataset(root, self.state._state_data_store, "data")
-    #
-    # @classmethod
-    # def _from_zarr(
-    #     cls, zarr_element: zarrElement, *, index=..., model: Optional[ModelBase] = None
-    # ) -> Result:
-    #     """create result from data stored in zarr"""
-    #     attributes = {
-    #         key: json.loads(value) for key, value in zarr_element.attrs.items()
-    #     }
-    #     # extract version information from attributes
-    #     format_version = attributes.pop("__version__", None)
-    #     if format_version != cls._state_format_version:
-    #         raise RuntimeError(f"Cannot read format version {format_version}")
-    #     info = attributes.pop("__info__", {})  # load additional info
-    #
-    #     # the remaining attributes correspond to the model
-    #     model_data = attributes
-    #
-    #     # load state
-    #     state = StateBase._from_zarr(zarr_element["state"])
-    #
-    #     return cls.from_data(model_data=model_data, state=state, model=model, info=info)
-    #
-    # def _write_zarr(
-    #     self, zarr_group: zarr.Group, *, label: str = "data", **kwargs
-    # ) -> zarrElement:
-    #     """write the entire Result object to a `zarr` file"""
-    #     # create a zarr group to store all data
-    #     result_group = zarr_group.create_group(label)
-    #
-    #     # collect attributes from
-    #     attributes = {}
-    #     for key, value in self.model._state_attributes.items():
-    #         attributes[key] = json.dumps(value, cls=NumpyEncoder)
-    #     if self.info:
-    #         attributes["__info__"] = json.dumps(self.info, cls=NumpyEncoder)
-    #     attributes["__version__"] = json.dumps(self._state_format_version)
-    #
-    #     # write the actual data
-    #     self.state._write_zarr(result_group, label="state")
-    #     result_group.attrs.update(attributes)
-    #     return result_group
 
 
 storage_actions.register("read_object", Result, Result.from_file)
@@ -544,9 +403,17 @@ class ResultCollection(List[Result]):
         def get_data(result):
             """helper function to extract the data"""
             df_data = result.parameters.copy()
+
+            # try obtaining the name of the result
             if result.info.get("name"):
                 df_data.setdefault("name", result.info["name"])
+            elif hasattr(result.model, "name"):
+                df_data.setdefault("name", result.model.name)
+
+            # try interpreting the result data in a format understood by pandas
             data = result.state._state_data
+            print("STATE", result.state)
+            print("DATA", data)
             if np.isscalar(data):
                 df_data["result"] = data
             elif isinstance(data, dict):
