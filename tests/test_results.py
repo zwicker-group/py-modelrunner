@@ -8,7 +8,7 @@ import pytest
 from modelrunner.results import Result, ResultCollection
 
 
-@pytest.mark.parametrize("extension", ["", ".zarr", ".yaml", ".json"])
+@pytest.mark.parametrize("extension", ["", ".zarr", ".hdf", ".yaml", ".zip", ".json"])
 def test_result_serialization(extension, tmp_path):
     """test reading and writing results"""
     # prepare test result
@@ -29,6 +29,30 @@ def test_result_serialization(extension, tmp_path):
     read = Result.from_file(path)
     assert read.model.name == "model"
     np.testing.assert_equal(read.data, result.data)
+
+
+#
+# @pytest.mark.parametrize("extension", ["", ".zarr", ".yaml", ".json"])
+# def test_result_state_serialization(extension, tmp_path):
+#     """test reading and writing results"""
+#     # prepare test result
+#     data = {
+#         "number": -1,
+#         "string": "test",
+#         "list_1d": [0, 1, 2],
+#         "list_2d": [[0, 1], [2, 3, 4]],
+#         "array": np.arange(5),
+#     }
+#     result = Result.from_data({"name": "model"}, data)
+#
+#     # write data
+#     path = tmp_path / ("test" + extension)
+#     result.to_file(path)
+#
+#     # read data
+#     read = Result.from_file(path)
+#     assert read.model.name == "model"
+#     np.testing.assert_equal(read.data, result.data)
 
 
 def test_result_collections():
@@ -74,6 +98,9 @@ def test_result_collections():
     assert len(rc1) == 2
     rc1 += rc2
     assert rc1 == ResultCollection([r1, r2, r3])
+
+    # test result dataframes
+    rc1.dataframe
 
 
 def test_collection_groupby():

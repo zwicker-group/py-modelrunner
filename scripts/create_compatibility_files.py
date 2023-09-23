@@ -18,7 +18,7 @@ sys.path.insert(0, str(PACKAGE_PATH))
 from modelrunner import ArrayCollectionState, ArrayState, DictState, ObjectState, Result
 
 # locate the storage for the compatibility files
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
 STORAGE_PATH = PACKAGE_PATH / "tests" / "compatibility" / str(FORMAT_VERSION)
 assert STORAGE_PATH.is_dir()
 
@@ -37,7 +37,7 @@ DATASETS = {
     "array_col": ArrayCollectionState([np.arange(2), np.arange(3)], labels="ab"),
     "dict": DictState({"a": ObjectState({"a", "b"}), "b": ArrayState(np.arange(3))}),
 }
-EXTENSIONS = [".yaml", ".json", ".zarr"]
+EXTENSIONS = [".yaml", ".json", ".hdf", ".zip"]
 
 
 def create_files(name, data, extensions=EXTENSIONS):

@@ -105,11 +105,12 @@ class ArrayState(StateBase):
                 If the location contains a trajectory of the state, `index` must denote
                 the index determining which state should be created
         """
-        obj = cls.__new__(cls)
-        attributes = storage.read_attrs(loc)
-        attributes.pop("__class__")
+        attrs = cls._state_get_attrs_from_storage(storage, loc, check_version=True)
+
+        # create the state from the read data
         data = storage.read_array(loc, index=index)
-        obj._state_init(attributes, data)
+        obj = cls.__new__(cls)
+        obj._state_init(attrs, data)
         return obj
 
     def _state_update_from_stored_data(

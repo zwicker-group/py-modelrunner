@@ -1,5 +1,5 @@
 """
-Contains code necessary for loading results from previous version
+Contains code necessary for loading results from format version 1
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -8,14 +8,21 @@ from __future__ import annotations
 
 import json
 import warnings
-from typing import Any, Dict, Mapping, Optional, Type
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, Optional, Type, Union
 
 import numpy as np
 
 from ..model import ModelBase
 from ..results import Result
 from ..state import ArrayCollectionState, ArrayState, DictState, ObjectState, StateBase
-from .triage import Store, guess_format, normalize_zarr_store
+from .triage import guess_format, normalize_zarr_store
+from .version0 import read_hdf_data
+
+if TYPE_CHECKING:
+    import zarr
+
+    zarrElement = Union[zarr.Group, zarr.Array]
 
 
 class NoData:
@@ -24,7 +31,10 @@ class NoData:
     ...
 
 
-def _StateBase_from_data(cls: Type[StateBase], attributes: Dict[str, Any], data=NoData):
+def _StateBase_from_data(
+    cls: Type[StateBase], attributes: Dict[str, Any], data=NoData
+) -> StateBase:
+    """create state from data and attributes"""
     # copy attributes since they are modified in this function
     attributes = attributes.copy()
     cls_name = attributes["__class__"]
@@ -52,14 +62,20 @@ def _StateBase_from_simple_objects(content: Dict[str, Any]) -> StateBase:
         return _StateBase_from_data(ArrayState, content["attributes"], content["data"])
 
     elif cls_name == "ArrayCollectionState":
-        data = tuple(np.asarray(subdata) for subdata in content["data"])
-        return _StateBase_from_data(ArrayCollectionState, content["attributes"], data)
+        col_data = tuple(
+            np.array(content["data"][label])
+            for label in content["attributes"]["labels"]
+        )
+        return _StateBase_from_data(
+            ArrayCollectionState, content["attributes"], col_data
+        )
 
     elif cls_name == "DictState":
-        attributes, data = content["attributes"], content["data"]
-        if not isinstance(data, dict) and "__keys__" in attributes:
-            data = {k: v for k, v in zip(attributes.pop("__keys__"), data)}
-        return _StateBase_from_data(DictState, attributes, data)
+        dict_data: Dict[str, StateBase] = {}
+        for label, substate in content["data"].items():
+            dict_data[label] = _StateBase_from_simple_objects(substate)
+
+        return _StateBase_from_data(DictState, content["attributes"], dict_data)
 
     elif cls_name == "ObjectState":
         return _StateBase_from_data(ObjectState, content["attributes"], content["data"])
@@ -68,8 +84,43 @@ def _StateBase_from_simple_objects(content: Dict[str, Any]) -> StateBase:
         raise TypeError(f"Do not know how to load `{cls_name}`")
 
 
+def _StateBase_from_zarr(zarr_element: "zarrElement", *, index=...) -> StateBase:
+    """create instance of correct subclass from data stored in zarr"""
+    # determine the class that knows how to read this data
+    cls_name = zarr_element.attrs["__class__"]
+    attributes = zarr_element.attrs.asdict()
+
+    # create object form zarr data
+    if cls_name == "ArrayState":
+        data = zarr_element[index]
+        return _StateBase_from_data(ArrayState, attributes, data)
+
+    elif cls_name == "ArrayCollectionState":
+        data = data = tuple(
+            zarr_element[label][index] for label in zarr_element.attrs["labels"]
+        )
+        return _StateBase_from_data(ArrayCollectionState, attributes, data)
+
+    elif cls_name == "DictState":
+        data = {
+            label: _StateBase_from_zarr(zarr_element[label], index=index)
+            for label in zarr_element.attrs["__keys__"]
+        }
+        return _StateBase_from_data(DictState, attributes, data)
+
+    elif cls_name == "ObjectState":
+        if zarr_element.shape == () and index is ...:
+            data = zarr_element[index].item()
+        else:
+            data = zarr_element[index]
+        return _StateBase_from_data(ObjectState, attributes, data)
+
+    else:
+        raise TypeError(f"Do not know how to load `{cls_name}`")
+
+
 def _Result_from_simple_objects(
-    content: Mapping[str, Any], model: Optional[ModelBase] = None
+    content: Dict[str, Any], model: Optional[ModelBase] = None
 ) -> Result:
     """read result from simple object (like loaded from a JSON file) using version 1
 
@@ -115,9 +166,8 @@ def _Result_from_hdf(hdf_element, model: Optional[ModelBase] = None) -> Result:
     return Result.from_data(model_data=model_data, state=state, model=model, info=info)
 
 
-@classmethod
 def _Result_from_zarr(
-    zarr_element: zarrElement, *, index=..., model: Optional[ModelBase] = None
+    zarr_element: "zarrElement", *, index=..., model: Optional[ModelBase] = None
 ) -> Result:
     """create result from data stored in zarr"""
     attributes = {key: json.loads(value) for key, value in zarr_element.attrs.items()}
@@ -131,16 +181,16 @@ def _Result_from_zarr(
     model_data = attributes
 
     # load state
-    state = StateBase._from_zarr(zarr_element["state"])
+    state = _StateBase_from_zarr(zarr_element["state"])
 
     return Result.from_data(model_data=model_data, state=state, model=model, info=info)
 
 
-def result_from_file_v1(store: Store, *, label: str = "data", **kwargs):
+def result_from_file_v1(store: Path, *, label: str = "data", **kwargs) -> Result:
     """load object from a file using format version 1
 
     Args:
-        store (str or :class:`zarr.Store`):
+        store (Path):
             Path or instance describing the storage, which is either a file path or
             a :class:`zarr.Storage`.
         fmt (str):
@@ -169,10 +219,10 @@ def result_from_file_v1(store: Store, *, label: str = "data", **kwargs):
             return _Result_from_hdf(root, **kwargs)
 
     elif fmt == "zarr":
-        import zarr
+        import zarr  # @Reimport
 
-        store = normalize_zarr_store(store, mode="r")
-        root = zarr.open_group(store, mode="r")
+        zarr_store = normalize_zarr_store(store, mode="r")
+        root = zarr.open_group(zarr_store, mode="r")
         return _Result_from_zarr(root[label], **kwargs)
 
     else:

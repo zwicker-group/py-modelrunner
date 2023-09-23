@@ -50,7 +50,11 @@ def test_submit_jobs(tmp_path):
         )
 
         # read result
-        col = ResultCollection.from_folder(tmp_path).dataframe
+        rc = ResultCollection.from_folder(tmp_path)
+        for r in rc:
+            print(r)
+        col = rc.dataframe
+        print(col)
         assert len(col) == num_jobs
 
         # delete temporary files
@@ -59,7 +63,9 @@ def test_submit_jobs(tmp_path):
 
         return col
 
-    res = run({"a": (1, 2)})["a"]
+    df = run({"a": (1, 2)})
+    print(df)
+    res = df["a"]
     # the order of the results might not be deterministic => sort result
     np.testing.assert_allclose(np.sort(res), [1, 2])
 

@@ -60,29 +60,6 @@ class ArrayCollectionState(StateBase):
             assert num_arrays == len(labels) == len(set(labels))
             self._labels = list(labels)  # type: ignore
 
-    # @property
-    # def _state_data(self) -> Any:
-    #     """determines what data is stored in this state
-    #
-    #     This property can be used to determine what is stored as `data` and in which
-    #     form.
-    #     """
-    #     try:
-    #         return getattr(self, self._state_data_attr_name)
-    #     except AttributeError:
-    #         # this can happen if the `data` attribute is not defined
-    #         raise AttributeError("`_state_data` should be defined by subclass")
-    #
-    # @_state_data.setter
-    # def _state_data(self, data) -> None:
-    #     """set the data of the class"""
-    #     try:
-    #         setattr(self, self._state_data_attr_name, data)  # try setting data directly
-    #     except AttributeError:
-    #         # this can happen if `data` is a read-only attribute, i.e., if the data
-    #         # attribute is managed by the child class
-    #         raise AttributeError("`_state_data` should be defined by subclass")
-
     @property
     def _state_attributes(self) -> Dict[str, Any]:
         """dict: Additional attributes, which are required to restore the state"""
@@ -134,13 +111,14 @@ class ArrayCollectionState(StateBase):
                 If the location contains a trajectory of the state, `index` must denote
                 the index determining which state should be created
         """
-        attrs = storage.read_attrs(loc)
-        attrs.pop("__class__")
+        attrs = cls._state_get_attrs_from_storage(storage, loc, check_version=True)
 
+        # create the state from the read data
         group = StorageGroup(storage, loc)
         data = tuple(group.read_array(label, index=index) for label in attrs["labels"])
-
-        return cls.from_data(attrs, data)
+        obj = cls.__new__(cls)
+        obj._state_init(attrs, data)
+        return obj
 
     def _state_update_from_stored_data(
         self, storage: StorageGroup, loc: Location, index: Optional[int] = None
