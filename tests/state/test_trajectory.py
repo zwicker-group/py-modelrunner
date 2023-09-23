@@ -7,8 +7,12 @@ import shutil
 import numpy as np
 import pytest
 
+from helpers import get_states, storage_extensions
 from modelrunner.state import ArrayState, Trajectory, TrajectoryWriter
-from utils.states import EXTENSIONS, get_states
+
+STORAGE_EXT = storage_extensions(
+    incl_folder=True, dot=False, exclude=[".yaml", ".json"]
+)
 
 
 def remove_file_or_folder(path):
@@ -20,7 +24,7 @@ def remove_file_or_folder(path):
 
 
 @pytest.mark.parametrize("state", get_states())
-@pytest.mark.parametrize("ext", [".zarr", ".hdf"])  # ".sqldb",
+@pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_trajectory_basic(state, ext, tmp_path):
     """test simple trajecotry writing"""
     path = tmp_path / ("file" + ext)
@@ -119,7 +123,7 @@ def test_trajectory_multiple_reads(ext, tmp_path):
     remove_file_or_folder(path)
 
 
-@pytest.mark.parametrize("ext", ["", ".zarr", ".hdf"])
+@pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_trajectory_overwriting(ext, tmp_path):
     """test whether zarr zip files can be overwritten"""
     path = tmp_path / ("file" + ext)

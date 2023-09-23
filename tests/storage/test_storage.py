@@ -5,6 +5,7 @@
 import numpy as np
 import pytest
 
+from helpers import storage_extensions
 from modelrunner.storage import AccessError, open_storage
 
 ARRAY_EXAMPLES = [
@@ -12,11 +13,11 @@ ARRAY_EXAMPLES = [
     np.array([{"a": 1}], dtype=object),
     np.array([(1.0, 2), (3.0, 4)], dtype=[("x", "f8"), ("y", "i8")]).view(np.recarray),
 ]
-STORAGE_EXTENSIONS = ["", "hdf", "sqldb", "zarr", "json"]  # , "yaml"]
+STORAGE_EXT = storage_extensions(incl_folder=True, dot=False)
 
 
 @pytest.mark.parametrize("arr", ARRAY_EXAMPLES)
-@pytest.mark.parametrize("ext", STORAGE_EXTENSIONS)
+@pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_storage_persistence(arr, ext, tmp_path):
     """test generic properties of storages"""
     # write to storage
@@ -33,7 +34,7 @@ def test_storage_persistence(arr, ext, tmp_path):
         np.testing.assert_array_equal(storage.read_array("dyn", index=0), arr)
 
 
-@pytest.mark.parametrize("ext", STORAGE_EXTENSIONS)
+@pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_storage_readonly(ext, tmp_path):
     """test readonly mode"""
     # create empty file
@@ -53,7 +54,7 @@ def test_storage_readonly(ext, tmp_path):
             storage.extend_dynamic_array("dyn", np.arange(5))
 
 
-@pytest.mark.parametrize("ext", STORAGE_EXTENSIONS)
+@pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_storage_insert(ext, tmp_path):
     """test insert mode"""
     with open_storage(tmp_path / f"file.{ext}", mode="truncate") as storage:
@@ -81,7 +82,7 @@ def test_storage_insert(ext, tmp_path):
         np.testing.assert_array_equal(storage.read_array("dyn", index=0), np.arange(2))
 
 
-@pytest.mark.parametrize("ext", STORAGE_EXTENSIONS)
+@pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_storage_overwrite(ext, tmp_path):
     """test overwrite mode"""
     with open_storage(tmp_path / f"file.{ext}", mode="truncate") as storage:
@@ -108,7 +109,7 @@ def test_storage_overwrite(ext, tmp_path):
         np.testing.assert_array_equal(storage.read_array("dyn", index=1), np.ones(2))
 
 
-@pytest.mark.parametrize("ext", STORAGE_EXTENSIONS)
+@pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_storage_full(ext, tmp_path):
     """test full mode"""
     with open_storage(tmp_path / f"file.{ext}", mode="truncate") as storage:
@@ -130,7 +131,7 @@ def test_storage_full(ext, tmp_path):
         np.testing.assert_array_equal(storage.read_array("dyn", index=0), np.ones(2))
 
 
-@pytest.mark.parametrize("ext", STORAGE_EXTENSIONS)
+@pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_storage_truncate(ext, tmp_path):
     """test truncate mode"""
     with open_storage(tmp_path / f"file.{ext}", mode="truncate") as storage:

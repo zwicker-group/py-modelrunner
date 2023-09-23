@@ -4,11 +4,10 @@
 
 import pickle
 from pathlib import Path
-from typing import Any
 
-import numpy as np
 import pytest
 
+from helpers import assert_data_equals
 from modelrunner.results import Result, StateBase
 from modelrunner.storage.backend.utils import simplify_data
 
@@ -23,54 +22,6 @@ def get_compatibility_files():
     for path in CWD.glob("**/*.*"):
         if path.suffix in POSSIBLE_EXTENSIONS:
             yield path
-
-
-def assert_data_equals(left: Any, right: Any) -> bool:
-    """checks whether two objects are equal, also supporting :class:~numpy.ndarray`
-
-    Args:
-        left: one object
-        right: other object
-
-    Returns:
-        bool: Whether the two objects are equal
-    # treat numpy array first, since only one of the sides might have been cast to a
-    """
-    if type(left) is type(right):
-        # typical cases where both operands are of equal type
-        if isinstance(left, StateBase):
-            assert left._state_attributes == right._state_attributes
-            assert_data_equals(left._state_data, right._state_data)
-
-        elif isinstance(left, str):
-            assert left == right
-
-        elif isinstance(left, dict):
-            assert left.keys() == right.keys()
-            for key in left:
-                assert_data_equals(left[key], right[key])
-
-        elif hasattr(left, "__iter__"):
-            assert len(left) == len(right)
-            for l, r in zip(left, right):
-                print(l, r)
-                assert_data_equals(l, r)
-
-        else:
-            assert left == right
-
-    elif isinstance(left, set) or isinstance(right, set):
-        # one of the operands is a set, while the other is ordered
-        assert set(left) == set(right)
-
-    elif isinstance(left, np.ndarray) or isinstance(right, np.ndarray):
-        # one of the operands numpy array, while the other one is a list
-        print("L", left)
-        print("R", right)
-        assert np.array_equal(np.asarray(left), np.asarray(right))
-
-    else:
-        assert type(left) == type(right)  # cause failure
 
 
 @pytest.mark.parametrize("path", get_compatibility_files())

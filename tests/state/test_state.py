@@ -7,6 +7,7 @@ import pickle
 import numpy as np
 import pytest
 
+from helpers import get_states, storage_extensions
 from modelrunner.state import (
     ArrayCollectionState,
     ArrayState,
@@ -15,7 +16,8 @@ from modelrunner.state import (
     StateBase,
 )
 from modelrunner.state.base import _equals
-from utils.states import EXTENSIONS, get_states
+
+STORAGE_EXT = storage_extensions(incl_folder=True, dot=False)
 
 
 @pytest.mark.parametrize("state", get_states())
@@ -50,7 +52,7 @@ def test_state_pickle(state):
 
 
 @pytest.mark.parametrize("state", get_states())
-@pytest.mark.parametrize("ext", EXTENSIONS)
+@pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_state_io(state, ext, tmp_path):
     """test simple state IO"""
     path = tmp_path / ("file." + ext)
@@ -73,7 +75,7 @@ def test_state_io(state, ext, tmp_path):
 
 
 @pytest.mark.parametrize("state_cls", [DictState, ObjectState, ArrayCollectionState])
-@pytest.mark.parametrize("ext", EXTENSIONS)
+@pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_empty_state_io(state_cls, ext, tmp_path):
     """test simple state IO"""
     state = state_cls()
@@ -108,7 +110,7 @@ def test_state_attributes_implicit(state_cls, tmp_path):
     assert state == state2
     assert state2.attrs["value"] == "hello"
 
-    for ext in EXTENSIONS:
+    for ext in STORAGE_EXT:
         path = tmp_path / ("file." + ext)
         state.to_file(path)
         state2 = StateBase.from_file(path)
@@ -163,7 +165,7 @@ def test_state_attributes_explicit(state_cls, tmp_path):
     assert state == state2
     assert state2.value == "hello"
 
-    for ext in EXTENSIONS:
+    for ext in STORAGE_EXT:
         path = tmp_path / ("file." + ext)
         state.to_file(path)
         state2 = StateBase.from_file(path)
@@ -171,7 +173,7 @@ def test_state_attributes_explicit(state_cls, tmp_path):
         assert state2.value == "hello"
 
 
-@pytest.mark.parametrize("ext", EXTENSIONS)
+@pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_array_collections(ext, tmp_path):
     """test some specific behaviors of the ArrayCollectionState"""
     a = np.arange(5)
