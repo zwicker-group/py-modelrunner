@@ -138,12 +138,8 @@ class ZarrStorage(StorageBase):
         else:
             return self._root.keys()  # type: ignore
 
-    def is_group(self, loc: Sequence[str]) -> bool:
-        item = self[loc]
-        if isinstance(item, zarr.hierarchy.Group):
-            return "__class__" not in item.attrs
-        else:
-            return False
+    def is_group(self, loc: Sequence[str], *, ignore_cls: bool = False) -> bool:
+        return isinstance(self[loc], zarr.hierarchy.Group)
 
     def _create_group(self, loc: Sequence[str]) -> None:
         parent, name = self._get_parent(loc, check_write=True)

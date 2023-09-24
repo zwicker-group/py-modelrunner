@@ -98,8 +98,8 @@ access_full = AccessMode(
     file_mode="a",
     read=True,
     set_attrs=True,
-    overwrite=True,
     insert=True,
+    overwrite=True,
     dynamic_append=True,
 )
 access_append = AccessMode(
@@ -108,8 +108,8 @@ access_append = AccessMode(
     file_mode="a",
     read=True,
     set_attrs=True,
-    overwrite=False,
     insert=False,
+    overwrite=False,
     dynamic_append=True,
 )
 access_truncate = AccessMode(
@@ -118,8 +118,8 @@ access_truncate = AccessMode(
     file_mode="w",
     read=True,
     set_attrs=True,
-    overwrite=True,
     insert=True,
+    overwrite=True,
     dynamic_append=True,
 )
 

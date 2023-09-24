@@ -141,11 +141,7 @@ class HDFStorage(StorageBase):
             return self._file.keys()  # type: ignore
 
     def is_group(self, loc: Sequence[str]) -> bool:
-        item = self[loc]
-        if isinstance(item, h5py.Group):
-            return "__class__" not in item.attrs
-        else:
-            return False
+        return isinstance(self[loc], h5py.Group)
 
     def _create_group(self, loc: Sequence[str]):
         parent, name = self._get_parent(loc, check_write=True)
