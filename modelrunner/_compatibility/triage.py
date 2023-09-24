@@ -156,8 +156,6 @@ def result_check_load_old_version(
     else:
         return None
 
-    print("FORMAT_VERSION", format_version)
-
     if format_version in {0, None}:
         # load result written with format version 0
         from .version0 import result_from_file_v0

@@ -65,7 +65,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
                 :meth:`~Parameterized.get_parameters` or displayed by calling
                 :meth:`~Parameterized.show_parameters`.
             output (str):
-                Path to write the output file
+                Path where the output file will be written
             strict (bool):
                 Flag indicating whether parameters are strictly interpreted. If `True`,
                 only parameters listed in `parameters_default` can be set and their type
@@ -101,20 +101,15 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         info = {"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
         return Result(self, state, info=info)
 
-    def write_result(self, output: Optional[str] = None, result=None) -> None:
+    def write_result(self, result=None) -> None:
         """write the result to the output file
 
         Args:
-            output (str):
-                File where the output will be written to. If omitted self.output will be
-                used. If self.output is also None, an error will be thrown.
             result:
                 The result data. If omitted, the model is run to obtain results
         """
-        if output is None:
-            output = self.output
-        if output is None:
-            raise RuntimeError("output file needs to be specified")
+        if self.output is None:
+            raise RuntimeError("Output file needs to be specified")
 
         if result is None:
             result = self.get_result()
@@ -122,7 +117,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
             from .results import Result  # @Reimport
 
             assert isinstance(result, Result)
-        result.to_file(output)
+        result.to_file(self.output)
 
     @classmethod
     def _prepare_argparser(cls, name: Optional[str] = None) -> argparse.ArgumentParser:
@@ -224,7 +219,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         result = mdl.get_result()
         if mdl.output:
             # write the results to a file
-            mdl.write_result(output=None, result=result)
+            mdl.write_result(result=result)
         else:
             # display the results on stdout
             storage = MemoryStorage()
