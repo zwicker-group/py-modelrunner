@@ -14,8 +14,6 @@ from modelrunner.state import (
     StateBase,
 )
 
-EXTENSIONS = ["", "hdf", "json", "sqldb", "yaml", "zarr"]
-
 
 def assert_data_equals(left: Any, right: Any) -> bool:
     """checks whether two objects are equal, also supporting :class:~numpy.ndarray`
@@ -26,9 +24,14 @@ def assert_data_equals(left: Any, right: Any) -> bool:
 
     Returns:
         bool: Whether the two objects are equal
-    # treat numpy array first, since only one of the sides might have been cast to a
     """
-    if type(left) is type(right):
+    if isinstance(left, set) or isinstance(right, set):
+        # One of the operands is a set, while the other is ordered. This needs to be the
+        # first check since otherwise there might be an ordered comparison, which can
+        # fail undeterministically.
+        assert set(left) == set(right)
+
+    elif type(left) is type(right):
         # typical cases where both operands are of equal type
         if isinstance(left, StateBase):
             assert left._state_attributes == right._state_attributes
@@ -45,20 +48,13 @@ def assert_data_equals(left: Any, right: Any) -> bool:
         elif hasattr(left, "__iter__"):
             assert len(left) == len(right)
             for l, r in zip(left, right):
-                print(l, r)
                 assert_data_equals(l, r)
 
         else:
             assert left == right
 
-    elif isinstance(left, set) or isinstance(right, set):
-        # one of the operands is a set, while the other is ordered
-        assert set(left) == set(right)
-
     elif isinstance(left, np.ndarray) or isinstance(right, np.ndarray):
         # one of the operands numpy array, while the other one is a list
-        print("L", left)
-        print("R", right)
         assert np.array_equal(np.asarray(left), np.asarray(right))
 
     else:

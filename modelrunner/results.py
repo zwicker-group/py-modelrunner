@@ -137,21 +137,17 @@ class Result:
             from ._compatibility.triage import result_check_load_old_version
 
             result = result_check_load_old_version(Path(storage), loc=loc, model=model)
-            print("RESUYLT", result)
             if result is not None:
                 return result  # Result created from old version
 
         # assume that file was written with latest format version
         with open_storage(storage, mode="readonly") as storage_obj:
             attrs = storage_obj.read_attrs(loc)
-            print("ATTRS", attrs)
             format_version = attrs.pop("__version__", None)
-            print("FORMAT", format_version)
             if format_version == cls._state_format_version:
                 # current version of storing results
                 info = attrs.pop("__info__", {})  # load additional info
                 model_data = attrs.get("__model__", {})
-                print("MODEL_DATA", model_data)
                 state = storage_obj[loc, "state"]  # should load the state automatically
                 return cls.from_data(
                     model_data=model_data, state=state, model=model, info=info
@@ -400,8 +396,6 @@ class ResultCollection(List[Result]):
 
             # try interpreting the result data in a format understood by pandas
             data = result.state._state_data
-            print("STATE", result.state)
-            print("DATA", data)
             if np.isscalar(data):
                 df_data["result"] = data
             elif isinstance(data, dict):

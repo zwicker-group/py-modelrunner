@@ -155,22 +155,22 @@ class Array(np.ndarray):
         self.attrs = getattr(obj, "attrs", {})
 
 
+ActionType = Literal["read_object"]
+
+
 class _StorageRegistry:
     """registry that stores information about how to use storage"""
 
     allowed_actions = {
         "read_object",  # read object from storage
     }
-    # TODO: also keep information on whether a method needs to be a classmethod or not
-    # (but still allow pure functions). In fact, the registry should convert methods
-    # and classmethods to callable functions to provide a unified interface
 
     _classes: Dict[Type, Dict[str, Callable]]
 
     def __init__(self):
         self._classes = defaultdict(dict)
 
-    def register(self, action: str, cls: Type, method_or_func: Callable) -> None:
+    def register(self, action: ActionType, cls: Type, method_or_func: Callable) -> None:
         """register an action for the given class
 
         Example:
@@ -203,7 +203,7 @@ class _StorageRegistry:
         else:
             raise TypeError("`method_or_func` must be method or function")
 
-    def get(self, cls: Type, action: str) -> Callable:
+    def get(self, cls: Type, action: ActionType) -> Callable:
         """obtain an action for a given class
 
         Args:

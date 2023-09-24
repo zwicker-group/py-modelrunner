@@ -3,7 +3,7 @@
 """
 
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Sequence, Union
 
 from .backend import AVAILABLE_STORAGE, MemoryStorage
 from .base import StorageBase
@@ -32,11 +32,20 @@ class open_storage(StorageGroup):
                 # use the storage
     """
 
-    def __init__(self, storage: StorageID = None, **kwargs):
+    def __init__(
+        self,
+        storage: StorageID = None,
+        *,
+        loc: Union[None, str, Sequence[str]] = None,
+        **kwargs,
+    ):
         """
         Args:
             storage:
                 The path to a file or directory or a :class:`StorageBase` instance
+            loc (str or list of str):
+                Denotes the location that will be opened within the storage. The default
+                `None` opens the root group of the storage.
             mode (str or :class:`~modelrunner.storage.access_modes.AccessMode`):
                 The file mode with which the storage is accessed, which determines the
                 allowed operations. Common options are "readonly", "full", "append", and
@@ -81,7 +90,7 @@ class open_storage(StorageGroup):
         else:
             raise TypeError(f"Unsupported store type {storage.__class__.__name__}")
 
-        super().__init__(store_obj)
+        super().__init__(store_obj, loc=loc)
 
     def close(self) -> None:
         """close the storage (and flush all data to persistent storage if necessary)"""
