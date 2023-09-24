@@ -10,11 +10,13 @@ result:
       __class__: '"modelrunner.state.array_collection.ArrayCollectionState"'
       __version__: '2'
     a:
+      __type__: array
       data:
       - 0
       - 1
       dtype: '{"__pickled__": "gASVNwAAAAAAAACMBW51bXB5lIwFZHR5cGWUk5SMAmk4lImIh5RSlChLA4wBPJROTk5K/////0r/\n////SwB0lGIu\n"}'
     b:
+      __type__: array
       data:
       - 0
       - 1

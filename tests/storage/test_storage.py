@@ -156,3 +156,16 @@ def test_storage_truncate(ext, tmp_path):
         assert "c/b/a" in storage
         np.testing.assert_array_equal(storage.read_array("arr2"), np.arange(5))
         np.testing.assert_array_equal(storage.read_array("dyn", index=0), np.ones(2))
+
+
+@pytest.mark.parametrize("ext", STORAGE_EXT)
+def test_appending_to_fixed_array(ext, tmp_path):
+    """test appending an array to a non-dynamic array"""
+    with open_storage(tmp_path / f"file.{ext}", mode="truncate") as storage:
+        storage.write_array("a1", np.arange(4))
+        with pytest.raises(RuntimeError):
+            storage.extend_dynamic_array("a1", np.zeros(4))
+
+        storage.write_array("a2", np.zeros((2, 4)))
+        with pytest.raises(RuntimeError):
+            storage.extend_dynamic_array("a2", np.zeros(4))

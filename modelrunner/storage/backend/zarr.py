@@ -146,7 +146,7 @@ class ZarrStorage(StorageBase):
         parent.create_group(name)
 
     def _read_attrs(self, loc: Sequence[str]) -> AttrsLike:
-        return self[loc].attrs  # type: ignore
+        return {k: v for k, v in self[loc].attrs.items() if k != "__type__"}
 
     def _write_attr(self, loc: Sequence[str], name: str, value) -> None:
         self[loc].attrs[name] = value
@@ -174,9 +174,10 @@ class ZarrStorage(StorageBase):
         else:
             # create a new data set
             if arr.dtype == object:
-                parent.array(name, arr, object_codec=self.codec)
+                arr_obj = parent.array(name, arr, object_codec=self.codec)
             else:
-                parent.array(name, arr)
+                arr_obj = parent.array(name, arr)
+            arr_obj.attrs["__type__"] = "array"
 
     def _create_dynamic_array(
         self,
@@ -188,7 +189,7 @@ class ZarrStorage(StorageBase):
         parent, name = self._get_parent(loc, check_write=True)
         try:
             if dtype == object:
-                parent.zeros(
+                arr_obj = parent.zeros(
                     name,
                     shape=(0,) + shape,
                     chunks=(1,) + shape,
@@ -197,9 +198,16 @@ class ZarrStorage(StorageBase):
                 )
 
             else:
-                parent.zeros(name, shape=(0,) + shape, chunks=(1,) + shape, dtype=dtype)
+                arr_obj = parent.zeros(
+                    name, shape=(0,) + shape, chunks=(1,) + shape, dtype=dtype
+                )
         except zarr.errors.ContainsArrayError:
             raise RuntimeError(f"Array `{'/'.join(loc)}` already exists")
+        else:
+            arr_obj.attrs["__type__"] = "dynamic_array"
 
     def _extend_dynamic_array(self, loc: Sequence[str], data: ArrayLike) -> None:
-        self[loc].append([data])
+        arr_obj = self[loc]
+        if arr_obj.attrs["__type__"] != "dynamic_array":
+            raise RuntimeError(f"Cannot extend array at {'/'.join(loc)}")
+        arr_obj.append([data])

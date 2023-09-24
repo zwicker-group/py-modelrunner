@@ -215,9 +215,8 @@ class StorageGroup:
             :class:`~numpy.ndarray`:
                 An array containing the data. Identical to `out` if specified.
         """
-        return self._storage.read_array(
-            self._get_loc(loc), out=out, index=index, copy=copy
-        )
+        loc_list = self._get_loc(loc)
+        return self._storage.read_array(loc_list, out=out, index=index, copy=copy)
 
     def write_array(
         self,
@@ -298,3 +297,38 @@ class StorageGroup:
                 The array that will be appended to the dynamic array
         """
         self._storage.extend_dynamic_array(self._get_loc(loc), data)
+
+    def read_object(self, loc: Location) -> Any:
+        """read an object from a particular location
+
+        Args:
+            loc (str or list of str):
+                The location where the object is created
+
+        Returns:
+            The object that has been read from the storage
+        """
+        return self._storage.read_object(self._get_loc(loc))
+
+    def write_object(
+        self,
+        loc: Location,
+        obj: Any,
+        *,
+        attrs: Optional[Attrs] = None,
+        cls: Optional[Type] = None,
+    ):
+        """write an object to a particular location
+
+        Args:
+            loc (str or list of str):
+                The location where the object is read
+            obj:
+                The object that will be written
+            attrs (dict, optional):
+                Attributes stored with the object
+            cls (type):
+                A class associated with this object
+        """
+        loc_list = self._get_loc(loc)
+        self._storage.write_array(loc_list, obj, attrs=attrs, cls=cls)

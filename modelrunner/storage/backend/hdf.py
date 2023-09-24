@@ -148,7 +148,7 @@ class HDFStorage(StorageBase):
         return parent.create_group(name)
 
     def _read_attrs(self, loc: Sequence[str]) -> AttrsLike:
-        return self[loc].attrs  # type: ignore
+        return {k: v for k, v in self[loc].attrs.items() if k != "__type__"}
 
     def _write_attr(self, loc: Sequence[str], name: str, value) -> None:
         self[loc].attrs[name] = value
@@ -189,7 +189,8 @@ class HDFStorage(StorageBase):
                 dataset.attrs["__pickled__"] = encode_attr(True)
             else:
                 args = {"compression": "gzip"} if self.compression else {}
-                parent.create_dataset(name, data=arr, **args)
+                dataset = parent.create_dataset(name, data=arr, **args)
+            dataset.attrs["__type__"] = "array"
 
     def _create_dynamic_array(
         self,
@@ -213,7 +214,7 @@ class HDFStorage(StorageBase):
         else:
             args = {"compression": "gzip"} if self.compression else {}
             try:
-                parent.create_dataset(
+                dataset = parent.create_dataset(
                     name,
                     shape=(1,) + shape,
                     maxshape=(None,) + shape,
@@ -222,12 +223,18 @@ class HDFStorage(StorageBase):
                 )
             except ValueError:
                 raise RuntimeError(f"Array `{'/'.join(loc)}` already exists")
+        dataset.attrs["__type__"] = "dynamic_array"
         self._dynamic_array_size[self._get_hdf_path(loc)] = 0
 
     def _extend_dynamic_array(self, loc: Sequence[str], arr: ArrayLike) -> None:
         # load the dataset
         hdf_path = self._get_hdf_path(loc)
         dataset = self._file[hdf_path]
+
+        if dataset.attrs["__type__"] != "dynamic_array":
+            raise RuntimeError(f"Cannot extend array at {'/'.join(loc)}")
+        if not dataset.maxshape[0] == None:
+            raise RuntimeError(f"Array `{'/'.join(loc)}` is not resizeable")
 
         # determine size of the currently written data
         size = self._dynamic_array_size.get(hdf_path, None)

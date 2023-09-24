@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Collection, List, Optional, Sequence, Tuple, Type
+from typing import TYPE_CHECKING, Any, Collection, List, Optional, Sequence, Tuple, Type
 
 import numcodecs
 import numpy as np
@@ -232,14 +232,13 @@ class StorageBase(metaclass=ABCMeta):
         for name, value in attrs.items():
             self._write_attr(loc, name, encode_attr(value))
 
-    @abstractmethod
     def _read_array(
         self,
         loc: Sequence[str],
         *,
         index: Optional[int] = None,
     ) -> ArrayLike:
-        ...
+        raise NotImplementedError(f"Cannot read arrays from {self.__class__.__name__}")
 
     def read_array(
         self,
@@ -277,9 +276,8 @@ class StorageBase(metaclass=ABCMeta):
             out = np.asanyarray(self._read_array(loc, index=index))
         return out
 
-    @abstractmethod
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
-        ...
+        raise NotImplementedError(f"Cannot write arrays in {self.__class__.__name__}")
 
     def write_array(
         self,
@@ -317,7 +315,6 @@ class StorageBase(metaclass=ABCMeta):
         self._write_array(loc, arr)
         self.write_attrs(loc, self._get_attrs(attrs, cls=cls))
 
-    @abstractmethod
     def _create_dynamic_array(
         self,
         loc: Sequence[str],
@@ -373,7 +370,6 @@ class StorageBase(metaclass=ABCMeta):
         )
         self.write_attrs(loc, self._get_attrs(attrs, cls=cls))
 
-    @abstractmethod
     def _extend_dynamic_array(self, loc: Sequence[str], arr: ArrayLike) -> None:
         raise NotImplementedError(f"No dynamic arrays for {self.__class__.__name__}")
 
@@ -389,3 +385,59 @@ class StorageBase(metaclass=ABCMeta):
         if not self.mode.dynamic_append:
             raise AccessError(f"Cannot append data to dynamic array `{'/'.join(loc)}`")
         self._extend_dynamic_array(loc, arr)
+
+    def _read_object(self, loc: Sequence[str]) -> Any:
+        raise NotImplementedError(f"Cannot read objects from {self.__class__.__name__}")
+
+    def read_object(self, loc: Sequence[str]) -> Any:
+        """read an object from a particular location
+
+        Args:
+            loc (list of str):
+                The location in the storage where the object is created
+
+        Returns:
+            The object that has been read from the storage
+        """
+        if not self.mode.read:
+            raise AccessError("No right to read object")
+        return self._read_object(loc)
+
+    def _write_object(self, loc: Sequence[str], obj: Any) -> None:
+        raise NotImplementedError(f"Cannot write objects in {self.__class__.__name__}")
+
+    def write_object(
+        self,
+        loc: Sequence[str],
+        obj: Any,
+        *,
+        attrs: Optional[Attrs] = None,
+        cls: Optional[Type] = None,
+    ) -> None:
+        """write an object to a particular location
+
+        Args:
+            loc (list of str):
+                The location in the storage where the object is read
+            obj:
+                The object that will be written
+            attrs (dict, optional):
+                Attributes stored with the object
+            cls (type):
+                A class associated with this object
+        """
+        if not loc:
+            raise RuntimeError(f"Cannot write an object to the storage root")
+        elif loc in self:
+            # check whether we can overwrite the existing object
+            if not self.mode.overwrite:
+                raise AccessError(f"Object `{'/'.join(loc)}` already exists")
+        else:
+            # check whether we can insert a new object
+            if not self.mode.insert:
+                raise AccessError(f"No right to insert object `{'/'.join(loc)}`")
+            # make sure the parent group exists
+            self.ensure_group(loc[:-1])
+
+        self._write_object(loc, obj)
+        self.write_attrs(loc, self._get_attrs(attrs, cls=cls))
