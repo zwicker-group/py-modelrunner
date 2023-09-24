@@ -23,7 +23,17 @@ if TYPE_CHECKING:
 
 
 class StorageBase(metaclass=ABCMeta):
-    """base class for storing data"""
+    """base class for storing data
+
+    The storage classes should usually not be used directly. Instead, the user
+    typically interacts with :class:`~modelrunner.storage.group.StorageGroup` objects,
+    i.e., returned by :func:`~modelrunner.storage.tools.open_storage`.
+
+    The role of `StorageBase` is to ensure access rights and provide an interface that
+    can be specified easily by subclasses to provide new storage formats. In contrast,
+    the interface of `StorageGroup` is more user-friendly and provides additional
+    convenience methods.
+    """
 
     extensions: List[str] = []
     """list of str: all file extensions supported by this storage"""
@@ -94,6 +104,8 @@ class StorageBase(metaclass=ABCMeta):
         ...
 
     def __contains__(self, loc: Sequence[str]):
+        if not loc:
+            return True  # the root is always contained in the storage
         try:
             return loc[-1] in self.keys(loc[:-1])
         except KeyError:
@@ -159,6 +171,22 @@ class StorageBase(metaclass=ABCMeta):
         self.write_attrs(loc, self._get_attrs(attrs, cls=cls))
         return StorageGroup(self, loc)
 
+    def ensure_group(self, loc: Sequence[str]) -> None:
+        """ensures the a group exists in the storage
+
+        If the group is not already in the storage, it is created (recursively).
+
+        Args:
+            loc (list of str):
+                The group location in the storage
+        """
+        if loc not in self:
+            # check whether we can insert a group
+            if not self.mode.insert:
+                raise AccessError(f"No right to insert group `{'/'.join(loc)}`")
+            # create group
+            self.create_group(loc)
+
     @abstractmethod
     def _read_attrs(self, loc: Sequence[str]) -> AttrsLike:
         ...
@@ -198,6 +226,8 @@ class StorageBase(metaclass=ABCMeta):
         # check whether there are actually any attributes to be written
         if attrs is None or len(attrs) == 0:
             return
+
+        self.ensure_group(loc)  # make sure the group exists
 
         for name, value in attrs.items():
             self._write_attr(loc, name, encode_attr(value))
@@ -271,7 +301,9 @@ class StorageBase(metaclass=ABCMeta):
             cls (type):
                 A class associated with this array
         """
-        if loc in self:
+        if not loc:
+            raise RuntimeError(f"Cannot write an array to the storage root")
+        elif loc in self:
             # check whether we can overwrite the existing array
             if not self.mode.overwrite:
                 raise AccessError(f"Array `{'/'.join(loc)}` already exists")
@@ -279,10 +311,8 @@ class StorageBase(metaclass=ABCMeta):
             # check whether we can insert a new array
             if not self.mode.insert:
                 raise AccessError(f"No right to insert array `{'/'.join(loc)}`")
-
-            if len(loc) > 1 and loc[:-1] not in self:
-                # create parent group
-                self.create_group(loc[:-1])
+            # make sure the parent group exists
+            self.ensure_group(loc[:-1])
 
         self._write_array(loc, arr)
         self.write_attrs(loc, self._get_attrs(attrs, cls=cls))
@@ -325,7 +355,9 @@ class StorageBase(metaclass=ABCMeta):
             cls (type):
                 A class associated with this array
         """
-        if loc in self:
+        if not loc:
+            raise RuntimeError(f"Cannot write an array to the storage root")
+        elif loc in self:
             # check whether we can overwrite the existing array
             if not self.mode.overwrite:
                 raise RuntimeError(f"Array `{'/'.join(loc)}` already exists")
@@ -334,6 +366,7 @@ class StorageBase(metaclass=ABCMeta):
             # check whether we can insert a new array
             if not self.mode.insert:
                 raise AccessError(f"No right to insert array `{'/'.join(loc)}`")
+            self.ensure_group(loc[:-1])  # make sure the parent group exists
 
         self._create_dynamic_array(
             loc, tuple(shape), dtype=dtype, record_array=record_array

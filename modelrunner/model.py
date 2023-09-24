@@ -33,7 +33,7 @@ from .parameters import (
     Parameterized,
 )
 from .state import ObjectState, StateBase
-from .storage import MemoryStorage  # type: ignore
+from .storage import MemoryStorage, StorageGroup, open_storage  # type: ignore
 
 if TYPE_CHECKING:
     from .results import Result  # @UnusedImport
@@ -65,19 +65,35 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
                 :meth:`~Parameterized.get_parameters` or displayed by calling
                 :meth:`~Parameterized.show_parameters`.
             output (str):
-                Path where the output file will be written
+                Path where the output file will be written.
             strict (bool):
                 Flag indicating whether parameters are strictly interpreted. If `True`,
                 only parameters listed in `parameters_default` can be set and their type
                 will be enforced.
         """
         super().__init__(parameters, strict=strict)
-        self.output = output
+        self.output = output  # TODO: also allow already opened storages
+        self._storage: Optional[open_storage] = None
         self._logger = logging.getLogger(self.__class__.__name__)
+
+    @property
+    def storage(self) -> StorageGroup:
+        """:class:`StorageGroup`: Storage to which data can be written"""
+        if self._storage is None:
+            if self.output is None:
+                raise RuntimeError("Output file needs to be specified")
+            self._storage = open_storage(self.output, mode="insert")
+        return self._storage
+
+    def close(self) -> None:
+        """close any opened storages"""
+        if self._storage is not None:
+            self._storage.close()
+        self._storage = None
 
     @abstractmethod
     def __call__(self):
-        """main method calculating the result"""
+        """main method calculating the result. Needs to be specified by sub-class"""
         pass
 
     def get_result(self, state: Optional[StateBase] = None) -> "Result":
@@ -117,7 +133,12 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
             from .results import Result  # @Reimport
 
             assert isinstance(result, Result)
-        result.to_file(self.output)
+
+        if self._storage is not None:
+            # reuse the opened storage
+            result.to_file(self.storage)
+        else:
+            result.to_file(self.output)
 
     @classmethod
     def _prepare_argparser(cls, name: Optional[str] = None) -> argparse.ArgumentParser:
@@ -225,6 +246,9 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
             storage = MemoryStorage()
             result.to_file(storage)
             print(storage._data)
+
+        # close the output file
+        mdl.close()
 
         return result
 

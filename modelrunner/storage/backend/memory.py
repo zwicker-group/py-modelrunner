@@ -113,10 +113,11 @@ class MemoryStorage(StorageBase):
     def is_group(self, loc: Sequence[str]) -> bool:
         item = self[loc]
         if isinstance(item, dict):
-            attrs = item.get("__attrs__", {})
-            return "__class__" not in attrs
+            # dictionaries are usually groups, but could also denote arrays, so we need
+            # to check for this possibility
+            return "data" not in item and "dtype" not in item
         else:
-            return False
+            return False  # no group, since it's not a dictionary
 
     def _create_group(self, loc: Sequence[str]) -> None:
         parent, name = self._get_parent(loc, check_write=True)

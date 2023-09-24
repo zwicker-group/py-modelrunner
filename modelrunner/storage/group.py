@@ -53,7 +53,12 @@ class StorageGroup:
             self.loc = storage.loc + self.loc
             self._storage = storage._storage
         else:
-            raise TypeError
+            raise TypeError(
+                f"Cannot interprete `storage` of type `{storage.__class__}`"
+            )
+
+        if not self.is_group():
+            raise RuntimeError(f'"/{"/".join(self.loc)}" is not a group')
 
     def __repr__(self):
         return f'StorageGroup(storage={self._storage}, loc="/{"/".join(self.loc)}")'
@@ -84,12 +89,12 @@ class StorageGroup:
     def __getitem__(self, loc: Location) -> Any:
         """read state or trajectory from storage"""
         loc = self._get_loc(loc)
-        if self._storage.is_group(loc):
-            # just return a subgroup at this location
-            return StorageGroup(self._storage, loc)
-        else:
-            # reconstruct objected stored at this place
-            return self._read_object(loc)
+        if self._storage.is_group(loc):  # storage points to a group
+            if "__class__" not in self._storage.read_attrs(loc):
+                # group does not contain class information => just return a subgroup
+                return StorageGroup(self._storage, loc)
+        # reconstruct objected stored at this place
+        return self._read_object(loc)
 
     def keys(self) -> Collection[str]:
         """return name of all stored items in this group"""
@@ -150,7 +155,7 @@ class StorageGroup:
             create_object = storage_actions.get(cls, "read_object")
             return create_object(self._storage, loc)
 
-    def is_group(self, loc: Location) -> bool:
+    def is_group(self, loc: Location = None) -> bool:
         """determine whether the location is a group
 
         Args:
