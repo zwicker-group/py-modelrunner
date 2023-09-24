@@ -29,6 +29,10 @@ class MemoryStorage(StorageBase):
 
     _data: Attrs
 
+    # TODO: Write arrays and objects as true python objects
+    # Move current methods to TextBase. However, we still need to keep track of a way
+    # to store attributes
+
     def __init__(self, *, mode: ModeType = "insert"):
         """
         Args:
@@ -113,9 +117,8 @@ class MemoryStorage(StorageBase):
     def is_group(self, loc: Sequence[str]) -> bool:
         item = self[loc]
         if isinstance(item, dict):
-            # dictionaries are usually groups, but could also denote arrays, so we need
-            # to check for this possibility
-            return "data" not in item and "dtype" not in item
+            # dictionaries are usually groups, unless they have the `type` entry
+            return "__type__" not in item
         else:
             return False  # no group, since it's not a dictionary
 
@@ -140,6 +143,11 @@ class MemoryStorage(StorageBase):
     def _read_array(
         self, loc: Sequence[str], *, index: Optional[int] = None
     ) -> np.ndarray:
+        # check whether we actually have an array here
+        if self[loc]["__type__"] not in {"array", "dynamic_array"}:
+            raise RuntimeError(f"Found `{self[loc]['__type__']}` at {'/'.join(loc)}")
+
+        # read the data from the location
         if index is None:
             arr = self[loc]["data"]
         else:
@@ -166,6 +174,7 @@ class MemoryStorage(StorageBase):
             arr = structured_to_unstructured(arr)
 
         parent[name] = {
+            "__type__": "array",
             "data": np.array(arr, copy=True),
             "dtype": self._encode_internal_attr(dtype),
         }
@@ -184,6 +193,7 @@ class MemoryStorage(StorageBase):
         if name in parent:
             raise RuntimeError(f"Array `{'/'.join(loc)}` already exists")
         parent[name] = {
+            "__type__": "dynamic_array",
             "data": [],
             "shape": shape,
             "dtype": self._encode_internal_attr(np.dtype(dtype)),
@@ -193,12 +203,17 @@ class MemoryStorage(StorageBase):
 
     def _extend_dynamic_array(self, loc: Sequence[str], arr: ArrayLike) -> None:
         item = self[loc]
-        data = np.asanyarray(arr)
+        # check whether we actually have an array here
+        if item["__type__"] != "dynamic_array":
+            raise RuntimeError(f"Found `{self[loc]['__type__']}` at {'/'.join(loc)}")
 
+        # check data shape that is stored at this position
+        data = np.asanyarray(arr)
         stored_shape = tuple(item["shape"])
         if stored_shape != data.shape:
             raise TypeError(f"Shape mismatch ({stored_shape} != {data.shape})")
 
+        # convert the data to the correct format
         stored_dtype = self._decode_internal_attr(item["dtype"])
         if not np.issubdtype(data.dtype, stored_dtype):
             raise TypeError(f"Dtype mismatch ({data.dtype} != {stored_dtype}")
@@ -206,6 +221,7 @@ class MemoryStorage(StorageBase):
             # structured array
             data = structured_to_unstructured(data)
 
+        # append the data to the dynamic array
         if data.ndim == 0:
             item["data"].append(data.item())
         else:

@@ -323,16 +323,22 @@ def make_model_class(func: Callable, *, default: bool = False) -> Type[ModelBase
     # determine the parameters of the function
     parameters_default = []
     for name, param in inspect.signature(func).parameters.items():
-        if param.annotation is param.empty:
-            cls = object
+        if name == "storage":
+            # treat this parameter specially
+            print("FOUND STORAGE")
         else:
-            cls = param.annotation
-        if param.default is param.empty:
-            default_value = NoValue
-        else:
-            default_value = param.default
+            # all remaining parameters are treated as model parameters
+            if param.annotation is param.empty:
+                cls = object
+            else:
+                cls = param.annotation
+            if param.default is param.empty:
+                default_value = NoValue
+            else:
+                default_value = param.default
 
-        parameters_default.append(Parameter(name, default_value=default_value, cls=cls))
+            parameter = Parameter(name, default_value=default_value, cls=cls)
+            parameters_default.append(parameter)
 
     def __call__(self, *args, **kwargs):
         """call the function preserving the original signature"""
@@ -369,6 +375,7 @@ def make_model_class(func: Callable, *, default: bool = False) -> Type[ModelBase
 def make_model(
     func: Callable,
     parameters: Optional[Dict[str, Any]] = None,
+    output: Optional[str] = None,
     *,
     default: bool = False,
 ) -> ModelBase:
@@ -379,6 +386,8 @@ def make_model(
             The function that will be turned into a Model
         parameters (dict):
             Paramter values with which the model is initialized
+        output (str):
+            Path where the output file will be written.
         default (bool):
             If True, set this model as the default one for the current script
 
@@ -386,7 +395,7 @@ def make_model(
         :class:`ModelBase`: An instance of a subclass of ModelBase encompassing `func`
     """
     model_class = make_model_class(func, default=default)
-    return model_class(parameters)
+    return model_class(parameters, output=output)
 
 
 def run_function_with_cmd_args(

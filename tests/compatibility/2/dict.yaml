@@ -10,6 +10,7 @@ result:
       __class__: '"modelrunner.state.dict.DictState"'
       __version__: '2'
     a:
+      __type__: array
       data:
       - - a
         - b
@@ -18,6 +19,7 @@ result:
         __class__: '"modelrunner.state.object.ObjectState"'
         __version__: '2'
     b:
+      __type__: array
       data:
       - 0
       - 1

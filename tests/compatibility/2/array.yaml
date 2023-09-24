@@ -5,6 +5,7 @@ result:
     __version__: '2'
     __class__: '"modelrunner.results.Result"'
   state:
+    __type__: array
     data:
     - 0
     - 1

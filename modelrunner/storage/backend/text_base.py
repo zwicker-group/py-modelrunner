@@ -20,6 +20,8 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
     Note that the data is only written once the storage is closed.
     """
 
+    encode_internal_attrs: bool = True
+
     def __init__(
         self,
         path: Union[str, Path],
