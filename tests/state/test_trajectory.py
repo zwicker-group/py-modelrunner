@@ -7,7 +7,7 @@ import shutil
 import numpy as np
 import pytest
 
-from helpers import get_states, storage_extensions
+from helpers import assert_data_equals, get_states, storage_extensions
 from modelrunner.state import ArrayState, Trajectory, TrajectoryWriter
 
 STORAGE_EXT = storage_extensions(
@@ -43,13 +43,13 @@ def test_trajectory_basic(state, ext, tmp_path):
     traj = Trajectory(path, ret_copy=False)
     assert len(traj) == 2
     np.testing.assert_allclose(traj.times, [1, 2])
-    assert traj[1] == state
-    assert traj[-1] == state
+    assert_data_equals(traj[1], state)
+    assert_data_equals(traj[-1], state)
     assert traj[1] is traj[-1]
-    assert traj._state_attributes == {"test": "yes"}
+    assert traj._state_attributes["test"] == "yes"
 
     for s in traj:
-        assert s == state
+        assert_data_equals(s, state)
     traj.close()  # close file from reading, so it can be written again
 
     # write second batch of data
@@ -62,13 +62,13 @@ def test_trajectory_basic(state, ext, tmp_path):
     traj = Trajectory(path, ret_copy=True)
     assert len(traj) == 4
     np.testing.assert_allclose(traj.times, [1, 2, 5, 6])
-    assert traj[1] == state
-    assert traj[-1] == state
+    assert_data_equals(traj[1], state)
+    assert_data_equals(traj[-1], state)
     assert traj[1] is not traj[-1]
-    assert traj._state_attributes == {"test": "no"}
+    assert traj._state_attributes["test"] == "no"
 
     for s in traj:
-        assert s == state
+        assert_data_equals(s, state)
     traj.close()  # close file from reading, so it can be written again
 
     if ext == ".zarr":
@@ -87,7 +87,8 @@ def test_trajectory_basic(state, ext, tmp_path):
     traj = Trajectory(path2, ret_copy=True)
     assert len(traj) == 2
     np.testing.assert_allclose(traj.times, [2, 3])
-    assert traj[1] == traj[-1] == state
+    assert_data_equals(traj[1], state)
+    assert_data_equals(traj[-1], state)
 
     # clean up
     remove_file_or_folder(path)

@@ -8,7 +8,7 @@ import pytest
 from helpers import assert_data_equals, skipUnlessModule, storage_extensions
 from modelrunner.results import Result, ResultCollection
 
-STORAGE_EXT = storage_extensions(incl_folder=True, dot=False)
+STORAGE_EXT = storage_extensions(incl_folder=True, dot=True)
 
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)

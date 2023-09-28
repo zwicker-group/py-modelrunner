@@ -17,7 +17,7 @@ import zarr
 from numpy.typing import ArrayLike, DTypeLike
 from zarr._storage.store import Store
 
-from ..access_modes import AccessError, ModeType
+from ..access_modes import ModeType
 from ..attributes import AttrsLike
 from ..base import StorageBase
 
@@ -85,6 +85,11 @@ class ZarrStorage(StorageBase):
 
         self._root = zarr.group(store=self._store, overwrite=False)
 
+    @property
+    def can_update(self) -> bool:
+        """bool: indicates whether the storage supports updating items"""
+        return not isinstance(self._store, zarr.storage.ZipStore)
+
     def __repr__(self):
         return f'{self.__class__.__name__}({self._root.store}, mode="{self.mode.name}")'
 
@@ -93,16 +98,12 @@ class ZarrStorage(StorageBase):
             self._store.close()
         self._root = None
 
-    def _get_parent(
-        self, loc: Sequence[str], *, check_write: bool = False
-    ) -> Tuple[zarr.Group, str]:
+    def _get_parent(self, loc: Sequence[str]) -> Tuple[zarr.Group, str]:
         """get the parent group for a particular location
 
         Args:
             loc (list of str):
                 The location in the storage where the group will be created
-            check_write (bool):
-                Check whether the parent group is writable if `True`
 
         Returns:
             (group, str):
@@ -111,7 +112,7 @@ class ZarrStorage(StorageBase):
         try:
             path, name = loc[:-1], loc[-1]
         except IndexError:
-            raise KeyError(f"Location `{'/'.join(loc)}` has no parent")
+            raise KeyError(f"Location `/{'/'.join(loc)}` has no parent")
 
         parent = self._root
         for part in path:
@@ -119,9 +120,6 @@ class ZarrStorage(StorageBase):
                 parent = parent[part]
             except KeyError:
                 parent = parent.create_group(part, overwrite=False)
-
-        if check_write and not self.mode.overwrite and name in parent:
-            raise AccessError(f"Overwriting `{', '.join(loc)}` disabled")
 
         return parent, name
 
@@ -142,11 +140,11 @@ class ZarrStorage(StorageBase):
         return isinstance(self[loc], zarr.hierarchy.Group)
 
     def _create_group(self, loc: Sequence[str]) -> None:
-        parent, name = self._get_parent(loc, check_write=True)
+        parent, name = self._get_parent(loc)
         parent.create_group(name)
 
     def _read_attrs(self, loc: Sequence[str]) -> AttrsLike:
-        return {k: v for k, v in self[loc].attrs.items() if k != "__type__"}
+        return self[loc].attrs  # type: ignore
 
     def _write_attr(self, loc: Sequence[str], name: str, value) -> None:
         self[loc].attrs[name] = value
@@ -158,13 +156,14 @@ class ZarrStorage(StorageBase):
             arr = self[loc]
         else:
             arr = self[loc][index]
+
         if isinstance(arr, (zarr.Array, np.ndarray, np.generic)):
             return arr  # type: ignore
         else:
-            raise RuntimeError(f"Found {arr.__class__} at location `{'/'.join(loc)}`")
+            raise RuntimeError(f"Found {arr.__class__} at location `/{'/'.join(loc)}`")
 
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
-        parent, name = self._get_parent(loc, check_write=True)
+        parent, name = self._get_parent(loc)
 
         if name in parent:
             # update an existing array assuming it has the same shape. The credentials
@@ -174,10 +173,9 @@ class ZarrStorage(StorageBase):
         else:
             # create a new data set
             if arr.dtype == object:
-                arr_obj = parent.array(name, arr, object_codec=self.codec)
+                parent.array(name, arr, object_codec=self.codec, overwrite=True)
             else:
-                arr_obj = parent.array(name, arr)
-            arr_obj.attrs["__type__"] = "array"
+                parent.array(name, arr, overwrite=True)
 
     def _create_dynamic_array(
         self,
@@ -186,28 +184,31 @@ class ZarrStorage(StorageBase):
         dtype: DTypeLike,
         record_array: bool = False,
     ) -> None:
-        parent, name = self._get_parent(loc, check_write=True)
+        parent, name = self._get_parent(loc)
         try:
             if dtype == object:
-                arr_obj = parent.zeros(
+                parent.zeros(
                     name,
                     shape=(0,) + shape,
                     chunks=(1,) + shape,
                     dtype=dtype,
                     object_codec=self.codec,
+                    overwrite=True,
                 )
 
             else:
-                arr_obj = parent.zeros(
-                    name, shape=(0,) + shape, chunks=(1,) + shape, dtype=dtype
-                )
+                parent.zeros(name, shape=(0,) + shape, chunks=(1,) + shape, dtype=dtype)
         except zarr.errors.ContainsArrayError:
-            raise RuntimeError(f"Array `{'/'.join(loc)}` already exists")
-        else:
-            arr_obj.attrs["__type__"] = "dynamic_array"
+            raise RuntimeError(f"Array `/{'/'.join(loc)}` already exists")
 
     def _extend_dynamic_array(self, loc: Sequence[str], data: ArrayLike) -> None:
         arr_obj = self[loc]
-        if arr_obj.attrs["__type__"] != "dynamic_array":
-            raise RuntimeError(f"Cannot extend array at {'/'.join(loc)}")
         arr_obj.append([data])
+
+    def _read_object(self, loc: Sequence[str]) -> Any:
+        return self[loc][0]
+
+    def _write_object(self, loc: Sequence[str], obj: Any) -> None:
+        arr = np.array([obj], dtype=object)  # encode object in an array
+        parent, name = self._get_parent(loc)
+        parent.array(name, arr, object_codec=self.codec, overwrite=True)

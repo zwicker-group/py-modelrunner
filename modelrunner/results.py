@@ -18,7 +18,6 @@ import numpy as np
 from tqdm.auto import tqdm
 
 from .model import ModelBase
-from .state import StateBase, make_state
 from .storage import StorageID, open_storage, storage_actions
 from .storage.access_modes import ModeType
 from .storage.attributes import Attrs
@@ -47,38 +46,37 @@ class MockModel(ModelBase):
 class Result:
     """describes a model (with parameters) together with its result"""
 
-    _state_format_version = 2
+    _format_version = 2
     """int: number indicating the version of the file format"""
 
     def __init__(
-        self, model: ModelBase, state: StateBase, info: Optional[Dict[str, Any]] = None
+        self, model: ModelBase, result: Any, info: Optional[Dict[str, Any]] = None
     ):
         """
         Args:
             model (:class:`ModelBase`):
                 The model from which the result was obtained
-            state (:class:`StateBase`):
-                The actual result, saved as a state
+            result:
+                The actual result
             info (dict):
                 Additional information for this result
         """
-        assert isinstance(model, ModelBase)
-        assert isinstance(state, StateBase)
+        if not isinstance(model, ModelBase):
+            raise TypeError("The model should be of type `ModelBase`")
         self.model = model
+        self.result = result
         self.info: Attrs = {} if info is None else info
-        self.state = state
 
     @property
     def data(self):
         """direct access to the underlying state data"""
-        assert self.state is not self
-        return self.state._state_data
+        return self.result
 
     @classmethod
     def from_data(
         cls,
         model_data: Dict[str, Any],
-        state,
+        result,
         model: Optional[ModelBase] = None,
         info: Optional[Dict[str, Any]] = None,
     ) -> Result:
@@ -87,7 +85,7 @@ class Result:
         Args:
             model_data (dict):
                 The data identifying the model
-            state:
+            result:
                 The actual result data
             model (:class:`ModelBase`):
                 The model from which the result was obtained
@@ -108,7 +106,7 @@ class Result:
         model.name = model_data.get("name")
         model.description = model_data.get("description")
 
-        return cls(model, make_state(state), info)
+        return cls(model, result, info)
 
     @property
     def parameters(self) -> Dict[str, Any]:
@@ -143,14 +141,14 @@ class Result:
         # assume that file was written with latest format version
         with open_storage(storage, mode="readonly") as storage_obj:
             attrs = storage_obj.read_attrs(loc)
-            format_version = attrs.pop("__version__", None)
-            if format_version == cls._state_format_version:
+            format_version = attrs.pop("format_version", None)
+            if format_version == cls._format_version:
                 # current version of storing results
-                info = attrs.pop("__info__", {})  # load additional info
-                model_data = attrs.get("__model__", {})
-                state = storage_obj[loc, "state"]  # should load the state automatically
                 return cls.from_data(
-                    model_data=model_data, state=state, model=model, info=info
+                    model_data=attrs.get("model", {}),
+                    result=storage_obj.read_item(loc),
+                    model=model,
+                    info=attrs.pop("info", {}),  # load additional info,
                 )
 
             else:
@@ -172,17 +170,17 @@ class Result:
         """
         with open_storage(storage, mode=mode) as storage_obj:
             # collect attributes from the result
-            attrs: Attrs = {"__model__": dict(self.model._state_attributes)}
+            attrs: Attrs = {
+                "model": dict(self.model._state_attributes),
+                "format_version": self._format_version,
+            }
             if self.info:
-                attrs["__info__"] = self.info
-            attrs["__version__"] = self._state_format_version
-            group = storage_obj.create_group(loc, attrs=attrs, cls=self.__class__)
-
+                attrs["info"] = self.info
             # write the actual data
-            self.state._state_write_to_storage(group, loc="state")
+            storage_obj.write_object(loc, self.result, attrs=attrs, cls=self.__class__)
 
 
-storage_actions.register("read_object", Result, Result.from_file)
+storage_actions.register("read_item", Result, Result.from_file)
 
 
 class ResultCollection(List[Result]):
@@ -395,7 +393,7 @@ class ResultCollection(List[Result]):
                 df_data.setdefault("name", result.model.name)
 
             # try interpreting the result data in a format understood by pandas
-            data = result.state._state_data
+            data = result.result
             if np.isscalar(data):
                 df_data["result"] = data
             elif isinstance(data, dict):

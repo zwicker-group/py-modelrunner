@@ -16,7 +16,7 @@ import numpy as np
 
 from ..storage import Location, StorageGroup, open_storage, storage_actions
 from ..storage.access_modes import ModeType
-from ..storage.attributes import Attrs, attrs_remove_dunderscore
+from ..storage.attributes import Attrs
 from ..storage.utils import decode_class
 
 if TYPE_CHECKING:
@@ -113,7 +113,7 @@ class StateBase(metaclass=ABCMeta):
             if cls.__name__ in StateBase._state_classes:
                 warnings.warn(f"Redefining class {cls.__name__}")
             StateBase._state_classes[cls.__name__] = cls
-            storage_actions.register("read_object", cls, cls._state_from_stored_data)
+            storage_actions.register("read_item", cls, cls._state_from_stored_data)
 
     def _state_init(self, attributes: Dict[str, Any], data=NoData) -> None:
         """initialize the state with attributes and (optionally) data
@@ -124,7 +124,6 @@ class StateBase(metaclass=ABCMeta):
         """
         if data is not NoData:
             self._state_data = data
-        attributes = attrs_remove_dunderscore(attributes)
         if attributes:
             self._state_attributes = attributes
 
@@ -170,8 +169,8 @@ class StateBase(metaclass=ABCMeta):
         attrs = self._state_attributes.copy()
 
         # add some additional information
-        attrs["__class__"] = self.__class__.__name__
-        attrs["__version__"] = self._state_format_version
+        attrs["_state_class"] = self.__class__.__name__
+        attrs["_format_version"] = self._state_format_version
         return attrs
 
     @property
@@ -220,8 +219,8 @@ class StateBase(metaclass=ABCMeta):
         """
         attrs = self._state_attributes_store
         # remove private attributes used for persistent storage
-        attrs.pop("__class__")
-        attrs.pop("__version__")
+        attrs.pop("_state_class")
+        attrs.pop("_format_version")
         return {"attributes": attrs, "data": self._state_data_store}
 
     def __setstate__(self, dictdata: Dict[str, Any]):
@@ -239,14 +238,15 @@ class StateBase(metaclass=ABCMeta):
         Returns:
             The object containing the given attributes and data
         """
+        raise RuntimeError
         # copy attributes since they are modified in this function
         attributes = attributes.copy()
-        cls_name = attributes.pop("__class__", None)
+        cls_name = attributes.pop("_state_class", None)
 
         if cls_name is None or cls.__name__ == cls_name:
             # attributes contain right class name or no class information at all
             # => instantiate current class with given data
-            format_version = attributes.pop("__version__", 0)
+            format_version = attributes.pop("_format_version", 0)
             if format_version != cls._state_format_version:
                 warnings.warn(
                     f"File format version mismatch "
@@ -264,7 +264,7 @@ class StateBase(metaclass=ABCMeta):
             if cls_name == "StateBase":
                 raise RuntimeError("Cannot create StateBase instances")
             state_cls = cls._state_classes[cls_name]
-            return state_cls.from_data(attributes, data)  # type: ignore
+            return state_cls.from_data(attributes, data)
 
         else:
             raise ValueError(f"Incompatible state class {cls_name}")
@@ -348,20 +348,21 @@ class StateBase(metaclass=ABCMeta):
             `RuntimeError`: If format version is specified, but not matched
 
         Returns:
-            dict: Attributes without the `__class__` and `__version__` item
+            dict: Attributes without the `_state_class` and `_format_version` item
         """
         # read relevant attributes of the state
         attrs = storage.read_attrs(loc)
-        attrs.pop("__class__", None)  # remove this information
 
         # check whether the data can be read
-        version = attrs.pop("__version__", None)
+        attrs.pop("_state_class", None)
+        version = attrs.pop("_format_version", None)
         if check_version is not None and version != cls._state_format_version:
             raise RuntimeError(f"Cannot read format version {version}")
 
         return attrs
 
     @classmethod
+    @abstractmethod
     def _state_from_stored_data(
         cls, storage: StorageGroup, loc: Location, *, index: Optional[int] = None
     ):
@@ -376,6 +377,7 @@ class StateBase(metaclass=ABCMeta):
                 If the location contains a trajectory of the state, `index` must denote
                 the index determining which state should be created
         """
+        ...
         # determine the class to reconstruct the data from attribute
         state_cls = _get_state_cls_from_storage(storage, loc)
         if state_cls == StateBase:
@@ -452,7 +454,7 @@ class StateBase(metaclass=ABCMeta):
         """
         kwargs.setdefault("mode", "readonly")
         with open_storage(storage, **kwargs) as opened_storage:
-            return cls._state_from_stored_data(opened_storage, loc)
+            return opened_storage[loc]
 
     def to_file(
         self,
@@ -496,12 +498,11 @@ def _get_state_cls_from_storage(
     Returns:
         A subclass of :class:`StateBase`
     """
-    stored_cls = storage.read_attrs(loc).get("__class__", None)
-    _, class_name = stored_cls.rsplit(".", 1)
+    class_name = storage.read_attrs(loc).get("_state_class", None)
     if class_name in StateBase._state_classes:
         return StateBase._state_classes[class_name]
     else:
-        cls = decode_class(stored_cls)
+        cls = decode_class(class_name)
         if cls is None:
-            raise RuntimeError(f"Could not decode class `{stored_cls}`")
+            raise RuntimeError(f"Could not decode class `{class_name}`")
         return cls

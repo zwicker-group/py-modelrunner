@@ -13,7 +13,7 @@ Classes that describe the state of a simulation over time
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, Dict, Iterator, Optional, Type
 
 import numpy as np
 
@@ -21,8 +21,8 @@ from modelrunner.storage.access_modes import ModeType
 
 from ..storage.group import StorageGroup
 from ..storage.tools import open_storage
-from ..storage.utils import Location, storage_actions
-from .base import StateBase, _get_state_cls_from_storage
+from ..storage.utils import Location, decode_class, encode_class, storage_actions
+from .base import StateBase
 
 
 class TrajectoryWriter:
@@ -103,9 +103,21 @@ class TrajectoryWriter:
             self._trajectory.write_attrs(attrs=attrs)
 
     def append(self, data: StateBase, time: Optional[float] = None) -> None:
+        """append data to the trajectory
+
+        Args:
+            data (`StateBase`):
+                The state to append to the trajectory
+            time (float, optional):
+                The associated time point. If omitted, the last time point is
+                incremented by one.
+        """
         if "data" not in self._trajectory:
             data._state_create_trajectory(self._trajectory, "data")
             self._trajectory.create_dynamic_array("time", shape=tuple(), dtype=float)
+            self._trajectory.write_attrs(
+                None, {"state_class": encode_class(data.__class__)}
+            )
             if time is None:
                 time = 0.0
         else:
@@ -135,6 +147,8 @@ class Trajectory:
         times (:class:`~numpy.ndarray`): Time points at which data is available
     """
 
+    _state_cls: Type[StateBase]
+
     def __init__(
         self,
         storage: StorageGroup,
@@ -163,7 +177,11 @@ class Trajectory:
         # read some intial data from storage
         self.times = self._trajectory.read_array("time")
         self._state: Optional[StateBase] = None
-        self._state_cls = _get_state_cls_from_storage(self._trajectory, "data")
+        state_cls = decode_class(self._trajectory.attrs["state_class"])
+        if state_cls is None:
+            raise RuntimeError("State class could not be determined")
+        else:
+            self._state_cls = state_cls
 
         # check temporal ordering
         if np.any(np.diff(self.times) < 0):
@@ -229,4 +247,4 @@ class Trajectory:
             yield self[i]
 
 
-storage_actions.register("read_object", Trajectory, Trajectory)
+storage_actions.register("read_item", Trajectory, Trajectory)

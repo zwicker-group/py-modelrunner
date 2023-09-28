@@ -7,7 +7,7 @@ from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from io import StringIO
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Optional, Sequence, Union
 
 from ..access_modes import ModeType
 from .memory import MemoryStorage
@@ -88,3 +88,10 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
     @abstractmethod
     def _write_data_to_fp(self, fp, data) -> None:
         ...
+
+    def _read_object(self, loc: Sequence[str]) -> Any:
+        return self.codec.decode(self[loc]["data"])
+
+    def _write_object(self, loc: Sequence[str], obj: Any) -> None:
+        parent, name = self._get_parent(loc, check_write=True)
+        parent[name] = {"data": self.codec.encode(obj)}

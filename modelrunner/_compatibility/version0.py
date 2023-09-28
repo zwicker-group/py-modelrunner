@@ -48,7 +48,7 @@ def _Result_from_simple_objects(
 
     return Result.from_data(
         model_data=content.get("model", {}),
-        state=content.get("result"),
+        result=content.get("result"),
         model=model,
         info=content.get("info", {}),
     )
@@ -65,7 +65,9 @@ def _Result_from_hdf(hdf_element, model: Optional[ModelBase] = None) -> Result:
 
     info = model_data.pop("__info__") if "__info__" in model_data else {}
 
-    return Result.from_data(model_data=model_data, state=result, model=model, info=info)
+    return Result.from_data(
+        model_data=model_data, result=result, model=model, info=info
+    )
 
 
 def result_from_file_v0(path: Path, **kwargs) -> Result:

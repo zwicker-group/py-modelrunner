@@ -18,6 +18,7 @@ from numpy.typing import ArrayLike, DTypeLike
 from ..access_modes import AccessError, ModeType
 from ..attributes import Attrs, decode_attr, encode_attr
 from ..base import StorageBase
+from ..utils import decode_binary, encode_binary
 
 
 class MemoryStorage(StorageBase):
@@ -88,17 +89,17 @@ class MemoryStorage(StorageBase):
                     value[part] = {}
                     value = value[part]
                 else:
-                    raise TypeError(f"Cannot add item to `{'/'.join(loc)}`")
+                    raise TypeError(f"Cannot add item to `/{'/'.join(loc)}`")
         if not isinstance(value, dict):
-            raise TypeError(f"Cannot add item to `{'/'.join(loc)}`")
+            raise TypeError(f"Cannot add item to `/{'/'.join(loc)}`")
 
         try:
             name = loc[-1]
         except IndexError:
-            raise KeyError(f"Location `{'/'.join(loc)}` has no parent")
+            raise KeyError(f"Location `/{'/'.join(loc)}` has no parent")
 
         if check_write and not self.mode.overwrite and name in value:
-            raise AccessError(f"Overwriting `{'/'.join(loc)}` disabled")
+            raise AccessError(f"Overwriting `/{'/'.join(loc)}` disabled")
         return value, name
 
     def __getitem__(self, loc: Sequence[str]) -> Any:
@@ -117,8 +118,8 @@ class MemoryStorage(StorageBase):
     def is_group(self, loc: Sequence[str]) -> bool:
         item = self[loc]
         if isinstance(item, dict):
-            # dictionaries are usually groups, unless they have the `type` entry
-            return "__type__" not in item
+            # dictionaries are usually groups, unless they have the `type` attribute
+            return "__type__" not in item.get("__attrs__", {})
         else:
             return False  # no group, since it's not a dictionary
 
@@ -131,7 +132,7 @@ class MemoryStorage(StorageBase):
         if isinstance(res, dict):
             return res
         else:
-            raise RuntimeError(f"No attributes at {'/'.join(loc)}")
+            raise RuntimeError(f"No attributes at `/{'/'.join(loc)}`")
 
     def _write_attr(self, loc: Sequence[str], name: str, value) -> None:
         item = self[loc]
@@ -143,10 +144,6 @@ class MemoryStorage(StorageBase):
     def _read_array(
         self, loc: Sequence[str], *, index: Optional[int] = None
     ) -> np.ndarray:
-        # check whether we actually have an array here
-        if self[loc]["__type__"] not in {"array", "dynamic_array"}:
-            raise RuntimeError(f"Found `{self[loc]['__type__']}` at {'/'.join(loc)}")
-
         # read the data from the location
         if index is None:
             arr = self[loc]["data"]
@@ -154,7 +151,7 @@ class MemoryStorage(StorageBase):
             arr = self[loc]["data"][index]
 
         if hasattr(arr, "__iter__"):  # minimal sanity check
-            dtype = self._decode_internal_attr(self[loc]["dtype"])
+            dtype = decode_binary(self[loc]["dtype"])
             if dtype.names is not None:
                 arr = unstructured_to_structured(np.asarray(arr), dtype=dtype)
             else:
@@ -163,7 +160,7 @@ class MemoryStorage(StorageBase):
                 arr = arr.view(np.recarray)
             return arr  # type: ignore
         else:
-            raise RuntimeError(f"No array at {'/'.join(loc)}")
+            raise RuntimeError(f"No array at `/{'/'.join(loc)}`")
 
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
         parent, name = self._get_parent(loc, check_write=True)
@@ -174,9 +171,8 @@ class MemoryStorage(StorageBase):
             arr = structured_to_unstructured(arr)
 
         parent[name] = {
-            "__type__": "array",
             "data": np.array(arr, copy=True),
-            "dtype": self._encode_internal_attr(dtype),
+            "dtype": encode_binary(dtype, binary=False),
         }
         if isinstance(arr, np.record):
             parent[name]["record_array"] = True
@@ -191,21 +187,17 @@ class MemoryStorage(StorageBase):
     ) -> None:
         parent, name = self._get_parent(loc, check_write=True)
         if name in parent:
-            raise RuntimeError(f"Array `{'/'.join(loc)}` already exists")
+            raise RuntimeError(f"Array `/{'/'.join(loc)}` already exists")
         parent[name] = {
-            "__type__": "dynamic_array",
             "data": [],
             "shape": shape,
-            "dtype": self._encode_internal_attr(np.dtype(dtype)),
+            "dtype": encode_binary(np.dtype(dtype), binary=False),
         }
         if record_array:
             parent[name]["record_array"] = True
 
     def _extend_dynamic_array(self, loc: Sequence[str], arr: ArrayLike) -> None:
         item = self[loc]
-        # check whether we actually have an array here
-        if item["__type__"] != "dynamic_array":
-            raise RuntimeError(f"Found `{self[loc]['__type__']}` at {'/'.join(loc)}")
 
         # check data shape that is stored at this position
         data = np.asanyarray(arr)
@@ -214,7 +206,7 @@ class MemoryStorage(StorageBase):
             raise TypeError(f"Shape mismatch ({stored_shape} != {data.shape})")
 
         # convert the data to the correct format
-        stored_dtype = self._decode_internal_attr(item["dtype"])
+        stored_dtype = decode_binary(item["dtype"])
         if not np.issubdtype(data.dtype, stored_dtype):
             raise TypeError(f"Dtype mismatch ({data.dtype} != {stored_dtype}")
         if data.dtype.names is not None:
@@ -226,3 +218,10 @@ class MemoryStorage(StorageBase):
             item["data"].append(data.item())
         else:
             item["data"].append(np.array(data, copy=True))
+
+    def _read_object(self, loc: Sequence[str]) -> Any:
+        return self[loc]["data"]
+
+    def _write_object(self, loc: Sequence[str], obj: Any) -> None:
+        parent, name = self._get_parent(loc, check_write=True)
+        parent[name] = {"data": obj}
