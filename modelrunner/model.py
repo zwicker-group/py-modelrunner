@@ -32,7 +32,6 @@ from .parameters import (
     Parameter,
     Parameterized,
 )
-from .state import ObjectState, StateBase
 from .storage import MemoryStorage, StorageGroup, open_storage  # type: ignore
 
 if TYPE_CHECKING:
@@ -46,8 +45,6 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
     """str: the name of the model"""
     description: Optional[str] = None
     """str: a longer description of the model"""
-    state_cls: Type[StateBase] = ObjectState
-    """type: the class that will contain the model results"""
 
     def __init__(
         self,
@@ -96,11 +93,11 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         """main method calculating the result. Needs to be specified by sub-class"""
         pass
 
-    def get_result(self, state: Optional[StateBase] = None) -> "Result":
+    def get_result(self, data: Any = None) -> "Result":
         """get the result as a :class:`~model.Result` object
 
         Args:
-            state:
+            data:
                 The result data. If omitted, the model is run to obtain results
 
         Returns:
@@ -108,14 +105,11 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         """
         from .results import Result  # @Reimport
 
-        if state is None:
-            state_data = self()
-            state = self.state_cls(state_data)
-        elif isinstance(state, Result):
-            return state
+        if data is None:
+            data = self()
 
         info = {"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-        return Result(self, state, info=info)
+        return Result(self, data, info=info)
 
     def write_result(self, result=None) -> None:
         """write the result to the output file

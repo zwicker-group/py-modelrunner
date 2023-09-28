@@ -90,11 +90,11 @@ class StorageGroup:
         """read state or trajectory from storage"""
         loc = self._get_loc(loc)
         if self._storage.is_group(loc):  # storage points to a group
-            if "__class__" not in self._storage.read_attrs(loc):
+            if "__class__" not in self._storage._read_attrs(loc):
                 # group does not contain class information => just return a subgroup
                 return StorageGroup(self._storage, loc)
         # reconstruct objected stored at this place
-        return self._read_object(loc)
+        return self.read_item(loc, use_class=True)
 
     def keys(self) -> Collection[str]:
         """return name of all stored items in this group"""
@@ -142,18 +142,40 @@ class StorageGroup:
         """dict: the attributes associated with this group"""
         return self.read_attrs()
 
-    def _read_object(self, loc: Sequence[str]):
-        """read a python object from a particular location"""
-        attrs = self._storage.read_attrs(loc)
-        cls = decode_class(attrs.pop("__class__", None))
-        if cls is None:
-            # return numpy array
-            arr = self._storage._read_array(loc)
-            return Array(arr, attrs=attrs)
+    def read_item(self, loc: Location, *, use_class: bool = False) -> Any:
+        """read an item from a particular location
+
+        Args:
+            loc (sequence of str):
+                A list of strings determining the location in the storage
+            use_class (bool):
+                If `True`, looks for class information in the attributes and evokes a
+                potentially registered hook to instantiate the associated object. If
+                `False`, only the current data or object is returned.
+
+        Returns:
+            The reconstructed python object
+        """
+        loc_list = self._get_loc(loc)
+        if use_class:
+            attrs = self._storage._read_attrs(loc_list)
+            cls = decode_class(attrs["__class__"])
+            if cls is None:
+                return self.read_item(loc_list, use_class=False)
+            else:
+                # create object using a registered action
+                create_object = storage_actions.get(cls, "read_item")
+                return create_object(self._storage, loc_list)
         else:
-            # create object using a registered action
-            create_object = storage_actions.get(cls, "read_object")
-            return create_object(self._storage, loc)
+            # return the stored object
+            obj_type = self._storage._read_attrs(loc_list).get("__type__")
+            if obj_type in {"array", "dynamic_array"}:
+                arr = self._storage._read_array(loc_list)
+                return Array(arr, attrs=self._storage.read_attrs(loc_list))
+            elif obj_type == "object":
+                return self._storage._read_object(loc_list)
+            else:
+                raise RuntimeError(f"Cannot read objects of type `{obj_type}`")
 
     def is_group(self, loc: Location = None) -> bool:
         """determine whether the location is a group
@@ -331,4 +353,4 @@ class StorageGroup:
                 A class associated with this object
         """
         loc_list = self._get_loc(loc)
-        self._storage.write_array(loc_list, obj, attrs=attrs, cls=cls)
+        self._storage.write_object(loc_list, obj, attrs=attrs, cls=cls)

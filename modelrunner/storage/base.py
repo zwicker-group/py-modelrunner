@@ -1,5 +1,22 @@
 """
-Base classes for storing data
+Base classes for managing hierarchical storage in which data is stored
+
+The storage classes provide low-level abstraction to store data in a hierarchical format
+and should thus not be used directly. Instead, the user typically interacts with
+:class:`~modelrunner.storage.group.StorageGroup` objects, i.e., returned by
+:func:`~modelrunner.storage.tools.open_storage`.
+
+The role of `StorageBase` is to ensure access rights and provide an interface that can
+be specified easily by subclasses to provide new storage formats. In contrast, the
+interface of `StorageGroup` is more user-friendly and provides additional convenience
+methods.
+
+The main structure of the storage is a hierarchical tree of *groups*, which can contain
+other groups or specific data items. Currently, items can be either arrays or arbitrary
+objects, which are serialized transparently. Moreover, each group and each item can have
+attributes, which are a mapping with string keys and arbitrary values, which are also
+serialized transparently. Note that keys with double underscores are reserved for
+internal use and should thus not be used.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de> 
 """
@@ -8,7 +25,17 @@ from __future__ import annotations
 
 import logging
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Any, Collection, List, Optional, Sequence, Tuple, Type
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Collection,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+)
 
 import numcodecs
 import numpy as np
@@ -23,17 +50,7 @@ if TYPE_CHECKING:
 
 
 class StorageBase(metaclass=ABCMeta):
-    """base class for storing data
-
-    The storage classes should usually not be used directly. Instead, the user
-    typically interacts with :class:`~modelrunner.storage.group.StorageGroup` objects,
-    i.e., returned by :func:`~modelrunner.storage.tools.open_storage`.
-
-    The role of `StorageBase` is to ensure access rights and provide an interface that
-    can be specified easily by subclasses to provide new storage formats. In contrast,
-    the interface of `StorageGroup` is more user-friendly and provides additional
-    convenience methods.
-    """
+    """base class for storing data"""
 
     extensions: List[str] = []
     """list of str: all file extensions supported by this storage"""
@@ -58,6 +75,12 @@ class StorageBase(metaclass=ABCMeta):
         ...
 
     @property
+    def can_update(self) -> bool:
+        """bool: indicates whether the storage supports updating items"""
+        # we are using a property instead of an attribute to make this read-only
+        return True
+
+    @property
     def codec(self) -> numcodecs.abc.Codec:
         """:class:`~numcodecs.abc.Codec`: A codec used to encode binary data"""
         try:
@@ -68,27 +91,9 @@ class StorageBase(metaclass=ABCMeta):
                 self._codec = numcodecs.get_codec(attrs["__codec__"])
             else:
                 self._codec = self.default_codec
-                self._write_attr([], "__codec__", self._codec.get_config())
+                if self.mode.set_attrs:
+                    self._write_attr([], "__codec__", self._codec.get_config())
         return self._codec
-
-    def _get_attrs(
-        self, attrs: Optional[Attrs], *, cls: Optional[Type] = None
-    ) -> Attrs:
-        """create attributes dictionary
-
-        Args:
-            attrs (dict):
-                Dictionary with arbitrary attributes
-            cls (type):
-                Class information that needs to be stored alongside
-        """
-        if attrs is None:
-            attrs = {}
-        else:
-            attrs = dict(attrs)
-        if cls is not None:
-            attrs["__class__"] = encode_class(cls)
-        return attrs
 
     @abstractmethod
     def keys(self, loc: Sequence[str]) -> Collection[str]:
@@ -143,7 +148,8 @@ class StorageBase(metaclass=ABCMeta):
             attrs (dict, optional):
                 Attributes stored with the group
             cls (type):
-                A class associated with this group
+                A class associated with this group. The class will be used to re-create
+                the object when this group is later accessed directly.
 
         Returns:
             :class:`StorageGroup`: The reference of the new group
@@ -156,19 +162,19 @@ class StorageBase(metaclass=ABCMeta):
                 pass  # group already exists, but we can overwrite things
             else:
                 # we cannot overwrite anything
-                raise AccessError(f"Group `{'/'.join(loc)}` already exists")
+                raise AccessError(f"Group `/{'/'.join(loc)}` already exists")
 
         else:
             # group needs to be created
             if not self.mode.insert:
-                raise AccessError(f"No right to insert group `{'/'.join(loc)}`")
+                raise AccessError(f"No right to insert group `/{'/'.join(loc)}`")
 
             # create all parent groups
             for i in range(len(loc)):
                 if loc[: i + 1] not in self:
                     self._create_group(loc[: i + 1])
 
-        self.write_attrs(loc, self._get_attrs(attrs, cls=cls))
+        self._write_item_attrs(loc, attrs, cls=cls)
         return StorageGroup(self, loc)
 
     def ensure_group(self, loc: Sequence[str]) -> None:
@@ -183,7 +189,7 @@ class StorageBase(metaclass=ABCMeta):
         if loc not in self:
             # check whether we can insert a group
             if not self.mode.insert:
-                raise AccessError(f"No right to insert group `{'/'.join(loc)}`")
+                raise AccessError(f"No right to insert group `/{'/'.join(loc)}`")
             # create group
             self.create_group(loc)
 
@@ -203,7 +209,9 @@ class StorageBase(metaclass=ABCMeta):
         """
         if not self.mode.read:
             raise AccessError("No right to read attributes")
-        attrs = self._read_attrs(loc)
+        attrs = {
+            k: v for k, v in self._read_attrs(loc).items() if not k.startswith("__")
+        }
         return decode_attrs(attrs)
 
     @abstractmethod
@@ -222,15 +230,70 @@ class StorageBase(metaclass=ABCMeta):
         """
         # check whether we can insert anything
         if not self.mode.set_attrs:
-            raise AccessError(f"No right to set attributes of `{'/'.join(loc)}`")
+            raise AccessError(f"No right to set attributes of `/{'/'.join(loc)}`")
         # check whether there are actually any attributes to be written
         if attrs is None or len(attrs) == 0:
             return
 
-        self.ensure_group(loc)  # make sure the group exists
-
         for name, value in attrs.items():
-            self._write_attr(loc, name, encode_attr(value))
+            if name.startswith("__"):
+                # do not encode internal attributes
+                self._write_attr(loc, name, value)
+            else:
+                # serialize and encode all foreign attributes
+                self._write_attr(loc, name, encode_attr(value))
+
+    def _write_item_attrs(
+        self,
+        loc: Sequence[str],
+        attrs: Optional[Attrs],
+        *,
+        item_type: Optional[Literal["array", "dynamic_array", "object"]] = None,
+        cls: Optional[Type] = None,
+    ) -> None:
+        """write attributes to a particular location
+
+        Args:
+            loc (list of str):
+                The location in the storage where the attributes are written
+            attrs (dict):
+                The attributes to be added to this location
+            item_type (str):
+                Information about the type of the item
+            cls (type):
+                Class information that needs to be stored alongside
+        """
+        if attrs is None:
+            attrs = {}
+        if item_type is not None:
+            attrs.setdefault("__type__", str(item_type))
+        if cls is not None:
+            attrs.setdefault("__class__", encode_class(cls))
+        self.write_attrs(loc, attrs)
+
+    def _check_write_access(self, loc: Sequence[str], *, name: str = "item") -> None:
+        """check whether we can safely write to a location
+
+        Args:
+            loc (list of str):
+                The location in the storage where the array is read
+            name (str):
+                A name of the item appearing in error messages
+        """
+        if not loc:
+            raise RuntimeError(f"Cannot write {name} to the storage root")
+        elif loc in self:
+            # check whether we can overwrite the existing array
+            if not self.can_update:
+                raise RuntimeError("Storage does not support updating items")
+            if not self.mode.overwrite:
+                raise AccessError(f"{name} `/{'/'.join(loc)}` already exists")
+        else:
+            # check whether we can insert a new array
+            if not self.mode.insert:
+                raise AccessError(f"No right to insert {name} at `/{'/'.join(loc)}`")
+            # make sure the parent group exists
+            self.ensure_group(loc[:-1])
 
     def _read_array(
         self,
@@ -297,23 +360,13 @@ class StorageBase(metaclass=ABCMeta):
             attrs (dict, optional):
                 Attributes stored with the array
             cls (type):
-                A class associated with this array
+                A class associated with this array. The class will be used to re-create
+                the object when this array is later accessed. If no class is supplied,
+                a generic `~modelrunner.storage.utils.Array` will be returned.
         """
-        if not loc:
-            raise RuntimeError(f"Cannot write an array to the storage root")
-        elif loc in self:
-            # check whether we can overwrite the existing array
-            if not self.mode.overwrite:
-                raise AccessError(f"Array `{'/'.join(loc)}` already exists")
-        else:
-            # check whether we can insert a new array
-            if not self.mode.insert:
-                raise AccessError(f"No right to insert array `{'/'.join(loc)}`")
-            # make sure the parent group exists
-            self.ensure_group(loc[:-1])
-
+        self._check_write_access(loc, name="array")
         self._write_array(loc, arr)
-        self.write_attrs(loc, self._get_attrs(attrs, cls=cls))
+        self._write_item_attrs(loc, attrs, cls=cls, item_type="array")
 
     def _create_dynamic_array(
         self,
@@ -352,23 +405,11 @@ class StorageBase(metaclass=ABCMeta):
             cls (type):
                 A class associated with this array
         """
-        if not loc:
-            raise RuntimeError(f"Cannot write an array to the storage root")
-        elif loc in self:
-            # check whether we can overwrite the existing array
-            if not self.mode.overwrite:
-                raise RuntimeError(f"Array `{'/'.join(loc)}` already exists")
-            # TODO: Do we need to clear this array?
-        else:
-            # check whether we can insert a new array
-            if not self.mode.insert:
-                raise AccessError(f"No right to insert array `{'/'.join(loc)}`")
-            self.ensure_group(loc[:-1])  # make sure the parent group exists
-
+        self._check_write_access(loc, name="array")
         self._create_dynamic_array(
             loc, tuple(shape), dtype=dtype, record_array=record_array
         )
-        self.write_attrs(loc, self._get_attrs(attrs, cls=cls))
+        self._write_item_attrs(loc, attrs, cls=cls, item_type="dynamic_array")
 
     def _extend_dynamic_array(self, loc: Sequence[str], arr: ArrayLike) -> None:
         raise NotImplementedError(f"No dynamic arrays for {self.__class__.__name__}")
@@ -383,7 +424,9 @@ class StorageBase(metaclass=ABCMeta):
                 The array that will be appended to the dynamic array
         """
         if not self.mode.dynamic_append:
-            raise AccessError(f"Cannot append data to dynamic array `{'/'.join(loc)}`")
+            raise AccessError(f"Cannot append data to dynamic array `/{'/'.join(loc)}`")
+        if self._read_attrs(loc).get("__type__") != "dynamic_array":
+            raise RuntimeError(f"Cannot extend array at `/{'/'.join(loc)}`")
         self._extend_dynamic_array(loc, arr)
 
     def _read_object(self, loc: Sequence[str]) -> Any:
@@ -401,6 +444,8 @@ class StorageBase(metaclass=ABCMeta):
         """
         if not self.mode.read:
             raise AccessError("No right to read object")
+        if self._read_attrs(loc).get("__type__") != "object":
+            raise RuntimeError(f"No object stored at `/{'/'.join(loc)}`")
         return self._read_object(loc)
 
     def _write_object(self, loc: Sequence[str], obj: Any) -> None:
@@ -418,26 +463,16 @@ class StorageBase(metaclass=ABCMeta):
 
         Args:
             loc (list of str):
-                The location in the storage where the object is read
+                The location in the storage where the object is read.
             obj:
                 The object that will be written
             attrs (dict, optional):
                 Attributes stored with the object
             cls (type):
-                A class associated with this object
+                A class associated with this object. The class will be used to re-create
+                the object when this object is later accessed. If no class is supplied,
+                a generic python object will be returned.
         """
-        if not loc:
-            raise RuntimeError(f"Cannot write an object to the storage root")
-        elif loc in self:
-            # check whether we can overwrite the existing object
-            if not self.mode.overwrite:
-                raise AccessError(f"Object `{'/'.join(loc)}` already exists")
-        else:
-            # check whether we can insert a new object
-            if not self.mode.insert:
-                raise AccessError(f"No right to insert object `{'/'.join(loc)}`")
-            # make sure the parent group exists
-            self.ensure_group(loc[:-1])
-
+        self._check_write_access(loc, name="object")
         self._write_object(loc, obj)
-        self.write_attrs(loc, self._get_attrs(attrs, cls=cls))
+        self._write_item_attrs(loc, attrs, cls=cls, item_type="object")

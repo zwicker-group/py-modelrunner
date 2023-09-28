@@ -54,12 +54,17 @@ def normalize_zarr_store(store: Store, mode: str = "a") -> Optional[Store]:
 
     Returns:
     """
+    import zipfile
+
     import zarr
 
     if isinstance(store, (str, Path)):
         store = Path(store)
         if store.is_file():
-            store = zarr.storage.ZipStore(store, mode=mode)
+            try:
+                store = zarr.storage.ZipStore(store, mode=mode)
+            except zipfile.BadZipfile:
+                return None
         else:
             return None
     return store
@@ -84,6 +89,8 @@ def _find_version(data: Mapping[str, Any], label: str) -> Optional[int]:
             return read_version(item.attrs)
         elif "__version__" in item:
             return item["__version__"]  # type: ignore
+        elif "format_version" in item:
+            return item["format_version"]  # type: ignore
         elif "__attrs__" in item:
             return read_version(item["__attrs__"])
         elif "attributes" in item:

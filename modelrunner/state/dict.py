@@ -40,13 +40,13 @@ class DictState(StateBase):
     def _state_attributes(self) -> Dict[str, Any]:
         """dict: Additional attributes, which are required to restore the state"""
         attributes = super()._state_attributes
-        attributes["__keys__"] = list(self._state_data.keys())
+        attributes["_keys"] = list(self._state_data.keys())
         return attributes
 
     @_state_attributes.setter
     def _state_attributes(self, attributes: Dict[str, Any]) -> None:
         """set the attributes of the state"""
-        attributes.pop("__keys__", None)  # remove auxillary information if present
+        attributes.pop("_keys", None)  # remove auxillary information if present
         super(DictState, DictState)._state_attributes.__set__(self, attributes)  # type: ignore
 
     @classmethod
@@ -59,7 +59,7 @@ class DictState(StateBase):
         """
         if data is None or not isinstance(data, (dict, tuple, list)):
             raise TypeError("`data` must be a dictionary or sequence")
-        keys = attributes.pop("__keys__")
+        keys = attributes.pop("_keys")
         if not isinstance(data, dict) and keys:
             data = {k: v for k, v in zip(keys, data)}
         return super().from_data(attributes, data)
@@ -128,7 +128,7 @@ class DictState(StateBase):
         group = StorageGroup(storage, loc)
         data = {
             label: StateBase._state_from_stored_data(group, label, index=index)
-            for label in attrs["__keys__"]
+            for label in attrs["_keys"]
         }
         obj = cls.__new__(cls)
         obj._state_init(attrs, data)

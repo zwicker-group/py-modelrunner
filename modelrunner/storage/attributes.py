@@ -43,8 +43,4 @@ def decode_attrs(attrs: AttrsLike) -> Attrs:
     return {k: decode_attr(v) for k, v in attrs.items()}
 
 
-def attrs_remove_dunderscore(attrs: AttrsLike) -> Attrs:
-    return {k: v for k, v in attrs.items() if not k.startswith("__")}
-
-
-__all__ = ["encode_attrs", "decode_attrs", "attrs_remove_dunderscore"]
+__all__ = ["encode_attrs", "decode_attrs"]

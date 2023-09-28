@@ -18,4 +18,4 @@ if __name__ == "__main__":
     result.to_file("test.json")
 
     read = Result.from_file("test.json")
-    print(read.parameters, "–– a * b =", read.state)
+    print(read.parameters, "–– a * b =", read.data)

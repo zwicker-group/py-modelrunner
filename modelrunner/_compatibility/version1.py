@@ -136,7 +136,7 @@ def _Result_from_simple_objects(
 
     return Result.from_data(
         model_data=content.get("model", {}),
-        state=_StateBase_from_simple_objects(content["state"]),
+        result=_StateBase_from_simple_objects(content["state"]),
         info=content.get("info"),
     )
 
@@ -151,7 +151,7 @@ def _Result_from_hdf(hdf_element, model: Optional[ModelBase] = None) -> Result:
     attributes = {key: json.loads(value) for key, value in hdf_element.attrs.items()}
     # extract version information from attributes
     format_version = attributes.pop("__version__", None)
-    if format_version != Result._state_format_version:
+    if format_version != Result._format_version:
         raise RuntimeError(f"Cannot read format version {format_version}")
     info = attributes.pop("__info__", {})  # load additional info
 
@@ -163,7 +163,7 @@ def _Result_from_hdf(hdf_element, model: Optional[ModelBase] = None) -> Result:
     state_data = read_hdf_data(hdf_element["data"])
     state = StateBase.from_data(state_attributes, state_data)
 
-    return Result.from_data(model_data=model_data, state=state, model=model, info=info)
+    return Result.from_data(model_data=model_data, result=state, model=model, info=info)
 
 
 def _Result_from_zarr(
@@ -183,7 +183,7 @@ def _Result_from_zarr(
     # load state
     state = _StateBase_from_zarr(zarr_element["state"])
 
-    return Result.from_data(model_data=model_data, state=state, model=model, info=info)
+    return Result.from_data(model_data=model_data, result=state, model=model, info=info)
 
 
 def result_from_file_v1(store: Path, *, label: str = "data", **kwargs) -> Result:

@@ -155,14 +155,14 @@ class Array(np.ndarray):
         self.attrs = getattr(obj, "attrs", {})
 
 
-ActionType = Literal["read_object"]
+ActionType = Literal["read_item"]
 
 
 class _StorageRegistry:
     """registry that stores information about how to use storage"""
 
     allowed_actions = {
-        "read_object",  # read object from storage
+        "read_item",  # read object from storage
     }
 
     _classes: Dict[Type, Dict[str, Callable]]
@@ -178,7 +178,7 @@ class _StorageRegistry:
 
             .. code-block:: python
 
-                storage_actions.register("read_object", MyObj, MyObj.read_object)
+                storage_actions.register("read_item", MyObj, MyObj.read_object)
 
         Args:
             action (str):

@@ -83,11 +83,7 @@ class HDFStorage(StorageBase):
         return "/" + "/".join(loc)
 
     def _get_parent(
-        self,
-        loc: Sequence[str],
-        *,
-        create_groups: bool = True,
-        check_write: bool = False,
+        self, loc: Sequence[str], *, create_groups: bool = True
     ) -> Tuple[h5py.Group, str]:
         """get the parent group for a particular location
 
@@ -96,8 +92,6 @@ class HDFStorage(StorageBase):
                 The location in the storage where the group will be created
             create_groups (bool):
                 Create all intermediate groups if they not already exist
-            check_write (bool):
-                Check whether the parent group is writable if `True`
 
         Returns:
             (group, str):
@@ -106,7 +100,7 @@ class HDFStorage(StorageBase):
         try:
             path, name = loc[:-1], loc[-1]
         except IndexError:
-            raise KeyError(f"Location `{'/'.join(loc)}` has no parent")
+            raise KeyError(f"Location `/{'/'.join(loc)}` has no parent")
 
         if create_groups:
             # creat
@@ -118,12 +112,9 @@ class HDFStorage(StorageBase):
                     if self.mode.insert:
                         parent = parent.create_group(part)
                     else:
-                        raise AccessError(f"Cannot create group `{', '.join(loc)}`")
+                        raise AccessError(f"Cannot create group `/{'/'.join(loc)}`")
         else:
             parent = self._file[self._get_hdf_path(path)]
-
-        if check_write and not self.mode.overwrite and name in parent:
-            raise AccessError(f"Overwriting `{', '.join(loc)}` disabled")
 
         return parent, name
 
@@ -144,11 +135,11 @@ class HDFStorage(StorageBase):
         return isinstance(self[loc], h5py.Group)
 
     def _create_group(self, loc: Sequence[str]):
-        parent, name = self._get_parent(loc, check_write=True)
+        parent, name = self._get_parent(loc)
         return parent.create_group(name)
 
     def _read_attrs(self, loc: Sequence[str]) -> AttrsLike:
-        return {k: v for k, v in self[loc].attrs.items() if k != "__type__"}
+        return self[loc].attrs  # type: ignore
 
     def _write_attr(self, loc: Sequence[str], name: str, value) -> None:
         self[loc].attrs[name] = value
@@ -166,10 +157,10 @@ class HDFStorage(StorageBase):
         elif isinstance(arr, (h5py.Dataset, np.ndarray, np.generic)):
             return arr  # type: ignore
         else:
-            raise RuntimeError(f"Found {arr.__class__} at location `{'/'.join(loc)}`")
+            raise RuntimeError(f"Found {arr.__class__} at location `/{'/'.join(loc)}`")
 
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
-        parent, name = self._get_parent(loc, check_write=True)
+        parent, name = self._get_parent(loc)
 
         if name in parent:
             # update an existing array assuming it has the same shape. The credentials
@@ -186,11 +177,10 @@ class HDFStorage(StorageBase):
             if arr.dtype == object:
                 arr_str = encode_binary(arr, binary=True)
                 dataset = parent.create_dataset(name, data=np.void(arr_str))
-                dataset.attrs["__pickled__"] = encode_attr(True)
+                dataset.attrs["__pickled__"] = True
             else:
                 args = {"compression": "gzip"} if self.compression else {}
                 dataset = parent.create_dataset(name, data=arr, **args)
-            dataset.attrs["__type__"] = "array"
 
     def _create_dynamic_array(
         self,
@@ -200,7 +190,7 @@ class HDFStorage(StorageBase):
         dtype: DTypeLike,
         record_array: bool = False,
     ) -> None:
-        parent, name = self._get_parent(loc, check_write=True)
+        parent, name = self._get_parent(loc)
         if dtype == object:
             dt = h5py.special_dtype(vlen=np.dtype("uint8"))
             try:
@@ -222,8 +212,7 @@ class HDFStorage(StorageBase):
                     **args,
                 )
             except ValueError:
-                raise RuntimeError(f"Array `{'/'.join(loc)}` already exists")
-        dataset.attrs["__type__"] = "dynamic_array"
+                raise RuntimeError(f"Array `/{'/'.join(loc)}` already exists")
         self._dynamic_array_size[self._get_hdf_path(loc)] = 0
 
     def _extend_dynamic_array(self, loc: Sequence[str], arr: ArrayLike) -> None:
@@ -231,10 +220,8 @@ class HDFStorage(StorageBase):
         hdf_path = self._get_hdf_path(loc)
         dataset = self._file[hdf_path]
 
-        if dataset.attrs["__type__"] != "dynamic_array":
-            raise RuntimeError(f"Cannot extend array at {'/'.join(loc)}")
         if not dataset.maxshape[0] == None:
-            raise RuntimeError(f"Array `{'/'.join(loc)}` is not resizeable")
+            raise RuntimeError(f"Array `/{'/'.join(loc)}` is not resizeable")
 
         # determine size of the currently written data
         size = self._dynamic_array_size.get(hdf_path, None)
@@ -256,3 +243,13 @@ class HDFStorage(StorageBase):
             dataset[size] = arr
 
         self._dynamic_array_size[hdf_path] = dataset.shape[0]
+
+    def _read_object(self, loc: Sequence[str]) -> Any:
+        return decode_binary(np.asarray(self[loc]).item())
+
+    def _write_object(self, loc: Sequence[str], obj: Any) -> None:
+        parent, name = self._get_parent(loc)
+        arr_str = encode_binary(obj, binary=True)
+        if name in parent:
+            del parent[name]  # delete old dataset
+        parent.create_dataset(name, data=np.void(arr_str))

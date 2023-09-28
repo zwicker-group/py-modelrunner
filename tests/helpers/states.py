@@ -54,20 +54,20 @@ def assert_data_equals(left: Any, right: Any) -> bool:
             assert left == right
 
     elif isinstance(left, np.ndarray) or isinstance(right, np.ndarray):
-        # one of the operands numpy array, while the other one is a list
+        # one of the operands numpy array, while the other might be a list
         assert np.array_equal(np.asarray(left), np.asarray(right))
 
+    elif isinstance(left, np.number) or isinstance(right, np.number):
+        # one of the operands numpy number, while the other might be a normal number
+        assert left == right
+
     else:
-        assert type(left) == type(right)  # cause failure
+        # cause failure
+        assert type(left) == type(right), f"{type(left)} != {type(right)}"
 
 
-def get_states(add_derived: bool = True):
-    """generate multiple states
-
-    Args:
-        add_derived (bool):
-            Also return states based on subclasses
-    """
+def get_states():
+    """generate multiple states"""
     # define basic payload
     a = np.arange(5)
     b = np.random.random(size=3)
@@ -88,44 +88,5 @@ def get_states(add_derived: bool = True):
         ArrayCollectionState((a.copy(), b.copy()), labels=["a", "b"]),
         DictState({"o": obj_state.copy("clean"), "a": arr_state.copy("clean")}),
     ]
-
-    if not add_derived:
-        return res
-
-    # add custom state classes
-    if "DerivedObject" not in StateBase._state_classes:
-        # make sure the derived object is only defined once
-
-        class DerivedObject(ObjectState):
-            _state_data_attr_name = "values"
-
-            def __init__(self, values):
-                self.values = values
-
-    res.append(StateBase._state_classes["DerivedObject"](o.copy()))
-
-    if "DerivedArray" not in StateBase._state_classes:
-        # make sure the derived object is only defined once
-
-        class DerivedArray(ArrayState):
-            _state_data_attr_name = "array"
-
-            def __init__(self, array):
-                self.array = array
-
-    res.append(StateBase._state_classes["DerivedArray"](a.copy()))
-
-    if "DerivedDict" not in StateBase._state_classes:
-        # make sure the derived object is only defined once
-
-        class DerivedDict(DictState):
-            _state_data_attr_name = "states"
-
-            def __init__(self, states):
-                self.states = {k: v.copy("clean") for k, v in states.items()}
-
-    res.append(
-        StateBase._state_classes["DerivedDict"]({"o": obj_state, "a": arr_state})
-    )
 
     return res
