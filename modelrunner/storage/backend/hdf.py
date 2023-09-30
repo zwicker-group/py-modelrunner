@@ -141,7 +141,7 @@ class HDFStorage(StorageBase):
     def _read_attrs(self, loc: Sequence[str]) -> AttrsLike:
         return self[loc].attrs  # type: ignore
 
-    def _write_attr(self, loc: Sequence[str], name: str, value) -> None:
+    def _write_attr(self, loc: Sequence[str], name: str, value: str) -> None:
         self[loc].attrs[name] = value
 
     def _read_array(

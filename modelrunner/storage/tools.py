@@ -1,4 +1,6 @@
 """
+Functions that provide convenience on top of the storage classes
+
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 

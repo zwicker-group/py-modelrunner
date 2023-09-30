@@ -1,15 +1,4 @@
 """
-
-.. inheritance-diagram::
-        state.io.IOBase
-        state.base.StateBase
-        state.array.ArrayState
-        state.array_collection.ArrayCollectionState
-        state.object.ObjectState
-        state.dict.DictState
-        results.Result
-   :parts: 1
-
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
@@ -41,4 +30,3 @@ from .model import (
 from .parameters import HideParameter, Parameter, Parameterized
 from .results import Result, ResultCollection
 from .run import submit_job, submit_jobs
-from .state import ArrayCollectionState, ArrayState, DictState, ObjectState, make_state

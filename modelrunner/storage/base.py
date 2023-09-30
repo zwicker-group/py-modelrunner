@@ -215,8 +215,17 @@ class StorageBase(metaclass=ABCMeta):
         return decode_attrs(attrs)
 
     @abstractmethod
-    def _write_attr(self, loc: Sequence[str], name: str, value) -> None:
-        """write a single attribute to a particular location"""
+    def _write_attr(self, loc: Sequence[str], name: str, value: str) -> None:
+        """write a single attribute to a particular location
+
+        Args:
+            loc (list of str):
+                The location in the storage where the attributes are written
+            name (str):
+                Name of the attribute
+            value (str):
+                Value of the attribute
+        """
         ...
 
     def write_attrs(self, loc: Sequence[str], attrs: Optional[Attrs]) -> None:
