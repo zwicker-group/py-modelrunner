@@ -1,5 +1,5 @@
 """
-Classes that describe the final result of a simulation.
+Classes that describe the final result of a model simulation.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -21,9 +21,6 @@ from .model import ModelBase
 from .storage import StorageID, open_storage, storage_actions
 from .storage.access_modes import ModeType
 from .storage.attributes import Attrs
-
-# TODO: Do results need to returns states, or could this simply be anything
-# The new IO protocol should be able to serialize many objects
 
 
 class MockModel(ModelBase):
@@ -132,7 +129,7 @@ class Result:
         """
         if isinstance(storage, (str, Path)):
             # check whether the file was written with an old format version
-            from ._compatibility.triage import result_check_load_old_version
+            from .compatibility.triage import result_check_load_old_version
 
             result = result_check_load_old_version(Path(storage), loc=loc, model=model)
             if result is not None:
@@ -146,7 +143,7 @@ class Result:
                 # current version of storing results
                 return cls.from_data(
                     model_data=attrs.get("model", {}),
-                    result=storage_obj.read_item(loc),
+                    result=storage_obj.read_item(loc, use_class=False),
                     model=model,
                     info=attrs.pop("info", {}),  # load additional info,
                 )

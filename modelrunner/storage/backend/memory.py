@@ -134,7 +134,7 @@ class MemoryStorage(StorageBase):
         else:
             raise RuntimeError(f"No attributes at `/{'/'.join(loc)}`")
 
-    def _write_attr(self, loc: Sequence[str], name: str, value) -> None:
+    def _write_attr(self, loc: Sequence[str], name: str, value: str) -> None:
         item = self[loc]
         if "__attrs__" not in item:
             item["__attrs__"] = {name: value}

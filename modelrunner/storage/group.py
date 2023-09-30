@@ -21,7 +21,7 @@ from numpy.typing import ArrayLike, DTypeLike
 
 from .attributes import Attrs
 from .base import StorageBase
-from .utils import Array, Location, decode_class, storage_actions
+from .utils import Array, Location, decode_class, encode_class, storage_actions
 
 # TODO: Provide .attrs attribute with a descriptor protocol (implemented by the backend)
 # TODO: Provide a simple viewer of the tree structure (e.g. a `tree` method)
@@ -96,6 +96,9 @@ class StorageGroup:
         # reconstruct objected stored at this place
         return self.read_item(loc, use_class=True)
 
+    def __setitem__(self, loc: Location, obj: Any) -> None:
+        self.write_item(loc, obj)
+
     def keys(self) -> Collection[str]:
         """return name of all stored items in this group"""
         return self._storage.keys(self.loc)
@@ -142,7 +145,7 @@ class StorageGroup:
         """dict: the attributes associated with this group"""
         return self.read_attrs()
 
-    def read_item(self, loc: Location, *, use_class: bool = False) -> Any:
+    def read_item(self, loc: Location, *, use_class: bool = True) -> Any:
         """read an item from a particular location
 
         Args:
@@ -159,23 +162,63 @@ class StorageGroup:
         loc_list = self._get_loc(loc)
         if use_class:
             attrs = self._storage._read_attrs(loc_list)
-            cls = decode_class(attrs["__class__"])
-            if cls is None:
-                return self.read_item(loc_list, use_class=False)
-            else:
+            cls = decode_class(attrs.get("__class__"))
+            if cls is not None:
                 # create object using a registered action
-                create_object = storage_actions.get(cls, "read_item")
-                return create_object(self._storage, loc_list)
+                read_item = storage_actions.get(cls, "read_item")
+                return read_item(self._storage, loc_list)
+
+        # read the item using the generic classes
+        obj_type = self._storage._read_attrs(loc_list).get("__type__")
+        if obj_type in {"array", "dynamic_array"}:
+            arr = self._storage._read_array(loc_list)
+            return Array(arr, attrs=self._storage.read_attrs(loc_list))
+        elif obj_type == "object":
+            return self._storage._read_object(loc_list)
         else:
-            # return the stored object
-            obj_type = self._storage._read_attrs(loc_list).get("__type__")
-            if obj_type in {"array", "dynamic_array"}:
-                arr = self._storage._read_array(loc_list)
-                return Array(arr, attrs=self._storage.read_attrs(loc_list))
-            elif obj_type == "object":
-                return self._storage._read_object(loc_list)
+            raise RuntimeError(f"Cannot read objects of type `{obj_type}`")
+
+    def write_item(
+        self,
+        loc: Location,
+        item: Any,
+        *,
+        attrs: Optional[Attrs] = None,
+        use_class: bool = True,
+    ) -> None:
+        """write an item to a particular location
+
+        Args:
+            loc (sequence of str):
+                A list of strings determining the location in the storage
+            item:
+                The item that will be written
+            attrs (dict, optional):
+                Attributes stored with the object
+            use_class (bool):
+                If `True`, looks for class information in the attributes and evokes a
+                potentially registered hook to instantiate the associated object. If
+                `False`, only the current data or object is returned.
+        """
+        # try writing the object using the class definition
+        if use_class:
+            try:
+                write_item = storage_actions.get(item.__class__, "write_item")
+            except RuntimeError:
+                pass  # fall back to the generic writing
             else:
-                raise RuntimeError(f"Cannot read objects of type `{obj_type}`")
+                loc_list = self._get_loc(loc)
+                write_item(self._storage, loc_list, item)
+                self._storage._write_attr(
+                    loc_list, "__class__", encode_class(item.__class__)
+                )
+                return
+
+        # write the object using generic writers
+        if isinstance(item, np.ndarray):
+            self.write_array(loc, item, attrs=attrs)
+        else:
+            self.write_object(loc, item, attrs=attrs)
 
     def is_group(self, loc: Location = None) -> bool:
         """determine whether the location is a group

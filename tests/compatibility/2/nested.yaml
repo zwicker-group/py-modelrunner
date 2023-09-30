@@ -4,9 +4,9 @@ __attrs__:
     protocol: 5
 result:
   data: !!binary |
-    gAWViwAAAAAAAACMEm51bXB5LmNvcmUubnVtZXJpY5SMC19mcm9tYnVmZmVylJOUKJYYAAAAAAAA
-    AAAAAAAAAAAAAQAAAAAAAAACAAAAAAAAAJSMBW51bXB5lIwFZHR5cGWUk5SMAmk4lImIh5RSlChL
-    A4wBPJROTk5K/////0r/////SwB0lGJLA4WUjAFDlHSUUpQu
+    gAWVnwAAAAAAAAB9lCiMAWGUj5QoaAGMAWKUkGgDjBJudW1weS5jb3JlLm51bWVyaWOUjAtfZnJv
+    bWJ1ZmZlcpSTlCiWGAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAgAAAAAAAACUjAVudW1weZSMBWR0
+    eXBllJOUjAJpOJSJiIeUUpQoSwOMATyUTk5OSv////9K/////0sAdJRiSwOFlIwBQ5R0lFKUdS4=
   __attrs__:
     model: '{"class": "MockModel", "name": "model", "description": null, "parameters":
       {}}'

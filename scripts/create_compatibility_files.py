@@ -15,7 +15,7 @@ PACKAGE_PATH = Path(__file__).resolve().parents[1]  # base path of the package
 assert (PACKAGE_PATH / PACKAGE).is_dir()
 sys.path.insert(0, str(PACKAGE_PATH))
 
-from modelrunner import ArrayCollectionState, ArrayState, DictState, ObjectState, Result
+from modelrunner import Result
 
 # locate the storage for the compatibility files
 FORMAT_VERSION = 2
@@ -24,18 +24,16 @@ assert STORAGE_PATH.is_dir()
 
 
 DATASETS = {
-    "object": ObjectState(
-        {
-            "number": -1,
-            "string": "test",
-            "list_1d": [0, 1, 2],
-            "list_2d": [[0, 1], [2, 3, 4]],
-            "array": np.arange(5),
-        }
-    ),
-    "array": ArrayState(np.arange(3)),
-    "array_col": ArrayCollectionState([np.arange(2), np.arange(3)], labels="ab"),
-    "dict": DictState({"a": ObjectState({"a", "b"}), "b": ArrayState(np.arange(3))}),
+    "dict": {
+        "number": -1,
+        "string": "test",
+        "list_1d": [0, 1, 2],
+        "list_2d": [[0, 1], [2, 3, 4]],
+        "array": np.arange(5),
+    },
+    "array": np.arange(3),
+    "array_col": [np.arange(2), np.arange(3)],
+    "nested": {"a": {"a", "b"}, "b": np.arange(3)},
 }
 EXTENSIONS = [".yaml", ".json", ".hdf", ".zip"]
 

@@ -1,24 +1,16 @@
+__attrs__:
+  __codec__:
+    id: pickle
+    protocol: 5
 result:
+  data: !!binary |
+    gAWVuAAAAAAAAABdlCiMEm51bXB5LmNvcmUubnVtZXJpY5SMC19mcm9tYnVmZmVylJOUKJYQAAAA
+    AAAAAAAAAAAAAAAAAQAAAAAAAACUjAVudW1weZSMBWR0eXBllJOUjAJpOJSJiIeUUpQoSwOMATyU
+    Tk5OSv////9K/////0sAdJRiSwKFlIwBQ5R0lFKUaAMolhgAAAAAAAAAAAAAAAAAAAABAAAAAAAA
+    AAIAAAAAAAAAlGgKSwOFlGgOdJRSlGUu
   __attrs__:
-    __model__: '{"class": "MockModel", "name": "model", "description": null, "parameters":
+    model: '{"class": "MockModel", "name": "model", "description": null, "parameters":
       {}}'
-    __version__: '2'
-    __class__: '"modelrunner.results.Result"'
-  state:
-    __attrs__:
-      labels: '["a", "b"]'
-      __class__: '"modelrunner.state.array_collection.ArrayCollectionState"'
-      __version__: '2'
-    a:
-      __type__: array
-      data:
-      - 0
-      - 1
-      dtype: '{"__pickled__": "gASVNwAAAAAAAACMBW51bXB5lIwFZHR5cGWUk5SMAmk4lImIh5RSlChLA4wBPJROTk5K/////0r/\n////SwB0lGIu\n"}'
-    b:
-      __type__: array
-      data:
-      - 0
-      - 1
-      - 2
-      dtype: '{"__pickled__": "gASVNwAAAAAAAACMBW51bXB5lIwFZHR5cGWUk5SMAmk4lImIh5RSlChLA4wBPJROTk5K/////0r/\n////SwB0lGIu\n"}'
+    format_version: '2'
+    __type__: object
+    __class__: modelrunner.results.Result

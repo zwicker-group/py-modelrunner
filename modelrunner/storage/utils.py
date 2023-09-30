@@ -1,4 +1,6 @@
 """
+Functions and classes that are used commonly used by the storage classes.
+
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
@@ -155,20 +157,23 @@ class Array(np.ndarray):
         self.attrs = getattr(obj, "attrs", {})
 
 
-ActionType = Literal["read_item"]
+ActionType = Literal[
+    "read_item",  # read an item from storage
+    "write_item",  # write an item to storage
+]
 
 
 class _StorageRegistry:
     """registry that stores information about how to use storage"""
 
-    allowed_actions = {
-        "read_item",  # read object from storage
-    }
+    allowed_actions = set(ActionType.__args__)  # type: ignore
+    """set: all actions that can be registered"""
 
-    _classes: Dict[Type, Dict[str, Callable]]
+    _hooks: Dict[Type, Dict[str, Callable]]
+    """dict: register for all defined hooks"""
 
     def __init__(self):
-        self._classes = defaultdict(dict)
+        self._hooks = defaultdict(dict)
 
     def register(self, action: ActionType, cls: Type, method_or_func: Callable) -> None:
         """register an action for the given class
@@ -197,9 +202,9 @@ class _StorageRegistry:
                 """helper function to call the classmethod"""
                 return method_or_func(cls, *args, **kwargs)
 
-            self._classes[cls][action] = _call_classmethod
+            self._hooks[cls][action] = _call_classmethod
         elif callable(method_or_func):
-            self._classes[cls][action] = method_or_func
+            self._hooks[cls][action] = method_or_func
         else:
             raise TypeError("`method_or_func` must be method or function")
 
@@ -218,8 +223,8 @@ class _StorageRegistry:
         # look for defined operators on all parent classes (except `object`)
         classes = inspect.getmro(cls)[:-1]
         for c in classes:
-            if c in self._classes and action in self._classes[c]:
-                return self._classes[c][action]
+            if c in self._hooks and action in self._hooks[c]:
+                return self._hooks[c][action]
 
         raise RuntimeError(f"No action `{action}` for `{cls.__name__}`")
 

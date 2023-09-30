@@ -14,6 +14,12 @@ ARRAY_EXAMPLES = [
     np.array([{"a": 1}], dtype=object),
     np.array([(1.0, 2), (3.0, 4)], dtype=[("x", "f8"), ("y", "i8")]).view(np.recarray),
 ]
+STORAGE_OBJECTS = [
+    {"n": -1, "s": "t", "l1": [0, 1, 2], "l2": [[0, 1], [4]], "a": np.arange(5)},
+    np.arange(3),
+    [np.arange(2), np.arange(3)],
+    {"a": {"a", "b"}, "b": np.arange(3)},
+]
 STORAGE_EXT = storage_extensions(incl_folder=True, dot=True)
 
 
@@ -189,3 +195,14 @@ def test_appending_to_fixed_array(ext, tmp_path):
         storage.write_array("a2", np.zeros((2, 4)))
         with pytest.raises(RuntimeError):
             storage.extend_dynamic_array("a2", np.zeros(4))
+
+
+@pytest.mark.parametrize("obj", STORAGE_OBJECTS)
+@pytest.mark.parametrize("ext", STORAGE_EXT)
+def test_arbitrary_objects(obj, ext, tmp_path):
+    """test appending arbitrary objects"""
+    with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
+        storage["obj"] = obj
+
+    with open_storage(tmp_path / f"file{ext}", mode="readonly") as storage:
+        assert_data_equals(storage["obj"], obj)
