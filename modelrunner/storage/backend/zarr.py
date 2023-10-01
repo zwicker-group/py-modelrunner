@@ -152,15 +152,15 @@ class ZarrStorage(StorageBase):
     def _read_array(
         self, loc: Sequence[str], *, index: Optional[int] = None
     ) -> ArrayLike:
-        if index is None:
-            arr = self[loc]
-        else:
-            arr = self[loc][index]
+        arr = self[loc]
 
-        if isinstance(arr, (zarr.Array, np.ndarray, np.generic)):
+        if not isinstance(arr, zarr.Array):
+            raise RuntimeError(f"Found {arr.__class__} at location `/{'/'.join(loc)}`")
+
+        if index is None:
             return arr  # type: ignore
         else:
-            raise RuntimeError(f"Found {arr.__class__} at location `/{'/'.join(loc)}`")
+            return arr[index]  # type: ignore
 
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
         parent, name = self._get_parent(loc)

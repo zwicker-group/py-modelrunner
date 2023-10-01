@@ -7,9 +7,17 @@ from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from io import StringIO
 from pathlib import Path
-from typing import Any, Optional, Sequence, Union
+from typing import Any, Optional, Sequence, Tuple, Union
+
+import numpy as np
+from numpy.lib.recfunctions import (
+    structured_to_unstructured,
+    unstructured_to_structured,
+)
+from numpy.typing import ArrayLike, DTypeLike
 
 from ..access_modes import ModeType
+from ..utils import decode_binary, encode_binary
 from .memory import MemoryStorage
 from .utils import simplify_data
 
@@ -88,6 +96,84 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
     @abstractmethod
     def _write_data_to_fp(self, fp, data) -> None:
         ...
+
+    def _read_array(
+        self, loc: Sequence[str], *, index: Optional[int] = None
+    ) -> np.ndarray:
+        # read the data from the location
+        if index is None:
+            arr = self[loc]["data"]
+        else:
+            arr = self[loc]["data"][index]
+
+        if hasattr(arr, "__iter__"):  # minimal sanity check
+            dtype = decode_binary(self[loc]["dtype"])
+            if dtype.names is not None:
+                arr = unstructured_to_structured(np.asarray(arr), dtype=dtype)
+            else:
+                arr = np.array(arr, dtype=dtype)
+            if self[loc].get("record_array", False):
+                arr = arr.view(np.recarray)
+            return arr  # type: ignore
+        else:
+            raise RuntimeError(f"No array at `/{'/'.join(loc)}`")
+
+    def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
+        parent, name = self._get_parent(loc, check_write=True)
+
+        dtype = arr.dtype  # extract dtype here since `arr` is changed later
+        if dtype.names is not None:
+            # structured array
+            arr = structured_to_unstructured(arr)
+
+        parent[name] = {
+            "data": np.array(arr, copy=True),
+            "dtype": encode_binary(dtype, binary=False),
+        }
+        if isinstance(arr, np.record):
+            parent[name]["record_array"] = True
+
+    def _create_dynamic_array(
+        self,
+        loc: Sequence[str],
+        shape: Tuple[int, ...],
+        dtype: DTypeLike,
+        *,
+        record_array: bool = False,
+    ) -> None:
+        parent, name = self._get_parent(loc, check_write=True)
+        if name in parent:
+            raise RuntimeError(f"Array `/{'/'.join(loc)}` already exists")
+        parent[name] = {
+            "data": [],
+            "shape": shape,
+            "dtype": encode_binary(np.dtype(dtype), binary=False),
+        }
+        if record_array:
+            parent[name]["record_array"] = True
+
+    def _extend_dynamic_array(self, loc: Sequence[str], arr: ArrayLike) -> None:
+        item = self[loc]
+
+        # check data shape that is stored at this position
+        data = np.asanyarray(arr)
+        stored_shape = tuple(item["shape"])
+        if stored_shape != data.shape:
+            raise TypeError(f"Shape mismatch ({stored_shape} != {data.shape})")
+
+        # convert the data to the correct format
+        stored_dtype = decode_binary(item["dtype"])
+        if not np.issubdtype(data.dtype, stored_dtype):
+            raise TypeError(f"Dtype mismatch ({data.dtype} != {stored_dtype}")
+        if data.dtype.names is not None:
+            # structured array
+            data = structured_to_unstructured(data)
+
+        # append the data to the dynamic array
+        if data.ndim == 0:
+            item["data"].append(data.item())
+        else:
+            item["data"].append(np.array(data, copy=True))
 
     def _read_object(self, loc: Sequence[str]) -> Any:
         return self.codec.decode(self[loc]["data"])

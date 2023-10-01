@@ -6,19 +6,15 @@ Defines a class storing data in memory.
 
 from __future__ import annotations
 
+import copy
 from typing import Any, Collection, Dict, Optional, Sequence, Tuple
 
 import numpy as np
-from numpy.lib.recfunctions import (
-    structured_to_unstructured,
-    unstructured_to_structured,
-)
 from numpy.typing import ArrayLike, DTypeLike
 
 from ..access_modes import AccessError, ModeType
-from ..attributes import Attrs, decode_attr, encode_attr
+from ..attributes import Attrs
 from ..base import StorageBase
-from ..utils import decode_binary, encode_binary
 
 
 class MemoryStorage(StorageBase):
@@ -30,10 +26,6 @@ class MemoryStorage(StorageBase):
 
     _data: Attrs
 
-    # TODO: Write arrays and objects as true python objects
-    # Move current methods to TextBase. However, we still need to keep track of a way
-    # to store attributes
-
     def __init__(self, *, mode: ModeType = "insert"):
         """
         Args:
@@ -43,18 +35,6 @@ class MemoryStorage(StorageBase):
         """
         super().__init__(mode=mode)
         self._data = {}
-
-    def _encode_internal_attr(self, attr: Any) -> Any:
-        if self.encode_internal_attrs:
-            return encode_attr(attr)
-        else:
-            return attr
-
-    def _decode_internal_attr(self, attr: Any) -> Any:
-        if self.encode_internal_attrs:
-            return decode_attr(attr)
-        else:
-            return attr
 
     def clear(self) -> None:
         """truncate the storage by removing all stored data.
@@ -118,7 +98,7 @@ class MemoryStorage(StorageBase):
     def is_group(self, loc: Sequence[str]) -> bool:
         item = self[loc]
         if isinstance(item, dict):
-            # dictionaries are usually groups, unless they have the `type` attribute
+            # dictionaries are usually groups, unless they have the `__type__` attribute
             return "__type__" not in item.get("__attrs__", {})
         else:
             return False  # no group, since it's not a dictionary
@@ -146,36 +126,13 @@ class MemoryStorage(StorageBase):
     ) -> np.ndarray:
         # read the data from the location
         if index is None:
-            arr = self[loc]["data"]
+            return self[loc]["data"]  # type: ignore
         else:
-            arr = self[loc]["data"][index]
-
-        if hasattr(arr, "__iter__"):  # minimal sanity check
-            dtype = decode_binary(self[loc]["dtype"])
-            if dtype.names is not None:
-                arr = unstructured_to_structured(np.asarray(arr), dtype=dtype)
-            else:
-                arr = np.array(arr, dtype=dtype)
-            if self[loc].get("record_array", False):
-                arr = arr.view(np.recarray)
-            return arr  # type: ignore
-        else:
-            raise RuntimeError(f"No array at `/{'/'.join(loc)}`")
+            return self[loc]["data"][index]  # type: ignore
 
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
         parent, name = self._get_parent(loc, check_write=True)
-
-        dtype = arr.dtype  # extract dtype here since `arr` is changed later
-        if dtype.names is not None:
-            # structured array
-            arr = structured_to_unstructured(arr)
-
-        parent[name] = {
-            "data": np.array(arr, copy=True),
-            "dtype": encode_binary(dtype, binary=False),
-        }
-        if isinstance(arr, np.record):
-            parent[name]["record_array"] = True
+        parent[name] = {"data": np.copy(arr)}
 
     def _create_dynamic_array(
         self,
@@ -190,8 +147,8 @@ class MemoryStorage(StorageBase):
             raise RuntimeError(f"Array `/{'/'.join(loc)}` already exists")
         parent[name] = {
             "data": [],
-            "shape": shape,
-            "dtype": encode_binary(np.dtype(dtype), binary=False),
+            "shape": tuple(shape),
+            "dtype": np.dtype(dtype),
         }
         if record_array:
             parent[name]["record_array"] = True
@@ -201,17 +158,14 @@ class MemoryStorage(StorageBase):
 
         # check data shape that is stored at this position
         data = np.asanyarray(arr)
-        stored_shape = tuple(item["shape"])
+        stored_shape = item["shape"]
         if stored_shape != data.shape:
             raise TypeError(f"Shape mismatch ({stored_shape} != {data.shape})")
 
         # convert the data to the correct format
-        stored_dtype = decode_binary(item["dtype"])
+        stored_dtype = item["dtype"]
         if not np.issubdtype(data.dtype, stored_dtype):
             raise TypeError(f"Dtype mismatch ({data.dtype} != {stored_dtype}")
-        if data.dtype.names is not None:
-            # structured array
-            data = structured_to_unstructured(data)
 
         # append the data to the dynamic array
         if data.ndim == 0:
@@ -224,4 +178,4 @@ class MemoryStorage(StorageBase):
 
     def _write_object(self, loc: Sequence[str], obj: Any) -> None:
         parent, name = self._get_parent(loc, check_write=True)
-        parent[name] = {"data": obj}
+        parent[name] = {"data": copy.deepcopy(obj)}

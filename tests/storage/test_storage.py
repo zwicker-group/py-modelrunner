@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from helpers import assert_data_equals, storage_extensions
-from modelrunner.storage import AccessError, open_storage
+from modelrunner.storage import AccessError, MemoryStorage, open_storage
 
 OBJ = {"a": 1, "b": np.arange(5)}
 ARRAY_EXAMPLES = [
@@ -206,3 +206,35 @@ def test_arbitrary_objects(obj, ext, tmp_path):
 
     with open_storage(tmp_path / f"file{ext}", mode="readonly") as storage:
         assert_data_equals(storage["obj"], obj)
+
+
+@pytest.mark.parametrize("obj", STORAGE_OBJECTS)
+def test_memory_storage(obj):
+    """test MemoryStorage"""
+    with open_storage(MemoryStorage()) as storage:
+        storage["a"] = obj
+        assert_data_equals(storage["a"], obj)
+
+
+@pytest.mark.parametrize("ext", STORAGE_EXT)
+def test_storage_copy_array(ext, tmp_path):
+    """test whether storages make a copy, i.e., that not only a view is stored"""
+    obj = np.arange(5)
+    with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
+        storage["obj"] = obj
+        assert storage["obj"] is not obj
+        np.testing.assert_array_equal(storage["obj"], obj)
+        obj[0] = -42
+        assert not np.array_equal(storage["obj"], obj)
+
+
+@pytest.mark.parametrize("ext", STORAGE_EXT)
+def test_storage_copy_dict(ext, tmp_path):
+    """test whether storages make a copy, i.e., that not only a view is stored"""
+    obj = {"a": 1, "b": 2}
+    with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
+        storage["obj"] = obj
+        assert storage["obj"] is not obj
+        assert storage["obj"] == obj
+        obj["c"] = 1
+        assert storage["obj"] != obj
