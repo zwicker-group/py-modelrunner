@@ -5,7 +5,13 @@
 import numpy as np
 import pytest
 
-from modelrunner.storage.utils import decode_binary, encode_binary
+from modelrunner.storage.utils import (
+    decode_binary,
+    encode_binary,
+    decode_class,
+    encode_class,
+)
+from modelrunner.storage import MemoryStorage
 
 
 @pytest.mark.parametrize("obj", [[True, 1], np.arange(5)])
@@ -17,3 +23,20 @@ def test_object_encoding(obj, binary):
         np.testing.assert_array_equal(obj, obj2)
     else:
         assert obj == obj2
+
+
+def test_decode_class():
+    """test decode class"""
+    cls_name = encode_class(MemoryStorage)
+    assert "MemoryStorage" in cls_name
+    cls_loaded = decode_class(cls_name)
+    assert cls_loaded is MemoryStorage
+
+    with pytest.raises(ImportError):
+        decode_class(1)
+
+    with pytest.raises(ImportError):
+        decode_class("modelrunner.NonSenseClass")
+
+    with pytest.raises(ModuleNotFoundError):
+        decode_class("nonsense.class.that.does.not.exist")

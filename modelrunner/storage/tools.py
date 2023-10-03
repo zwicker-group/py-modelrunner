@@ -41,7 +41,7 @@ class open_storage(StorageGroup):
         loc: Union[None, str, Sequence[str]] = None,
         **kwargs,
     ):
-        """
+        r"""
         Args:
             storage:
                 The path to a file or directory or a :class:`StorageBase` instance
@@ -52,6 +52,8 @@ class open_storage(StorageGroup):
                 The file mode with which the storage is accessed, which determines the
                 allowed operations. Common options are "readonly", "full", "append", and
                 "truncate".
+            **kwargs:
+                All other arguments are passed on to the storage class
         """
         store_obj: Optional[StorageBase] = None
         if isinstance(storage, StorageBase):

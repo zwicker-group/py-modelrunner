@@ -215,6 +215,10 @@ def test_memory_storage(obj):
         storage["a"] = obj
         assert_data_equals(storage["a"], obj)
 
+        storage.create_dynamic_array("dyn", arr=np.arange(2, dtype=float))
+        storage.extend_dynamic_array("dyn", np.ones(2))
+        np.testing.assert_array_equal(storage.read_array("dyn", index=0), np.ones(2))
+
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_storage_copy_array(ext, tmp_path):

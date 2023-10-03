@@ -258,6 +258,8 @@ class StorageGroup:
             :class:`StorageGroup`: The reference to the group
         """
         loc_list = self._get_loc(loc)
+        if not self._storage.is_group(loc_list):
+            raise TypeError(f"`/{'/'.join(loc_list)}` is not a group")
         return StorageGroup(self._storage, loc_list)
 
     def create_group(
