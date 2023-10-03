@@ -119,7 +119,7 @@ def decode_class(
     # import class from a package
     try:
         module_path, class_name = class_path.rsplit(".", 1)
-    except ValueError:
+    except (AttributeError, ValueError):
         raise ImportError(f"Cannot import class {class_path}")
 
     try:
