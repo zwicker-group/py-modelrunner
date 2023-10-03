@@ -1,4 +1,5 @@
-from .access_modes import AccessError
+from .access_modes import AccessError, ModeType
+from .attributes import Attrs
 from .backend import *
 from .base import StorageBase  # @Reimport
 from .group import StorageGroup

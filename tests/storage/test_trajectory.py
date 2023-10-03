@@ -46,12 +46,11 @@ def test_trajectory_basic(obj, ext, tmp_path):
             ...
 
     # check first batch of data
-    traj = Trajectory(path, ret_copy=False)
+    traj = Trajectory(path)
     assert len(traj) == 2
     np.testing.assert_allclose(traj.times, [1, 2])
     assert_data_equals(traj[1], obj)
     assert_data_equals(traj[-1], obj)
-    assert traj._state_attributes["test"] == "yes"
 
     for s in traj:
         assert_data_equals(s, obj)
@@ -64,13 +63,13 @@ def test_trajectory_basic(obj, ext, tmp_path):
     writer.close()
 
     # check second batch of data
-    traj = Trajectory(path, ret_copy=True)
+    traj = Trajectory(path)
     assert len(traj) == 4
     np.testing.assert_allclose(traj.times, [1, 2, 5, 6])
     assert_data_equals(traj[1], obj)
     assert_data_equals(traj[-1], obj)
     assert traj[1] is not traj[-1]
-    assert traj._state_attributes["test"] == "no"
+    assert traj.attrs["test"] == "no"
 
     for s in traj:
         assert_data_equals(s, obj)
@@ -89,7 +88,7 @@ def test_trajectory_basic(obj, ext, tmp_path):
         writer.append(obj)
 
     # check third batch of data
-    traj = Trajectory(path2, ret_copy=True)
+    traj = Trajectory(path2)
     assert len(traj) == 2
     np.testing.assert_allclose(traj.times, [2, 3])
     assert_data_equals(traj[1], obj)
@@ -113,8 +112,8 @@ def test_trajectory_multiple_reads(ext, tmp_path):
         writer.append(obj)
 
     # read the data
-    t1 = Trajectory(path, ret_copy=False)
-    t2 = Trajectory(path, ret_copy=False)
+    t1 = Trajectory(path)
+    t2 = Trajectory(path)
     assert len(t1) == len(t2) == 2
     np.testing.assert_allclose(t1.times, [1, 2])
     np.testing.assert_array_equal(t1[0], obj)
