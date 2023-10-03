@@ -145,12 +145,28 @@ class StorageGroup:
         """dict: the attributes associated with this group"""
         return self.read_attrs()
 
+    def get_class(self, loc: Location = None) -> Optional[Type]:
+        """get the class associated with a particular location
+
+        Class information can be written using the `cls` attribute of `write_array`,
+        `write_object`, and similar functions.
+
+        Args:
+            loc (str or list of str):
+                The location where the class information is read from
+
+        Retruns: the class associated with the lcoation
+        """
+        loc_list = self._get_loc(loc)
+        attrs = self._storage._read_attrs(loc_list)
+        return decode_class(attrs.get("__class__"))
+
     def read_item(self, loc: Location, *, use_class: bool = True) -> Any:
         """read an item from a particular location
 
         Args:
-            loc (sequence of str):
-                A list of strings determining the location in the storage
+            loc (str or list of str):
+                The location where the item is read from
             use_class (bool):
                 If `True`, looks for class information in the attributes and evokes a
                 potentially registered hook to instantiate the associated object. If
@@ -161,8 +177,7 @@ class StorageGroup:
         """
         loc_list = self._get_loc(loc)
         if use_class:
-            attrs = self._storage._read_attrs(loc_list)
-            cls = decode_class(attrs.get("__class__"))
+            cls = self.get_class(loc_list)
             if cls is not None:
                 # create object using a registered action
                 read_item = storage_actions.get(cls, "read_item")
@@ -190,7 +205,7 @@ class StorageGroup:
 
         Args:
             loc (sequence of str):
-                A list of strings determining the location in the storage
+                The location where the item is written to
             item:
                 The item that will be written
             attrs (dict, optional):

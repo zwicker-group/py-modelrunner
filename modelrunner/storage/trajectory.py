@@ -176,6 +176,7 @@ class Trajectory:
         # read some intial data from storage
         self._item_type = self._trajectory.attrs["item_type"]
         self.times = self._trajectory.read_array("time")
+        self.attrs = self._trajectory.read_attrs()
 
         # check temporal ordering
         if np.any(np.diff(self.times) < 0):
