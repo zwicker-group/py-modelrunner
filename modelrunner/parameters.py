@@ -433,6 +433,7 @@ class Parameterized:
     def _parse_parameters(
         cls,
         parameters: Optional[Dict[str, Any]] = None,
+        *,
         check_validity: bool = True,
         allow_hidden: bool = True,
         include_deprecated: bool = False,
@@ -444,12 +445,15 @@ class Parameterized:
                 A dictionary of parameters that will be parsed.
             check_validity (bool):
                 Determines whether a `ValueError` is raised if there are keys in
-                parameters that are not in the defaults. If `False`, additional
-                items are simply stored in `self.parameters`
+                parameters that are not in the defaults. If `False`, additional items
+                are simply stored in `self.parameters`
             allow_hidden (bool):
                 Allow setting hidden parameters
             include_deprecated (bool):
                 Include deprecated parameters
+
+        Returns:
+            dict: The parsed parameters
         """
         if parameters is None:
             parameters = {}

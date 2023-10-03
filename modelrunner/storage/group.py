@@ -247,6 +247,19 @@ class StorageGroup:
         """
         return self._storage.is_group(self._get_loc(loc))
 
+    def open_group(self, loc: Location) -> StorageGroup:
+        """open an existing group at a particular location
+
+        Args:
+            loc (str or list of str):
+                The location where the group will be opened
+
+        Returns:
+            :class:`StorageGroup`: The reference to the group
+        """
+        loc_list = self._get_loc(loc)
+        return StorageGroup(self._storage, loc_list)
+
     def create_group(
         self,
         loc: Location,

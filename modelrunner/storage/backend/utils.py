@@ -25,7 +25,7 @@ def simplify_data(data):
         if np.isscalar(data):
             data = data.item()
         elif data.dtype == object and data.size == 1:
-            data = [simplify_data(data[0])]
+            data = [simplify_data(data.item())]
         elif data.size <= 100:
             # for less than ~100 items a list is actually more efficient to store
             data = data.tolist()
