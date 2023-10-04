@@ -170,7 +170,7 @@ class Trajectory:
                 The location in the storage where the trajectory data is read.
         """
         # open the storage
-        storage = open_storage(storage, mode="readonly")
+        storage = open_storage(storage, mode="read")
         self._trajectory = StorageGroup(storage, loc)
 
         # read some intial data from storage

@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import io
 from abc import ABCMeta, abstractmethod
 from io import StringIO
 from pathlib import Path
@@ -34,7 +35,7 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
         self,
         path: Union[str, Path],
         *,
-        mode: ModeType = "readonly",
+        mode: ModeType = "read",
         simplify: bool = True,
         **kwargs,
     ):
@@ -55,6 +56,8 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
         self._write_flags = kwargs
         if self.mode.file_mode in {"r", "x", "a"}:
             if self._path.exists():
+                if self.mode.file_mode == "x":
+                    raise FileExistsError(f"File `{path}` already exists")
                 with open(self._path, mode="r") as fp:
                     self._read_data_from_fp(fp)
 
@@ -90,12 +93,21 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
             return fp.getvalue()
 
     @abstractmethod
-    def _read_data_from_fp(self, fp) -> None:
-        ...
+    def _read_data_from_fp(self, fp: io.TextIOBase) -> None:
+        """read data from an open file
+
+        Args:
+            fp (:class:`io.TextIOBase`): The opened text file
+        """
 
     @abstractmethod
-    def _write_data_to_fp(self, fp, data) -> None:
-        ...
+    def _write_data_to_fp(self, fp: io.TextIOBase, data) -> None:
+        """write data to an open file
+
+        Args:
+            fp (:class:`io.TextIOBase`): The opened text file
+            data: The data to write
+        """
 
     def _read_array(
         self, loc: Sequence[str], *, index: Optional[int] = None

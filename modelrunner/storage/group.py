@@ -4,17 +4,7 @@
 
 from __future__ import annotations
 
-from typing import (
-    Any,
-    Collection,
-    Iterator,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Any, Collection, Iterator, List, Optional, Tuple, Type, Union
 
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
@@ -30,11 +20,7 @@ from .utils import Array, Location, decode_class, encode_class, storage_actions
 class StorageGroup:
     """refers to a group within a storage"""
 
-    def __init__(
-        self,
-        storage: Union[StorageBase, StorageGroup],
-        loc: Union[None, str, Sequence[str]] = None,
-    ):
+    def __init__(self, storage: Union[StorageBase, StorageGroup], loc: Location = None):
         """
         Args:
             storage (:class:`StorageBase` or :class:`StorageGroup`):
@@ -77,7 +63,7 @@ class StorageGroup:
 
         # TODO: use regex to check whether loc is only alphanumerical and has no "/"
         def parse_loc(loc_data) -> List[str]:
-            if loc_data is None:
+            if loc_data is None or loc_data == "":
                 return []
             elif isinstance(loc_data, str):
                 return loc_data.split("/")

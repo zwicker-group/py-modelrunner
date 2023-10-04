@@ -9,7 +9,6 @@ import pytest
 
 from helpers import assert_data_equals
 from modelrunner.results import Result
-from modelrunner.storage.backend.utils import simplify_data
 
 CWD = Path(__file__).parent.resolve()
 assert CWD.is_dir()

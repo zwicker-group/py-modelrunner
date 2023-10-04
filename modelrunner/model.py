@@ -91,7 +91,6 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
     @abstractmethod
     def __call__(self):
         """main method calculating the result. Needs to be specified by sub-class"""
-        pass
 
     def get_result(self, data: Any = None) -> "Result":
         """get the result as a :class:`~model.Result` object

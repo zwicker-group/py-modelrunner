@@ -30,7 +30,7 @@ class HDFStorage(StorageBase):
         self,
         file_or_path: Union[str, Path, h5py.File],
         *,
-        mode: ModeType = "readonly",
+        mode: ModeType = "read",
         compression: bool = True,
     ):
         """
@@ -52,10 +52,7 @@ class HDFStorage(StorageBase):
             # open HDF storage on file system
             self._close = True
             file_mode = self.mode.file_mode
-            try:
-                self._file = h5py.File(file_or_path, mode=file_mode)
-            except FileExistsError:
-                raise RuntimeError(f"File already exists")
+            self._file = h5py.File(file_or_path, mode=file_mode)
 
         elif isinstance(file_or_path, h5py.File):
             # use opened HDF file

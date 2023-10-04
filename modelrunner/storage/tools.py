@@ -5,11 +5,12 @@ Functions that provide convenience on top of the storage classes
 """
 
 from pathlib import Path
-from typing import Optional, Sequence, Union
+from typing import Optional, Union
 
 from .backend import AVAILABLE_STORAGE, MemoryStorage
 from .base import StorageBase
 from .group import StorageGroup
+from .utils import Location
 
 StorageID = Union[None, str, Path, StorageGroup, StorageBase]
 
@@ -38,7 +39,7 @@ class open_storage(StorageGroup):
         self,
         storage: StorageID = None,
         *,
-        loc: Union[None, str, Sequence[str]] = None,
+        loc: Location = None,
         **kwargs,
     ):
         r"""
@@ -50,19 +51,22 @@ class open_storage(StorageGroup):
                 `None` opens the root group of the storage.
             mode (str or :class:`~modelrunner.storage.access_modes.AccessMode`):
                 The file mode with which the storage is accessed, which determines the
-                allowed operations. Common options are "readonly", "full", "append", and
+                allowed operations. Common options are "read", "full", "append", and
                 "truncate".
             **kwargs:
                 All other arguments are passed on to the storage class
         """
         store_obj: Optional[StorageBase] = None
         if isinstance(storage, StorageBase):
+            # storage is of type `StorageBase`
             self._close = False
             store_obj = storage
 
         elif isinstance(storage, StorageGroup):
+            # storage is a group and we open a sub-group instead
             self._close = False
             store_obj = storage._storage
+            loc = storage.loc + [loc]
 
         elif storage is None:
             self._close = True
@@ -91,7 +95,31 @@ class open_storage(StorageGroup):
                 if store_obj is None:
                     raise TypeError(f"Unsupported store with extension `{extension}`")
 
-        else:
+        elif (
+            storage.__class__.__name__ == "File"
+            and storage.__class__.__module__.split(".", 1)[0] == "h5py"
+        ):
+            # looks like an opened h5py file
+            from .backend.hdf import HDFStorage
+
+            self._close = False
+            store_obj = HDFStorage(storage, **kwargs)
+
+        elif (
+            storage.__class__.__name__ == "Group"
+            and storage.__class__.__module__.split(".", 1)[0] == "zarr"
+        ):
+            # looks like an opened zarr group
+            import zarr
+
+            from .backend.zarr import ZarrStorage  # @Reimport
+
+            if isinstance(storage, zarr.Group):
+                self._close = False
+                store_obj = ZarrStorage(storage._store, **kwargs)
+                loc = [storage.path] + [loc]
+
+        if store_obj is None:
             raise TypeError(f"Unsupported store type {storage.__class__.__name__}")
 
         super().__init__(store_obj, loc=loc)
