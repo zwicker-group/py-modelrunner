@@ -228,7 +228,7 @@ class ResultCollection(List[Result]):
                 else:
                     results.append(result)
 
-        # raise a warning if now results were detected
+        # raise a warning if no results were detected
         if not results:
             if pattern == "*.*":
                 logger.warning("Did not find any files")

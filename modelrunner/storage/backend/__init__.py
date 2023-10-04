@@ -2,14 +2,14 @@ import importlib
 from typing import List, Type
 
 from ..base import StorageBase
+from .json import JSONStorage
 from .memory import MemoryStorage
 
-AVAILABLE_STORAGE: List[Type[StorageBase]] = [MemoryStorage]
+AVAILABLE_STORAGE: List[Type[StorageBase]] = [MemoryStorage, JSONStorage]
 
 POTENTIAL_STORAGE = {
-    "json": "JSONStorage",
-    "yaml": "YAMLStorage",
     "hdf": "HDFStorage",
+    "yaml": "YAMLStorage",
     "zarr": "ZarrStorage",
 }
 
