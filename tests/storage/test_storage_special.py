@@ -2,6 +2,7 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
+import json
 
 import numpy as np
 import pytest
@@ -53,3 +54,26 @@ def test_zarr_storage(tmp_path):
         with open_storage(root, mode="read") as storage:
             assert storage["obj"] == {"info": True}
         assert root.attrs["test"] == 5
+
+
+def test_json_storage(tmp_path):
+    """test JSONStorage"""
+    with open_storage(tmp_path / "test.json", mode="truncate") as storage:
+        storage["obj"] = {"info": True}
+        json_txt = storage._storage.to_text()
+
+    with open(tmp_path / "test.json") as fp:
+        assert json.load(fp) == json.loads(json_txt)
+
+
+@skipUnlessModule("yaml")
+def test_yaml_storage(tmp_path):
+    """test YAMLStorage"""
+    import yaml
+
+    with open_storage(tmp_path / "test.yaml", mode="truncate") as storage:
+        storage["obj"] = {"info": True}
+        json_txt = storage._storage.to_text()
+
+    with open(tmp_path / "test.yaml") as fp:
+        assert yaml.safe_load(fp) == yaml.safe_load(json_txt)
