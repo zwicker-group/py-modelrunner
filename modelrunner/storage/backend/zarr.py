@@ -30,7 +30,7 @@ class ZarrStorage(StorageBase):
     extensions = ["zarr", "zip", "sqldb", "lmdb"]
 
     def __init__(
-        self, store_or_path: Union[str, Path, Store], *, mode: ModeType = "readonly"
+        self, store_or_path: Union[str, Path, Store], *, mode: ModeType = "read"
     ):
         """
         Args:
@@ -46,6 +46,10 @@ class ZarrStorage(StorageBase):
             # open zarr storage on file system
             self._close = True
             path = Path(store_or_path)
+
+            if self.mode.file_mode == "x" and path.exists():
+                raise FileExistsError(f"File `{path}` already exists")
+
             if path.suffix in {"", ".zarr"}:
                 # path seems to be a directory or a zarr direction => DirectoryStore
                 if path.is_dir() and self.mode.file_mode == "w":
@@ -60,9 +64,6 @@ class ZarrStorage(StorageBase):
                 # create a ZipStore
                 file_mode = self.mode.file_mode
                 if path.exists():
-                    if file_mode == "x":
-                        self._logger.info('`ZipStore` uses mode="r" instead of "x"')
-                        file_mode = "r"
                     if file_mode == "w":
                         self._logger.info(f"Delete file `{path}`")
                         path.unlink()

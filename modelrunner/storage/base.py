@@ -60,7 +60,7 @@ class StorageBase(metaclass=ABCMeta):
     _codec: numcodecs.abc.Codec
     """:class:`numcodecs.Codec`: the specific codec used for encoding binary data"""
 
-    def __init__(self, *, mode: ModeType = "readonly"):
+    def __init__(self, *, mode: ModeType = "read"):
         """
         Args:
             mode (str or :class:`~modelrunner.storage.access_modes.AccessMode`):
@@ -106,7 +106,6 @@ class StorageBase(metaclass=ABCMeta):
         Returns:
             list: a list of all items defined at this location
         """
-        ...
 
     def __contains__(self, loc: Sequence[str]):
         if not loc:
@@ -127,11 +126,15 @@ class StorageBase(metaclass=ABCMeta):
         Returns:
             bool: `True` if the loation is a group
         """
-        ...
 
     @abstractmethod
     def _create_group(self, loc: Sequence[str]) -> None:
-        ...
+        """create a group at a particular location
+
+        Args:
+            loc (sequence of str):
+                A list of strings determining the location in the storage
+        """
 
     def create_group(
         self,
@@ -195,7 +198,12 @@ class StorageBase(metaclass=ABCMeta):
 
     @abstractmethod
     def _read_attrs(self, loc: Sequence[str]) -> AttrsLike:
-        ...
+        """read attributes at a particular location
+
+        Args:
+            loc (sequence of str):
+                A list of strings determining the location in the storage
+        """
 
     def read_attrs(self, loc: Sequence[str]) -> Attrs:
         """read attributes associated with a particular location
@@ -226,7 +234,6 @@ class StorageBase(metaclass=ABCMeta):
             value (str):
                 Value of the attribute
         """
-        ...
 
     def write_attrs(self, loc: Sequence[str], attrs: Optional[Attrs]) -> None:
         """write attributes to a particular location

@@ -66,11 +66,21 @@ class AccessMode:
 
 
 # define default access modes
-access_readonly = AccessMode(
-    name="readonly",
+access_read = AccessMode(
+    name="read",
     description="Only allows reading",
     file_mode="r",
     read=True,
+)
+access_exclusive = AccessMode(
+    name="exclusive",
+    description="Creates new file, allowing read and write access",
+    file_mode="x",
+    read=True,
+    set_attrs=True,
+    insert=True,
+    overwrite=True,
+    dynamic_append=True,
 )
 access_insert = AccessMode(
     name="insert",

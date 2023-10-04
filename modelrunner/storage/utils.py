@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 PICKLE_PROTOCOL = pickle.HIGHEST_PROTOCOL
 
 
-Location = Union[None, str, Sequence[str]]
+Location = Union[None, str, Sequence["Location"]]
 
 
 @overload

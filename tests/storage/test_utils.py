@@ -5,13 +5,13 @@
 import numpy as np
 import pytest
 
+from modelrunner.storage import MemoryStorage
 from modelrunner.storage.utils import (
     decode_binary,
-    encode_binary,
     decode_class,
+    encode_binary,
     encode_class,
 )
-from modelrunner.storage import MemoryStorage
 
 
 @pytest.mark.parametrize("obj", [[True, 1], np.arange(5)])

@@ -7,6 +7,7 @@ Helper functions for dealing with storage
 import importlib
 from typing import Any, Callable, List, Optional, Sequence, TypeVar, Union
 
+import numpy as np
 import pytest
 
 TFunc = TypeVar("TFunc", bound=Callable[..., Any])
@@ -79,6 +80,7 @@ def storage_extensions(
     if module_available("h5py"):
         exts.append("hdf")
     if module_available("zarr"):
+        exts.append("zip")
         if incl_folder:
             exts.extend(["", "zarr"])
         if module_available("sqlite3"):
@@ -89,3 +91,12 @@ def storage_extensions(
     if exclude is not None:
         exts = set(exts) - set(exclude)
     return sorted(exts)
+
+
+STORAGE_OBJECTS = [
+    {"n": -1, "s": "t", "l1": [0, 1, 2], "l2": [[0, 1], [4]], "a": np.arange(5)},
+    np.arange(3),
+    [np.arange(2), np.arange(3)],
+    {"a": {"a", "b"}, "b": np.arange(3)},
+]
+STORAGE_EXT = storage_extensions(incl_folder=True, dot=True)

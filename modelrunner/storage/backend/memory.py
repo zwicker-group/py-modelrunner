@@ -90,10 +90,8 @@ class MemoryStorage(StorageBase):
             return self._data
 
     def keys(self, loc: Sequence[str]) -> Collection[str]:
-        if loc:
-            return self[loc].keys()  # type: ignore
-        else:
-            return self._data.keys()
+        keys = self[loc].keys() if loc else self._data.keys()
+        return [k for k in keys if not k.startswith("__")]
 
     def is_group(self, loc: Sequence[str]) -> bool:
         item = self[loc]

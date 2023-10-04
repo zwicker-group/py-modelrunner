@@ -136,7 +136,7 @@ class Result:
                 return result  # Result created from old version
 
         # assume that file was written with latest format version
-        with open_storage(storage, mode="readonly") as storage_obj:
+        with open_storage(storage, mode="read") as storage_obj:
             attrs = storage_obj.read_attrs(loc)
             format_version = attrs.pop("format_version", None)
             if format_version == cls._format_version:
