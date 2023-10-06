@@ -20,11 +20,7 @@ from ..base import StorageBase
 class MemoryStorage(StorageBase):
     """store items in memory"""
 
-    encode_internal_attrs: bool = False
-    """bool: Flag determining whether flags used by this class internally are encoded as
-    a string. This can be important if the data is stored to a file later"""
-
-    _data: Attrs
+    _data: Dict[str, Any]
 
     def __init__(self, *, mode: ModeType = "insert"):
         """
