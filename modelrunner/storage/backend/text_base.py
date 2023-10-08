@@ -140,7 +140,7 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
             "data": np.array(arr, copy=True),
             "dtype": encode_binary(dtype, binary=False),
         }
-        if isinstance(arr, np.record):
+        if isinstance(arr, np.recarray):
             parent[name]["record_array"] = True
 
     def _create_dynamic_array(

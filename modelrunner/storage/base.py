@@ -350,7 +350,7 @@ class StorageBase(metaclass=ABCMeta):
         if out is not None:
             out[:] = self._read_array(loc, index=index)
         elif copy:
-            out = np.array(self._read_array(loc, index=index), copy=True)
+            out = np.copy(self._read_array(loc, index=index), subok=True)  # type: ignore
         else:
             out = np.asanyarray(self._read_array(loc, index=index))
         return out

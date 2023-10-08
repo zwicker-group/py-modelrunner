@@ -149,12 +149,15 @@ class HDFStorage(StorageBase):
         else:
             arr = self[loc][index]
 
-        if self._read_attrs(loc).get("__pickled__", False):
-            return decode_binary(np.asarray(arr).item())  # type: ignore
-        elif isinstance(arr, (h5py.Dataset, np.ndarray, np.generic)):
-            return arr  # type: ignore
-        else:
+        attrs = self._read_attrs(loc)
+        if attrs.get("__pickled__", False):
+            arr = decode_binary(np.asarray(arr).item())
+        elif not isinstance(arr, (h5py.Dataset, np.ndarray, np.generic)):
             raise RuntimeError(f"Found {arr.__class__} at location `/{'/'.join(loc)}`")
+        if attrs.get("__recarray__", False):
+            arr = np.array(arr).view(np.recarray)
+
+        return arr  # type: ignore
 
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
         parent, name = self._get_parent(loc)
@@ -178,6 +181,9 @@ class HDFStorage(StorageBase):
             else:
                 args = {"compression": "gzip"} if self.compression else {}
                 dataset = parent.create_dataset(name, data=arr, **args)
+
+            if isinstance(arr, np.recarray):
+                dataset.attrs["__recarray__"] = True
 
     def _create_dynamic_array(
         self,
@@ -211,6 +217,9 @@ class HDFStorage(StorageBase):
             except ValueError:
                 raise RuntimeError(f"Array `/{'/'.join(loc)}` already exists")
         self._dynamic_array_size[self._get_hdf_path(loc)] = 0
+
+        if record_array:
+            dataset.attrs["__recarray__"] = True
 
     def _extend_dynamic_array(self, loc: Sequence[str], arr: ArrayLike) -> None:
         # load the dataset

@@ -158,10 +158,12 @@ class ZarrStorage(StorageBase):
         if not isinstance(arr, zarr.Array):
             raise RuntimeError(f"Found {arr.__class__} at location `/{'/'.join(loc)}`")
 
-        if index is None:
-            return arr  # type: ignore
-        else:
-            return arr[index]  # type: ignore
+        is_recarray = arr.attrs.get("__recarray__", False)
+        if index is not None:
+            arr = arr[index]
+        if is_recarray:
+            arr = np.array(arr).view(np.recarray)
+        return arr  # type: ignore
 
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
         parent, name = self._get_parent(loc)
@@ -172,11 +174,14 @@ class ZarrStorage(StorageBase):
             parent[name][...] = arr
 
         else:
-            # create a new data set
+            # create a new array element
             if arr.dtype == object:
-                parent.array(name, arr, object_codec=self.codec, overwrite=True)
+                el = parent.array(name, arr, object_codec=self.codec, overwrite=True)
             else:
-                parent.array(name, arr, overwrite=True)
+                el = parent.array(name, arr, overwrite=True)
+
+            if isinstance(arr, np.recarray):
+                el.attrs["__recarray__"] = True
 
     def _create_dynamic_array(
         self,
@@ -188,7 +193,7 @@ class ZarrStorage(StorageBase):
         parent, name = self._get_parent(loc)
         try:
             if dtype == object:
-                parent.zeros(
+                element = parent.zeros(
                     name,
                     shape=(0,) + shape,
                     chunks=(1,) + shape,
@@ -198,9 +203,14 @@ class ZarrStorage(StorageBase):
                 )
 
             else:
-                parent.zeros(name, shape=(0,) + shape, chunks=(1,) + shape, dtype=dtype)
+                element = parent.zeros(
+                    name, shape=(0,) + shape, chunks=(1,) + shape, dtype=dtype
+                )
         except zarr.errors.ContainsArrayError:
             raise RuntimeError(f"Array `/{'/'.join(loc)}` already exists")
+        else:
+            if record_array:
+                element.attrs["__recarray__"] = True
 
     def _extend_dynamic_array(self, loc: Sequence[str], data: ArrayLike) -> None:
         arr_obj = self[loc]
