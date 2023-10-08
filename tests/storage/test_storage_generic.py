@@ -33,7 +33,10 @@ def test_storage_persistence(arr, ext, tmp_path):
     # read from storage
     with open_storage(tmp_path / f"file{ext}", mode="read") as storage:
         assert storage.is_group("empty") and len(storage["empty"].keys()) == 0
-        np.testing.assert_array_equal(storage.read_array("group/test/arr"), arr)
+        arr_read = storage.read_array("group/test/arr")
+        assert arr.__class__ is arr_read.__class__
+        np.testing.assert_array_equal(arr_read, arr)
+
         assert storage.read_attrs("group/test/arr") == {"array": True}
         np.testing.assert_array_equal(storage.read_array("dyn", index=0), arr)
         np.testing.assert_array_equal(

@@ -238,7 +238,6 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
             # display the results on stdout
             storage = MemoryStorage()
             result.to_file(storage)
-            print(storage._data)
 
         # close the output file
         mdl.close()
@@ -317,7 +316,7 @@ def make_model_class(func: Callable, *, default: bool = False) -> Type[ModelBase
     parameters_default = []
     for name, param in inspect.signature(func).parameters.items():
         if name == "storage":
-            # treat this parameter specially
+            # FIXME: treat this parameter specially
             print("FOUND STORAGE")
         else:
             # all remaining parameters are treated as model parameters
