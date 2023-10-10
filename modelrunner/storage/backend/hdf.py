@@ -142,22 +142,28 @@ class HDFStorage(StorageBase):
         self[loc].attrs[name] = value
 
     def _read_array(
-        self, loc: Sequence[str], *, index: Optional[int] = None
-    ) -> ArrayLike:
+        self, loc: Sequence[str], *, copy: bool, index: Optional[int] = None
+    ) -> np.ndarray:
         if index is None:
-            arr = self[loc]
+            arr_like = self[loc]
         else:
-            arr = self[loc][index]
+            arr_like = self[loc][index]
 
+        # decode potentially binary data
         attrs = self._read_attrs(loc)
         if attrs.get("__pickled__", False):
-            arr = decode_binary(np.asarray(arr).item())
-        elif not isinstance(arr, (h5py.Dataset, np.ndarray, np.generic)):
-            raise RuntimeError(f"Found {arr.__class__} at location `/{'/'.join(loc)}`")
-        if attrs.get("__recarray__", False):
-            arr = np.array(arr).view(np.recarray)
+            arr_like = decode_binary(np.asarray(arr_like).item())
+        elif not isinstance(arr_like, (h5py.Dataset, np.ndarray, np.generic)):
+            raise RuntimeError(
+                f"Found {arr_like.__class__} at location `/{'/'.join(loc)}`"
+            )
 
-        return arr  # type: ignore
+        # convert it into the right type
+        arr = np.array(arr_like, copy=copy)
+        if attrs.get("__recarray__", False):
+            arr = arr.view(np.recarray)
+
+        return arr
 
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
         parent, name = self._get_parent(loc)

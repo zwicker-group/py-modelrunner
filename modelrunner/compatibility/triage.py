@@ -14,7 +14,7 @@ from ..model import ModelBase
 from ..results import Result
 
 if TYPE_CHECKING:
-    from zarr.storage import BaseStore  # @UnusedImport
+    from zarr.storage import BaseStore
 
 
 Store = Union[str, Path, "BaseStore"]

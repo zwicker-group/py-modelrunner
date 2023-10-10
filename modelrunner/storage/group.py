@@ -172,7 +172,7 @@ class StorageGroup:
         # read the item using the generic classes
         obj_type = self._storage._read_attrs(loc_list).get("__type__")
         if obj_type in {"array", "dynamic_array"}:
-            arr = self._storage._read_array(loc_list)
+            arr = self._storage._read_array(loc_list, copy=True)
             return Array(arr, attrs=self._storage.read_attrs(loc_list))
         elif obj_type == "object":
             return self._storage._read_object(loc_list)
@@ -277,7 +277,6 @@ class StorageGroup:
         *,
         out: Optional[np.ndarray] = None,
         index: Optional[int] = None,
-        copy: bool = True,
     ) -> np.ndarray:
         """read an array from a particular location
 
@@ -288,16 +287,13 @@ class StorageGroup:
                 An array to which the results are written
             index (int, optional):
                 An index denoting the subarray that will be read
-            copy (bool):
-                Determines whether a copy of the data is returned. Set this flag to
-                `False` for better performance in cases where the array is not modified.
 
         Returns:
             :class:`~numpy.ndarray`:
                 An array containing the data. Identical to `out` if specified.
         """
         loc_list = self._get_loc(loc)
-        return self._storage.read_array(loc_list, out=out, index=index, copy=copy)
+        return self._storage.read_array(loc_list, out=out, index=index)
 
     def write_array(
         self,

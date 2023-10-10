@@ -39,9 +39,6 @@ def test_storage_persistence(arr, ext, tmp_path):
 
         assert storage.read_attrs("group/test/arr") == {"array": True}
         np.testing.assert_array_equal(storage.read_array("dyn", index=0), arr)
-        np.testing.assert_array_equal(
-            storage.read_array("dyn", index=0, copy=False), arr
-        )
         out = storage.read_array("dyn", index=0, out=np.empty_like(arr))
         np.testing.assert_array_equal(out, arr)
         assert_data_equals(storage.read_object("obj"), OBJ)

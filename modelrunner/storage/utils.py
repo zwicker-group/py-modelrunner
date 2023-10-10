@@ -27,7 +27,7 @@ from typing import (
 import numpy as np
 
 if TYPE_CHECKING:
-    from .attributes import Attrs  # @UnusedImport
+    from .attributes import Attrs
 
 PICKLE_PROTOCOL = pickle.HIGHEST_PROTOCOL
 

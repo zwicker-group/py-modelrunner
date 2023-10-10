@@ -116,13 +116,14 @@ class MemoryStorage(StorageBase):
             item["__attrs__"][name] = value
 
     def _read_array(
-        self, loc: Sequence[str], *, index: Optional[int] = None
+        self, loc: Sequence[str], *, copy: bool, index: Optional[int] = None
     ) -> np.ndarray:
         # read the data from the location
         if index is None:
-            return self[loc]["data"]  # type: ignore
+            arr = self[loc]["data"]
         else:
-            return self[loc]["data"][index]  # type: ignore
+            arr = self[loc]["data"][index]
+        return np.array(arr, copy=copy)
 
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
         parent, name = self._get_parent(loc, check_write=True)
