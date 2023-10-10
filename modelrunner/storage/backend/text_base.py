@@ -108,7 +108,7 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
         """
 
     def _read_array(
-        self, loc: Sequence[str], *, index: Optional[int] = None
+        self, loc: Sequence[str], *, copy: bool, index: Optional[int] = None
     ) -> np.ndarray:
         # read the data from the location
         if index is None:
@@ -119,9 +119,11 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
         if hasattr(arr, "__iter__"):  # minimal sanity check
             dtype = decode_binary(self[loc]["dtype"])
             if dtype.names is not None:
-                arr = unstructured_to_structured(np.asarray(arr), dtype=dtype)
+                arr = unstructured_to_structured(
+                    np.asarray(arr), dtype=dtype, copy=copy
+                )
             else:
-                arr = np.array(arr, dtype=dtype)
+                arr = np.array(arr, dtype=dtype, copy=copy)
             if self[loc].get("record_array", False):
                 arr = arr.view(np.recarray)
             return arr  # type: ignore

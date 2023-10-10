@@ -151,19 +151,25 @@ class ZarrStorage(StorageBase):
         self[loc].attrs[name] = value
 
     def _read_array(
-        self, loc: Sequence[str], *, index: Optional[int] = None
-    ) -> ArrayLike:
-        arr = self[loc]
+        self, loc: Sequence[str], *, copy: bool, index: Optional[int] = None
+    ) -> np.ndarray:
+        arr_like = self[loc]
 
-        if not isinstance(arr, zarr.Array):
-            raise RuntimeError(f"Found {arr.__class__} at location `/{'/'.join(loc)}`")
+        if not isinstance(arr_like, zarr.Array):
+            raise RuntimeError(
+                f"Found {arr_like.__class__} at location `/{'/'.join(loc)}`"
+            )
 
-        is_recarray = arr.attrs.get("__recarray__", False)
+        is_recarray = arr_like.attrs.get("__recarray__", False)
         if index is not None:
-            arr = arr[index]
+            arr_like = arr_like[index]
+
+        # convert it into the right type
+        arr = np.array(arr_like, copy=copy)
         if is_recarray:
-            arr = np.array(arr).view(np.recarray)
-        return arr  # type: ignore
+            arr = arr.view(np.recarray)
+
+        return arr
 
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
         parent, name = self._get_parent(loc)

@@ -46,7 +46,7 @@ from .attributes import Attrs, AttrsLike, decode_attrs, encode_attr
 from .utils import encode_class
 
 if TYPE_CHECKING:
-    from .group import StorageGroup  # @UnusedImport
+    from .group import StorageGroup
 
 
 class StorageBase(metaclass=ABCMeta):
@@ -315,8 +315,24 @@ class StorageBase(metaclass=ABCMeta):
         self,
         loc: Sequence[str],
         *,
+        copy: bool,
         index: Optional[int] = None,
-    ) -> ArrayLike:
+    ) -> np.ndarray:
+        """read an array from a particular location
+
+        Args:
+            loc (list of str):
+                The location in the storage where the array is read
+            copy (bool):
+                Determines whether a copy of the data is returned. Set this flag to
+                `False` for better performance in cases where the array is not modified.
+            index (int, optional):
+                An index denoting the subarray that will be read
+
+        Returns:
+            :class:`~numpy.ndarray`:
+                An array containing the data. Identical to `out` if specified.
+        """
         raise NotImplementedError(f"Cannot read arrays from {self.__class__.__name__}")
 
     def read_array(
@@ -325,20 +341,16 @@ class StorageBase(metaclass=ABCMeta):
         *,
         out: Optional[np.ndarray] = None,
         index: Optional[int] = None,
-        copy: bool = True,
     ) -> np.ndarray:
         """read an array from a particular location
 
         Args:
             loc (list of str):
-                The location in the storage where the array is created
+                The location in the storage where the array is read
             out (array):
                 An array to which the results are written
             index (int, optional):
                 An index denoting the subarray that will be read
-            copy (bool):
-                Determines whether a copy of the data is returned. Set this flag to
-                `False` for better performance in cases where the array is not modified.
 
         Returns:
             :class:`~numpy.ndarray`:
@@ -348,11 +360,9 @@ class StorageBase(metaclass=ABCMeta):
             raise AccessError("No right to read array")
 
         if out is not None:
-            out[:] = self._read_array(loc, index=index)
-        elif copy:
-            out = np.copy(self._read_array(loc, index=index), subok=True)  # type: ignore
+            out[:] = self._read_array(loc, index=index, copy=False)
         else:
-            out = np.asanyarray(self._read_array(loc, index=index))
+            out = self._read_array(loc, index=index, copy=True)
         return out
 
     def _write_array(self, loc: Sequence[str], arr: np.ndarray) -> None:
