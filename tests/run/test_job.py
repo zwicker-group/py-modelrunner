@@ -50,7 +50,7 @@ def test_submit_jobs(tmp_path):
         )
 
         # read result
-        col = ResultCollection.from_folder(tmp_path).dataframe
+        col = ResultCollection.from_folder(tmp_path).as_dataframe()
         assert len(col) == num_jobs
 
         # delete temporary files

@@ -473,9 +473,21 @@ class ResultCollection(List[Result]):
     @property
     def dataframe(self):
         """create a pandas dataframe summarizing the data"""
+        # deprecated on 2023-10-19
+        warnings.warn("Property `dataframe` deprecated; use method `as_dataframe`")
+        return self.as_dataframe()
+
+    def as_dataframe(self, *, enforce_same_model: bool = True):
+        """create a pandas dataframe summarizing the data
+
+        Args:
+            enforce_same_model (bool):
+                If True, forces all model results to derive from the same model
+        """
         import pandas as pd
 
-        assert self.same_model
+        if enforce_same_model and not self.same_model:
+            raise RuntimeError("Results are not from the same model")
 
         def get_data(result):
             """helper function to extract the data"""
