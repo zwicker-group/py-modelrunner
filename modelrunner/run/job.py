@@ -195,8 +195,19 @@ def submit_job(
             universal_newlines=True,
         )
 
-    elif method in {"background", "foreground"}:
-        # run job locally
+    elif method == "foreground":
+        # run job locally in the foreground, blocking further calls
+        proc = sp.Popen(
+            ["bash"],
+            stdin=sp.PIPE,
+            stdout=sp.PIPE,
+            stderr=sp.PIPE,
+            universal_newlines=True,
+            bufsize=0,  # write output immediately
+        )
+
+    elif method == "background":
+        # run job locally in the background
         proc = sp.Popen(
             ["bash"],
             stdin=sp.PIPE,
