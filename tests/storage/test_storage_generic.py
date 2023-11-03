@@ -41,6 +41,7 @@ def test_storage_persistence(arr, ext, tmp_path):
         np.testing.assert_array_equal(storage.read_array("dyn", index=0), arr)
         out = storage.read_array("dyn", index=0, out=np.empty_like(arr))
         np.testing.assert_array_equal(out, arr)
+        assert out.__class__ is arr.__class__
         assert_data_equals(storage.read_object("obj"), OBJ)
 
         with pytest.raises(RuntimeError):
