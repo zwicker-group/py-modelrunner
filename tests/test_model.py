@@ -271,3 +271,30 @@ def test_model_output(tmp_path):
 
     with open_storage(tmp_path / "model.json") as storage:
         assert storage["info"] == {"args": 5}
+
+
+@pytest.mark.parametrize("kwarg", [True, False])
+def test_model_storage(kwarg, tmp_path):
+    """test storage argument in model"""
+
+    if kwarg:
+
+        @make_model_class
+        def model_with_output(a=3, storage=None):
+            storage["saved"] = {"A": "B"}
+            return a + 2
+
+    else:
+
+        @make_model_class
+        def model_with_output(storage, a=3):
+            storage["saved"] = {"A": "B"}
+            return a + 2
+
+    path = tmp_path / "output1.yaml"
+    m = model_with_output(output=path)
+    m.write_result()
+
+    with open_storage(path) as storage:
+        assert storage["saved"] == {"A": "B"}
+        assert storage["result"].data == 5

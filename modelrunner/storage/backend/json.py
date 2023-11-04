@@ -20,8 +20,8 @@ class JSONStorage(TextStorageBase):
 
     extensions = ["json"]
 
-    def _read_data_from_fp(self, fp) -> None:
-        self._data = json.load(fp, object_hook=_decode_pickled)
+    def _read_data_from_fp(self, fp):
+        return json.load(fp, object_hook=_decode_pickled)
 
     def _write_data_to_fp(self, fp, data) -> None:
         self._write_flags.setdefault("cls", AttrsEncoder)

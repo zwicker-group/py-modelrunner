@@ -30,3 +30,4 @@ from .model import (
 from .parameters import HideParameter, Parameter, Parameterized
 from .results import Result, ResultCollection
 from .run import submit_job, submit_jobs
+from .storage import open_storage

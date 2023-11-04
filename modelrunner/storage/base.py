@@ -80,6 +80,9 @@ class StorageBase(metaclass=ABCMeta):
         # we are using a property instead of an attribute to make this read-only
         return True
 
+    def flush(self) -> None:
+        """write (cached) data to storage"""
+
     @property
     def codec(self) -> numcodecs.abc.Codec:
         """:class:`~numcodecs.abc.Codec`: A codec used to encode binary data"""

@@ -22,9 +22,9 @@ class YAMLStorage(TextStorageBase):
     extensions = ["yaml", "yml"]
     encode_internal_attrs = True
 
-    def _read_data_from_fp(self, fp) -> None:
+    def _read_data_from_fp(self, fp):
         try:
-            self._data = yaml.safe_load(fp)
+            return yaml.safe_load(fp)
         except yaml.constructor.ConstructorError:
             raise RuntimeError("Some data cannot be reconstructed from YAML")
 
