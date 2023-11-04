@@ -17,7 +17,7 @@ from numpy.lib.recfunctions import (
 )
 from numpy.typing import ArrayLike, DTypeLike
 
-from ..access_modes import ModeType
+from ..access_modes import AccessError, ModeType
 from ..utils import decode_binary, encode_binary
 from .memory import MemoryStorage
 from .utils import simplify_data
@@ -52,25 +52,39 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
         self.simplify = simplify
         self._path = Path(path)
         self._write_flags = kwargs
+        self._modified = False
         if self.mode.file_mode in {"r", "x", "a"}:
             if self._path.exists():
                 if self.mode.file_mode == "x":
                     raise FileExistsError(f"File `{path}` already exists")
+                # read content from file
                 with open(self._path, mode="r") as fp:
-                    self._read_data_from_fp(fp)
+                    data = self._read_data_from_fp(fp)
+                # interprete empty files correctly
+                self._data = {} if data is None else data
 
     def __repr__(self):
         return f'{self.__class__.__name__}("{self._path}", ' f'mode="{self.mode.name}")'
 
-    def close(self) -> None:
-        """close the file and write the data to the file"""
+    def flush(self) -> None:
+        """write (cached) data to storage"""
         if self.mode.file_mode in {"x", "a", "w"}:
-            if self.simplify:
-                data = simplify_data(self._data)
-            else:
-                data = self._data
+            # Write the data to the writeable file. Note that we do not check the
+            # self._modified flag since it might not capture all changes, e.g., when an
+            # item (attribute, array, or object) was modified in place
+            data = simplify_data(self._data) if self.simplify else self._data
             with open(self._path, mode="w") as fp:
                 self._write_data_to_fp(fp, data)
+            self._modified = False  # reset modifications
+
+        elif self._modified:
+            # The storage was modified, but it cannot be written to the file. This
+            # should not happen, but it's better to throw an explicit error
+            raise AccessError("Cannot write to file")
+
+    def close(self) -> None:
+        """close the file and write the data to the file"""
+        self.flush()
 
     def to_text(self, simplify: Optional[bool] = None) -> str:
         """serialize the data and return it as a string
@@ -82,16 +96,14 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
         """
         if simplify is None:
             simplify = self.simplify
-        if simplify:
-            data = simplify_data(self._data)
-        else:
-            data = self._data
+        data = simplify_data(self._data) if self.simplify else self._data
+
         with StringIO() as fp:
             self._write_data_to_fp(fp, data)
             return fp.getvalue()
 
     @abstractmethod
-    def _read_data_from_fp(self, fp: io.TextIOBase) -> None:
+    def _read_data_from_fp(self, fp: io.TextIOBase):
         """read data from an open file
 
         Args:
@@ -106,6 +118,10 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
             fp (:class:`io.TextIOBase`): The opened text file
             data: The data to write
         """
+
+    def _write_attr(self, loc: Sequence[str], name: str, value: str) -> None:
+        super()._write_attr(loc, name, value)
+        self._modified = True
 
     def _read_array(
         self, loc: Sequence[str], *, copy: bool, index: Optional[int] = None
@@ -144,6 +160,7 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
         }
         if isinstance(arr, np.recarray):
             parent[name]["record_array"] = True
+        self._modified = True
 
     def _create_dynamic_array(
         self,
@@ -163,6 +180,7 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
         }
         if record_array:
             parent[name]["record_array"] = True
+        self._modified = True
 
     def _extend_dynamic_array(self, loc: Sequence[str], arr: ArrayLike) -> None:
         item = self[loc]
@@ -186,6 +204,7 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
             item["data"].append(data.item())
         else:
             item["data"].append(np.array(data, copy=True))
+        self._modified = True
 
     def _read_object(self, loc: Sequence[str]) -> Any:
         return self.codec.decode(self[loc]["data"])
@@ -193,3 +212,4 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
     def _write_object(self, loc: Sequence[str], obj: Any) -> None:
         parent, name = self._get_parent(loc, check_write=True)
         parent[name] = {"data": self.codec.encode(obj)}
+        self._modified = True

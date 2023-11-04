@@ -49,7 +49,7 @@ class open_storage(StorageGroup):
             loc (str or list of str):
                 Denotes the location that will be opened within the storage. The default
                 `None` opens the root group of the storage.
-            mode (str or :class:`~modelrunner.storage.access_modes.AccessMode`):
+            mode (str or :class:`~modelrunner.storage.access_modes.ModeType`):
                 The file mode with which the storage is accessed, which determines the
                 allowed operations. Common options are "read", "full", "append", and
                 "truncate".
@@ -128,6 +128,8 @@ class open_storage(StorageGroup):
         """close the storage (and flush all data to persistent storage if necessary)"""
         if self._close:
             self._storage.close()
+        else:
+            self._storage.flush()
 
     def __enter__(self):
         return self

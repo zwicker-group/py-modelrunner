@@ -157,13 +157,16 @@ class Result:
         """write this object to a file
 
         Args:
-            store (str or :class:`zarr.Store`):
-                Where to write the data to
-            overwrite (bool):
-                If True, overwrites files even if they already exist
-            **kwargs:
-                Additional arguments are passed on to the method that implements the
-                writing of the specific format (_write_**).
+            storage (:class:`StorageBase` or :class:`StorageGroup`):
+                The storage where the group is defined. If this is a
+                :class:`StorageGroup` itself, `loc` is interpreted relative to that
+                group
+            loc (str or list of str):
+                Denotes the location (path) of the group within the storage
+            mode (str or :class:`~modelrunner.storage.access_modes.ModeType`):
+                The file mode with which the storage is accessed, which determines the
+                allowed operations. Common options are "read", "full", "append", and
+                "truncate".
         """
         with open_storage(storage, mode=mode) as storage_obj:
             # collect attributes from the result
