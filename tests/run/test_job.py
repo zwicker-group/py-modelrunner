@@ -50,7 +50,15 @@ def test_submit_jobs(tmp_path):
         )
 
         # read result
+<<<<<<< HEAD
         col = ResultCollection.from_folder(tmp_path).as_dataframe()
+=======
+        rc = ResultCollection.from_folder(tmp_path)
+        for r in rc:
+            print(r)
+        col = rc.dataframe
+        print(col)
+>>>>>>> branch 'flexible_storage' of https://github.com/zwicker-group/py-modelrunner.git
         assert len(col) == num_jobs
 
         # delete temporary files
