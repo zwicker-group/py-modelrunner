@@ -1,5 +1,5 @@
 """
-Base class describing a model.
+Base class describing a model
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -32,7 +32,7 @@ from .parameters import (
     Parameter,
     Parameterized,
 )
-from .state import ObjectState, StateBase
+from .storage import MemoryStorage, ModeType, StorageGroup, open_storage  # type: ignore
 
 if TYPE_CHECKING:
     from .results import Result  # @UnusedImport
@@ -45,14 +45,13 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
     """str: the name of the model"""
     description: Optional[str] = None
     """str: a longer description of the model"""
-    state_cls: Type[StateBase] = ObjectState
-    """type: the class that will contain the model results"""
 
     def __init__(
         self,
         parameters: Optional[Dict[str, Any]] = None,
         output: Optional[str] = None,
         *,
+        mode: ModeType = "insert",
         strict: bool = False,
     ):
         """initialize the parameters of the object
@@ -64,26 +63,46 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
                 :meth:`~Parameterized.get_parameters` or displayed by calling
                 :meth:`~Parameterized.show_parameters`.
             output (str):
-                Path to write the output file
+                Path where the output file will be written.
+            mode (str or :class:`~modelrunner.storage.access_modes.ModeType`):
+                The file mode with which the storage is accessed, which determines the
+                allowed operations. Common options are "read", "full", "append", and
+                "truncate".
             strict (bool):
                 Flag indicating whether parameters are strictly interpreted. If `True`,
                 only parameters listed in `parameters_default` can be set and their type
                 will be enforced.
         """
         super().__init__(parameters, strict=strict)
-        self.output = output
+        self.output = output  # TODO: also allow already opened storages
+        self.mode = mode
+        self._storage: Optional[open_storage] = None
         self._logger = logging.getLogger(self.__class__.__name__)
+
+    @property
+    def storage(self) -> StorageGroup:
+        """:class:`StorageGroup`: Storage to which data can be written"""
+        if self._storage is None:
+            if self.output is None:
+                raise RuntimeError("Output file needs to be specified")
+            self._storage = open_storage(self.output, mode=self.mode)
+        return self._storage
+
+    def close(self) -> None:
+        """close any opened storages"""
+        if self._storage is not None:
+            self._storage.close()
+        self._storage = None
 
     @abstractmethod
     def __call__(self):
-        """main method calculating the result"""
-        pass
+        """main method calculating the result. Needs to be specified by sub-class"""
 
-    def get_result(self, state: Optional[StateBase] = None) -> "Result":
+    def get_result(self, data: Any = None) -> "Result":
         """get the result as a :class:`~model.Result` object
 
         Args:
-            state:
+            data:
                 The result data. If omitted, the model is run to obtain results
 
         Returns:
@@ -91,29 +110,21 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         """
         from .results import Result  # @Reimport
 
-        if state is None:
-            state_data = self()
-            state = self.state_cls(state_data)
-        elif isinstance(state, Result):
-            return state
+        if data is None:
+            data = self()
 
         info = {"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-        return Result(self, state, info=info)
+        return Result(self, data, info=info)
 
-    def write_result(self, output: Optional[str] = None, result=None) -> None:
+    def write_result(self, result: Optional["Result"] = None) -> None:
         """write the result to the output file
 
         Args:
-            output (str):
-                File where the output will be written to. If omitted self.output will be
-                used. If self.output is also None, an error will be thrown.
             result:
                 The result data. If omitted, the model is run to obtain results
         """
-        if output is None:
-            output = self.output
-        if output is None:
-            raise RuntimeError("output file needs to be specified")
+        if self.output is None:
+            raise RuntimeError("Output file needs to be specified")
 
         if result is None:
             result = self.get_result()
@@ -121,7 +132,12 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
             from .results import Result  # @Reimport
 
             assert isinstance(result, Result)
-        result.to_file(output)
+
+        if self._storage is not None:
+            # reuse the opened storage
+            result.to_file(self.storage)
+        else:
+            result.to_file(self.output, mode=self.mode)
 
     @classmethod
     def _prepare_argparser(cls, name: Optional[str] = None) -> argparse.ArgumentParser:
@@ -223,10 +239,14 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         result = mdl.get_result()
         if mdl.output:
             # write the results to a file
-            mdl.write_result(output=None, result=result)
+            mdl.write_result(result=result)
         else:
             # display the results on stdout
-            print(result.state._to_simple_objects()["data"])
+            storage = MemoryStorage()
+            result.to_file(storage)
+
+        # close the output file
+        mdl.close()
 
         return result
 
@@ -299,18 +319,25 @@ def make_model_class(func: Callable, *, default: bool = False) -> Type[ModelBase
         :class:`ModelBase`: A subclass of ModelBase, which encompasses `func`
     """
     # determine the parameters of the function
+    provide_storage = False
     parameters_default = []
     for name, param in inspect.signature(func).parameters.items():
-        if param.annotation is param.empty:
-            cls = object
+        if name == "storage":
+            # treat this parameter specially and provide access to a storage object
+            provide_storage = True
         else:
-            cls = param.annotation
-        if param.default is param.empty:
-            default_value = NoValue
-        else:
-            default_value = param.default
+            # all remaining parameters are treated as model parameters
+            if param.annotation is param.empty:
+                cls = object
+            else:
+                cls = param.annotation
+            if param.default is param.empty:
+                default_value = NoValue
+            else:
+                default_value = param.default
 
-        parameters_default.append(Parameter(name, default_value=default_value, cls=cls))
+            parameter = Parameter(name, default_value=default_value, cls=cls)
+            parameters_default.append(parameter)
 
     def __call__(self, *args, **kwargs):
         """call the function preserving the original signature"""
@@ -328,6 +355,9 @@ def make_model_class(func: Callable, *, default: bool = False) -> Type[ModelBase
             if param_value is NoValue:
                 raise TypeError(f"Model missing required argument: '{name}'")
             parameters[name] = param_value
+
+        if provide_storage:
+            parameters["storage"] = self.storage
 
         return func(**parameters)
 
@@ -347,7 +377,9 @@ def make_model_class(func: Callable, *, default: bool = False) -> Type[ModelBase
 def make_model(
     func: Callable,
     parameters: Optional[Dict[str, Any]] = None,
+    output: Optional[str] = None,
     *,
+    mode: ModeType = "insert",
     default: bool = False,
 ) -> ModelBase:
     """create model from a function and a dictionary of parameters
@@ -357,6 +389,12 @@ def make_model(
             The function that will be turned into a Model
         parameters (dict):
             Paramter values with which the model is initialized
+        output (str):
+            Path where the output file will be written.
+        mode (str or :class:`~modelrunner.storage.access_modes.ModeType`):
+            The file mode with which the storage is accessed, which determines the
+            allowed operations. Common options are "read", "full", "append", and
+            "truncate".
         default (bool):
             If True, set this model as the default one for the current script
 
@@ -364,7 +402,7 @@ def make_model(
         :class:`ModelBase`: An instance of a subclass of ModelBase encompassing `func`
     """
     model_class = make_model_class(func, default=default)
-    return model_class(parameters)
+    return model_class(parameters, output=output, mode=mode)
 
 
 def run_function_with_cmd_args(

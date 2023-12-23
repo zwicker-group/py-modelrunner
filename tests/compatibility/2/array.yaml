@@ -1,0 +1,15 @@
+__attrs__:
+  __codec__:
+    id: pickle
+    protocol: 5
+result:
+  data: !!binary |
+    gAWViwAAAAAAAACMEm51bXB5LmNvcmUubnVtZXJpY5SMC19mcm9tYnVmZmVylJOUKJYYAAAAAAAA
+    AAAAAAAAAAAAAQAAAAAAAAACAAAAAAAAAJSMBW51bXB5lIwFZHR5cGWUk5SMAmk4lImIh5RSlChL
+    A4wBPJROTk5K/////0r/////SwB0lGJLA4WUjAFDlHSUUpQu
+  __attrs__:
+    model: '{"class": "MockModel", "name": "model", "description": null, "parameters":
+      {}}'
+    format_version: '2'
+    __type__: object
+    __class__: modelrunner.results.Result

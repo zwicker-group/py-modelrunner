@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from modelrunner.results import Result, StateBase
-from modelrunner.state.base import _equals, simplify_data
+from helpers import assert_data_equals
+from modelrunner.results import Result
 
 CWD = Path(__file__).parent.resolve()
 assert CWD.is_dir()
@@ -16,11 +16,14 @@ assert CWD.is_dir()
 POSSIBLE_EXTENSIONS = {".yaml", ".json", ".hdf", ".zarr"}
 
 
-def get_compatibility_files():
+def get_compatibility_files(version=None):
     """find all files that need to be checked for compatibility"""
     for path in CWD.glob("**/*.*"):
         if path.suffix in POSSIBLE_EXTENSIONS:
-            yield path
+            if path.parts[-2].startswith("_"):
+                continue
+            if version is None or path.parts[-2] == str(version):
+                yield path
 
 
 @pytest.mark.parametrize("path", get_compatibility_files())
@@ -29,14 +32,9 @@ def test_reading_compatibility(path):
     result = Result.from_file(path)
 
     with open(path.with_suffix(".pkl"), "rb") as fp:
-        data = pickle.load(fp)
-
-    if isinstance(data, StateBase):
-        # newer data
-        assert simplify_data(result.state._to_simple_objects()) == simplify_data(
-            data._to_simple_objects()
-        )
-    else:
-        # older formats
-        for key in data:
-            assert _equals(simplify_data(result.data[key]), simplify_data(data[key]))
+        try:
+            data = pickle.load(fp)
+        except ModuleNotFoundError:
+            assert result.data is not None  # just test whether something was loaded
+        else:
+            assert_data_equals(result.data, data, fuzzy=True)

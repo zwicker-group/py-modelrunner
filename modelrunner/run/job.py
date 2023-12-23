@@ -12,7 +12,7 @@ import subprocess as sp
 import sys
 import warnings
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, Literal, Optional, Tuple, Union
 
 from tqdm.auto import tqdm
 
@@ -39,9 +39,12 @@ def get_job_name(
     """create a suitable job name
 
     Args:
-        base (str): The stem of the job name
-        args (dict): Parameters to include in the job name
-        length (int): Length of the abbreviated parameter name
+        base (str):
+            The stem of the job name
+        args (dict):
+            Parameters to include in the job name
+        length (int):
+            Length of the abbreviated parameter name
 
     Returns:
         str: A suitable job name
@@ -59,6 +62,11 @@ def get_job_name(
     return res
 
 
+OverwriteStrategyType = Literal[
+    "error", "warn_skip", "silent_skip", "overwrite", "silent_overwrite"
+]
+
+
 def submit_job(
     script: Union[str, Path],
     output: Union[str, Path, None] = None,
@@ -69,7 +77,7 @@ def submit_job(
     method: str = "qsub",
     use_modelrunner: bool = True,
     template: Union[str, Path, None] = None,
-    overwrite_strategy: str = "error",
+    overwrite_strategy: OverwriteStrategyType = "error",
     **kwargs,
 ) -> Tuple[str, str]:
     """submit a script to the cluster queue
@@ -164,7 +172,7 @@ def submit_job(
                 raise NotImplementedError(f"Unknown strategy `{overwrite_strategy}`")
 
             # delete old output
-            output.unlink(missing_ok=True)
+            output.unlink()
 
         # check whether output points to a directory or whether this should be a file
         if output.is_dir():

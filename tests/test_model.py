@@ -14,6 +14,7 @@ from modelrunner.parameters import (
     NoValue,
     Parameter,
 )
+from modelrunner.storage import open_storage
 
 PACKAGEPATH = Path(__file__).parents[2].resolve()
 SCRIPT_PATH = Path(__file__).parent / "scripts"
@@ -252,3 +253,48 @@ def test_model_class_inheritence():
         B.run_from_command_line(["--b", "2"])
     assert B.run_from_command_line(["--c", "2"]).data == 8
     assert B.run_from_command_line(["--d", "6"]).data == 11
+
+
+def test_model_output(tmp_path):
+    """test whether model output works as intended"""
+
+    class A(ModelBase):
+        parameters_default = [Parameter("a", 1)]
+
+        def __call__(self, b):
+            self.storage["info"] = {"args": b}
+            return self.parameters["a"] * b
+
+    a = A(output=tmp_path / "model.json")
+    assert a(5) == 5
+    a.close()
+
+    with open_storage(tmp_path / "model.json") as storage:
+        assert storage["info"] == {"args": 5}
+
+
+@pytest.mark.parametrize("kwarg", [True, False])
+def test_model_storage(kwarg, tmp_path):
+    """test storage argument in model"""
+
+    if kwarg:
+
+        @make_model_class
+        def model_with_output(a=3, storage=None):
+            storage["saved"] = {"A": "B"}
+            return a + 2
+
+    else:
+
+        @make_model_class
+        def model_with_output(storage, a=3):
+            storage["saved"] = {"A": "B"}
+            return a + 2
+
+    path = tmp_path / "output1.yaml"
+    m = model_with_output(output=path)
+    m.write_result()
+
+    with open_storage(path) as storage:
+        assert storage["saved"] == {"A": "B"}
+        assert storage["result"].data == 5

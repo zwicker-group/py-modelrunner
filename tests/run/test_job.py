@@ -59,7 +59,9 @@ def test_submit_jobs(tmp_path):
 
         return col
 
-    res = run({"a": (1, 2)})["a"]
+    df = run({"a": (1, 2)})
+    print(df)
+    res = df["a"]
     # the order of the results might not be deterministic => sort result
     np.testing.assert_allclose(np.sort(res), [1, 2])
 

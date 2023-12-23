@@ -5,11 +5,14 @@
 import numpy as np
 import pytest
 
+from helpers import assert_data_equals, skipUnlessModule, storage_extensions
 from modelrunner.results import Result, ResultCollection
 
+STORAGE_EXT = storage_extensions(incl_folder=True, dot=True)
 
-@pytest.mark.parametrize("extension", [".hdf", ".yaml", ".json"])
-def test_result_serialization(extension, tmp_path):
+
+@pytest.mark.parametrize("ext", STORAGE_EXT)
+def test_result_serialization(ext, tmp_path):
     """test reading and writing results"""
     # prepare test result
     data = {
@@ -22,13 +25,61 @@ def test_result_serialization(extension, tmp_path):
     result = Result.from_data({"name": "model"}, data)
 
     # write data
-    path = tmp_path / ("test" + extension)
+    path = tmp_path / ("test" + ext)
     result.to_file(path)
 
     # read data
     read = Result.from_file(path)
     assert read.model.name == "model"
     np.testing.assert_equal(read.data, result.data)
+
+
+@skipUnlessModule("pde")
+@pytest.mark.parametrize("ext", STORAGE_EXT)
+def test_pde_field_storage(ext, tmp_path):
+    """test writing pde fields"""
+    import pde
+
+    # create the result
+    grid = pde.CylindricalSymGrid((1, 3), (1, 2), 3)
+    s = pde.ScalarField.random_normal(grid)
+    v = pde.VectorField.random_normal(grid)
+    data = {
+        "scalar": s,
+        "collection": pde.FieldCollection({"a": s, "b": v}),
+    }
+    result = Result.from_data({"name": "model"}, data)
+
+    # write data
+    path = tmp_path / ("test" + ext)
+    result.to_file(path)
+
+    # read data
+    read = Result.from_file(path)
+    np.testing.assert_equal(read.data, result.data)
+
+
+@skipUnlessModule("pde")
+@pytest.mark.parametrize("ext", STORAGE_EXT)
+def test_pde_trajectory_storage(ext, tmp_path):
+    """test writing pde trajectories"""
+    import pde
+
+    # create the result
+    storage = pde.MemoryStorage()
+    grid = pde.SphericalSymGrid((1, 3), 3)
+    storage.start_writing(pde.ScalarField(grid))
+    storage.append(pde.ScalarField.random_normal(grid))
+    storage.append(pde.ScalarField.random_normal(grid))
+    result = Result.from_data({"name": "model"}, storage)
+
+    # write data
+    path = tmp_path / ("test" + ext)
+    result.to_file(path)
+
+    # read data
+    read = Result.from_file(path)
+    assert_data_equals(read.data, result.data)
 
 
 def test_result_collections():
@@ -74,6 +125,9 @@ def test_result_collections():
     assert len(rc1) == 2
     rc1 += rc2
     assert rc1 == ResultCollection([r1, r2, r3])
+
+    # test result dataframes
+    rc1.dataframe
 
 
 def test_collection_groupby():

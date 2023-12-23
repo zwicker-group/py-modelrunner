@@ -15,4 +15,4 @@ def multiply(a: float = 1, b: float = 2):
 
 if __name__ == "__main__":
     result = run_function_with_cmd_args(multiply)
-    print(result.state)
+    print(result.data)

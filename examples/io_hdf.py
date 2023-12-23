@@ -22,4 +22,4 @@ if __name__ == "__main__":
 
     # write result from file
     read = Result.from_file("test.hdf")
-    print(read.parameters, "–– start + [0..length-1] =", read.state)
+    print(read.parameters, "–– start + [0..length-1] =", read.data)
