@@ -127,7 +127,7 @@ def test_result_collections():
     assert rc1 == ResultCollection([r1, r2, r3])
 
     # test result dataframes
-    rc1.dataframe
+    rc1.as_dataframe()
 
 
 def test_collection_groupby():
