@@ -13,7 +13,7 @@ Classes that describe time-dependences of data, i.e., trajectories.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, Iterator, Literal, Optional
+from typing import Any, Dict, Iterator, Literal, Optional, Tuple
 
 import numpy as np
 
@@ -114,7 +114,7 @@ class TrajectoryWriter:
             # initialize new trajectory
             if isinstance(data, np.ndarray):
                 dtype = data.dtype
-                shape = data.shape
+                shape: Tuple[int, ...] = data.shape
                 self._item_type = "array"
             else:
                 dtype = object
@@ -132,7 +132,7 @@ class TrajectoryWriter:
         if self._item_type == "array":
             self._trajectory.extend_dynamic_array("data", data)
         elif self._item_type == "object":
-            arr = np.empty((), dtype=object)
+            arr: np.ndarray = np.empty((), dtype=object)
             arr[...] = data
             self._trajectory.extend_dynamic_array("data", arr)
         else:

@@ -226,7 +226,7 @@ class ZarrStorage(StorageBase):
         return self[loc][0]
 
     def _write_object(self, loc: Sequence[str], obj: Any) -> None:
-        arr = np.empty(1, dtype=object)  # encode object in an array
+        arr: np.ndarray = np.empty(1, dtype=object)  # encode object in an array
         arr[0] = obj
         parent, name = self._get_parent(loc)
         parent.array(name, arr, object_codec=self.codec, overwrite=True)
