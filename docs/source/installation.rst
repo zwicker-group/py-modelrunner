@@ -26,7 +26,7 @@ You can thus install it using
 
     conda install -c conda-forge py-modelrunner
 
-This installation includes all required dependencies to have all features of `py-pde`.
+This installation includes all required dependencies to have all features of `py-modelrunner`.
 
 
 Installing from source
