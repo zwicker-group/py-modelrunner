@@ -3,7 +3,7 @@
 """
 
 from pathlib import Path
-from typing import List  # @UnusedImport
+from typing import Literal
 
 import pytest
 
@@ -142,6 +142,27 @@ def test_required_arguments_model_class():
         A.run_from_command_line([])
 
 
+def test_choices_arguments_model_class():
+    """test arguments with choices"""
+
+    class A(ModelBase):
+        parameters_default = [
+            Parameter("a", 1, cls=int, choices={1, 2, 3}),
+            Parameter("b", 2),
+        ]
+
+        def __call__(self):
+            return self.parameters["a"] + self.parameters["b"]
+
+    assert A()() == 3
+    assert A({"a": 3})() == 5
+    with pytest.raises(ValueError):
+        A({"a": 4})
+    assert A.run_from_command_line(["--a", "3"]).data == 5
+    with pytest.raises(SystemExit):
+        A.run_from_command_line(["--a", "4"])
+
+
 def test_make_model():
     """test the make_model decorator"""
 
@@ -183,6 +204,25 @@ def test_make_model_class():
     assert model()() == 4
     assert model({"a": 3})() == 9
     assert model({"a": 4}).get_result().data == 16
+
+
+def test_make_model_class_literal_args():
+    """test the make_model_class function"""
+
+    def model_func(a: Literal["a", 2] = 2):
+        return a * 2
+
+    model = make_model_class(model_func)
+    assert model.parameters_default[0].choices == ("a", 2)
+
+    assert model()() == 4
+    assert model({"a": "a"})() == "aa"
+    with pytest.raises(ValueError):
+        model({"a": 3})
+
+    assert model.run_from_command_line(["--a", "a"]).data == "aa"
+    with pytest.raises(SystemExit):
+        model.run_from_command_line(["--a", "b"])
 
 
 def test_argparse_boolean_arguments():

@@ -21,7 +21,7 @@ import importlib
 import logging
 import warnings
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Iterator, List, Optional, Type, Union
+from typing import Any, Callable, Container, Dict, Iterator, List, Optional, Type, Union
 
 import numpy as np
 
@@ -87,8 +87,13 @@ class Parameter:
         description (str):
             A string describing the impact of this parameter. This
             description appears in the parameter help
+        choices (container):
+            A list or set of values that the parameter can take. Values (including the
+            default value) that are not in this list will be rejected. Note that values
+            are check after they have been converted by `cls`, so specifying `cls` is
+            particularly important to convert command line parameters from strings.
         required (bool):
-            Whther the parameter is required
+            Whether the parameter is required
         hidden (bool):
             Whether the parameter is hidden in the description summary
         extra (dict):
@@ -99,9 +104,15 @@ class Parameter:
     default_value: Any = None
     cls: Union[Type, Callable] = object
     description: str = ""
+    choices: Optional[Container] = None
     required: bool = False
     hidden: bool = False
     extra: Dict[str, Any] = field(default_factory=dict)
+
+    def _check_value(self, value) -> None:
+        """checks whether the value is acceptable"""
+        if value is not None and self.choices is not None and value not in self.choices:
+            raise ValueError(f"Default value `{value}` not in `{self.choices}`")
 
     def __post_init__(self):
         """check default values and cls"""
@@ -113,8 +124,11 @@ class Parameter:
                 converted_value = self.cls(self.default_value)
             except TypeError as err:
                 raise TypeError(
-                    f"Parameter {self.name} has invalid default: {self.default_value}"
+                    f"Parameter {self.name} of type {self.cls} has invalid default "
+                    f"value: {self.default_value}"
                 ) from err
+
+            self._check_value(converted_value)
 
             if isinstance(converted_value, np.ndarray):
                 # numpy arrays are checked for each individual value
@@ -143,6 +157,7 @@ class Parameter:
             "default_value": self.convert(),
             "cls": self.cls.__module__ + "." + self.cls.__name__,
             "description": self.description,
+            "choices": self.choices,
             "required": self.required,
             "hidden": self.hidden,
             "extra": self.extra,
@@ -195,6 +210,7 @@ class Parameter:
                     ) from err
                 # else: just return the value unchanged
 
+        self._check_value(value)
         return value
 
     def _argparser_add(self, parser):
@@ -208,6 +224,7 @@ class Parameter:
             arg_name = "--" + self.name
             kwargs = {
                 "required": self.required,
+                "choices": self.choices,
                 "default": self.default_value,
                 "help": description,
             }
