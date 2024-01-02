@@ -6,9 +6,8 @@ import json
 
 import numpy as np
 import pytest
-from pde.tools.misc import skipUnlessModule
 
-from helpers import STORAGE_OBJECTS, assert_data_equals
+from helpers import STORAGE_OBJECTS, assert_data_equals, skipUnlessModule
 from modelrunner.storage import MemoryStorage, open_storage
 
 
