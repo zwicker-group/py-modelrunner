@@ -157,6 +157,36 @@ def test_parameter_required():
         TestRequired()
 
 
+def test_parameter_choices():
+    """test parameter with explicit choices"""
+
+    class TestChoices(Parameterized):
+        parameters_default = [Parameter("a", choices={1, 2, 3})]
+
+    assert TestChoices().parameters["a"] is None
+    assert TestChoices({"a": 2}).parameters["a"] == 2
+    with pytest.raises(ValueError):
+        TestChoices({"a": 0})
+    with pytest.raises(ValueError):
+        TestChoices({"a": 4})
+
+    class TestChoicesRequired(Parameterized):
+        parameters_default = [Parameter("a", required=True, choices={1, 2, 3})]
+
+    assert TestChoicesRequired({"a": 2}).parameters["a"] == 2
+    with pytest.raises(ValueError):
+        TestChoicesRequired({"a": 0})
+    with pytest.raises(ValueError):
+        TestChoicesRequired({"a": 4})
+    with pytest.raises(ValueError):
+        TestChoicesRequired()
+
+    with pytest.raises(ValueError):
+
+        class TestChoicesInconsistent(Parameterized):
+            parameters_default = [Parameter("a", 4, choices={1, 2, 3})]
+
+
 def test_hidden_parameter():
     """test how hidden parameters are handled"""
 

@@ -142,6 +142,27 @@ def test_required_arguments_model_class():
         A.run_from_command_line([])
 
 
+def test_choices_arguments_model_class():
+    """test arguments with choices"""
+
+    class A(ModelBase):
+        parameters_default = [
+            Parameter("a", 1, cls=int, choices={1, 2, 3}),
+            Parameter("b", 2),
+        ]
+
+        def __call__(self):
+            return self.parameters["a"] + self.parameters["b"]
+
+    assert A()() == 3
+    assert A({"a": 3})() == 5
+    with pytest.raises(ValueError):
+        A({"a": 4})
+    assert A.run_from_command_line(["--a", "3"]).data == 5
+    with pytest.raises(SystemExit):
+        A.run_from_command_line(["--a", "4"])
+
+
 def test_make_model():
     """test the make_model decorator"""
 
