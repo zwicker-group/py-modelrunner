@@ -101,7 +101,7 @@ def test_required_arguments_model():
     assert req_args_3() is None
 
 
-def test_required_arguments_model_class():
+def test_required_arguments_model_class_decorator():
     """test required arguments"""
 
     @make_model_class
@@ -125,6 +125,21 @@ def test_required_arguments_model_class():
 
     assert required_arg_3().parameters == {"a": None}
     assert required_arg_3()() is None
+
+
+def test_required_arguments_model_class():
+    """test required arguments"""
+
+    class A(ModelBase):
+        parameters_default = [Parameter("a", required=True), Parameter("b", 2)]
+
+        def __call__(self):
+            return self.parameters["a"] + self.parameters["b"]
+
+    assert A({"a": 3})() == 5
+    assert A.run_from_command_line(["--a", "3"]).data == 5
+    with pytest.raises(SystemExit):
+        A.run_from_command_line([])
 
 
 def test_make_model():
