@@ -5,7 +5,7 @@
 import numpy as np
 import pytest
 
-from helpers import assert_data_equals, skipUnlessModule, storage_extensions
+from helpers import assert_data_equals, module_available, storage_extensions
 from modelrunner.results import Result, ResultCollection
 
 STORAGE_EXT = storage_extensions(incl_folder=True, dot=True)
@@ -34,7 +34,7 @@ def test_result_serialization(ext, tmp_path):
     np.testing.assert_equal(read.data, result.data)
 
 
-@skipUnlessModule("pde")
+@pytest.mark.skipif(not module_available("pde"), reason="requires `pde` module")
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_pde_field_storage(ext, tmp_path):
     """test writing pde fields"""
@@ -59,7 +59,7 @@ def test_pde_field_storage(ext, tmp_path):
     np.testing.assert_equal(read.data, result.data)
 
 
-@skipUnlessModule("pde")
+@pytest.mark.skipif(not module_available("pde"), reason="requires `pde` module")
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_pde_trajectory_storage(ext, tmp_path):
     """test writing pde trajectories"""

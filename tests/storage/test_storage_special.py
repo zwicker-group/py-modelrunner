@@ -6,9 +6,8 @@ import json
 
 import numpy as np
 import pytest
-from pde.tools.misc import skipUnlessModule
 
-from helpers import STORAGE_OBJECTS, assert_data_equals
+from helpers import STORAGE_OBJECTS, assert_data_equals, module_available
 from modelrunner.storage import MemoryStorage, open_storage
 
 
@@ -24,7 +23,7 @@ def test_memory_storage(obj):
         np.testing.assert_array_equal(storage.read_array("dyn", index=0), np.ones(2))
 
 
-@skipUnlessModule("h5py")
+@pytest.mark.skipif(not module_available("h5py"), reason="requires `h5py` module")
 def test_hdf_storage(tmp_path):
     """test HDFStorage"""
     import h5py
@@ -40,7 +39,7 @@ def test_hdf_storage(tmp_path):
         assert root.attrs["test"] == 5
 
 
-@skipUnlessModule("zarr")
+@pytest.mark.skipif(not module_available("zarr"), reason="requires `zarr` module")
 def test_zarr_storage(tmp_path):
     """test ZarrStorage"""
     import zarr
@@ -66,7 +65,7 @@ def test_json_storage(tmp_path):
         assert json.load(fp) == json.loads(json_txt)
 
 
-@skipUnlessModule("yaml")
+@pytest.mark.skipif(not module_available("yaml"), reason="requires `yaml` module")
 def test_yaml_storage(tmp_path):
     """test YAMLStorage"""
     import yaml

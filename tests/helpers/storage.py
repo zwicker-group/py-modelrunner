@@ -5,10 +5,9 @@ Helper functions for dealing with storage
 """
 
 import importlib
-from typing import Any, Callable, List, Optional, Sequence, TypeVar, Union
+from typing import Any, Callable, List, Optional, TypeVar
 
 import numpy as np
-import pytest
 
 TFunc = TypeVar("TFunc", bound=Callable[..., Any])
 
@@ -29,33 +28,6 @@ def module_available(module_name: str) -> bool:
         return False
     else:
         return True
-
-
-def skipUnlessModule(
-    module_names: Union[Sequence[str], str]
-) -> Callable[[TFunc], TFunc]:
-    """decorator that skips a test when a module is not available
-
-    Args:
-        module_names (str):
-            The name of the required module(s)
-
-    Returns:
-        A function, so this can be used as a decorator
-    """
-    if isinstance(module_names, str):
-        module_names = [module_names]
-
-    for module_name in module_names:
-        if not module_available(module_name):
-            # return decorator skipping test
-            return pytest.skip(f"requires {module_name}")
-
-    # return no-op decorator if all modules are available
-    def wrapper(f: TFunc) -> TFunc:
-        return f
-
-    return wrapper
 
 
 def storage_extensions(
