@@ -124,7 +124,8 @@ class Parameter:
                 converted_value = self.cls(self.default_value)
             except TypeError as err:
                 raise TypeError(
-                    f"Parameter {self.name} has invalid default: {self.default_value}"
+                    f"Parameter {self.name} of type {self.cls} has invalid default "
+                    f"value: {self.default_value}"
                 ) from err
 
             self._check_value(converted_value)

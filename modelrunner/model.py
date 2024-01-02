@@ -18,11 +18,14 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Literal,
     Optional,
     Sequence,
     Type,
     TypeVar,
     Union,
+    get_args,
+    get_origin,
 )
 
 from .parameters import (
@@ -329,14 +332,21 @@ def make_model_class(func: Callable, *, default: bool = False) -> Type[ModelBase
             # all remaining parameters are treated as model parameters
             if param.annotation is param.empty:
                 cls = object
+                choices = None
+            elif get_origin(param.annotation) is Literal:
+                cls = object
+                choices = get_args(param.annotation)
             else:
                 cls = param.annotation
+                choices = None
             if param.default is param.empty:
                 default_value = NoValue
             else:
                 default_value = param.default
 
-            parameter = Parameter(name, default_value=default_value, cls=cls)
+            parameter = Parameter(
+                name, default_value=default_value, cls=cls, choices=choices
+            )
             parameters_default.append(parameter)
 
     def __call__(self, *args, **kwargs):
