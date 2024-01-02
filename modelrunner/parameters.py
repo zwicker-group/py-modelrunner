@@ -81,12 +81,14 @@ class Parameter:
         name (str):
             The name of the parameter
         default_value:
-            The default value
+            The default value of the parameter
         cls:
             The type of the parameter, which is used for conversion
         description (str):
             A string describing the impact of this parameter. This
             description appears in the parameter help
+        required (bool):
+            Whther the parameter is required
         hidden (bool):
             Whether the parameter is hidden in the description summary
         extra (dict):
@@ -97,6 +99,7 @@ class Parameter:
     default_value: Any = None
     cls: Union[Type, Callable] = object
     description: str = ""
+    required: bool = False
     hidden: bool = False
     extra: Dict[str, Any] = field(default_factory=dict)
 
@@ -140,6 +143,7 @@ class Parameter:
             "default_value": self.convert(),
             "cls": self.cls.__module__ + "." + self.cls.__name__,
             "description": self.description,
+            "required": self.required,
             "hidden": self.hidden,
             "extra": self.extra,
         }
@@ -202,7 +206,11 @@ class Parameter:
                 description = f"Parameter `{self.name}`"
 
             arg_name = "--" + self.name
-            kwargs = {"default": self.default_value, "help": description}
+            kwargs = {
+                "required": self.required,
+                "default": self.default_value,
+                "help": description,
+            }
 
             if self.cls is bool:
                 # parameter is a boolean that we want to adjust
@@ -438,7 +446,7 @@ class Parameterized:
         allow_hidden: bool = True,
         include_deprecated: bool = False,
     ) -> Dict[str, Any]:
-        """parse parameters
+        """parse parameters from a given dictionary
 
         Args:
             parameters (dict):
@@ -470,6 +478,8 @@ class Parameterized:
         for name, param_obj in param_objs.items():
             if not allow_hidden and param_obj.hidden:
                 continue  # skip hidden parameters
+            if param_obj.required and name not in parameters:
+                raise ValueError(f"Require parameter `{name}`")
             # take value from parameters or set default value
             value = parameters.pop(name, NoValue)
             # convert parameter to correct type

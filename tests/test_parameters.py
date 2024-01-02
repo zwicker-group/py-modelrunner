@@ -146,6 +146,17 @@ def test_parameter_help(capsys):
         assert e1 == e2 == ""
 
 
+def test_parameter_required():
+    """test required parameter"""
+
+    class TestRequired(Parameterized):
+        parameters_default = [Parameter("a", required=True)]
+
+    assert TestRequired({"a": 2}).parameters["a"] == 2
+    with pytest.raises(ValueError):
+        TestRequired()
+
+
 def test_hidden_parameter():
     """test how hidden parameters are handled"""
 
