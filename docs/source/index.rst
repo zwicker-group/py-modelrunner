@@ -12,11 +12,13 @@ Contents
 
 .. toctree::
     :maxdepth: 2
+    :glob:
 
     installation
-    structure
+    user_manual
+    examples
     packages/modelrunner
- 
+
 
 Indices and tables
 ------------------
