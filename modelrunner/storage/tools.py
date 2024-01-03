@@ -4,8 +4,10 @@ Functions that provide convenience on top of the storage classes
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 
 from .backend import AVAILABLE_STORAGE, MemoryStorage
 from .base import StorageBase
@@ -56,7 +58,7 @@ class open_storage(StorageGroup):
             **kwargs:
                 All other arguments are passed on to the storage class
         """
-        store_obj: Optional[StorageBase] = None
+        store_obj: StorageBase | None = None
         if isinstance(storage, StorageBase):
             # storage is of type `StorageBase`
             self._close = False

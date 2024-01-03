@@ -4,6 +4,8 @@ Main module allowing to use the package to wrap existing code
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
+from __future__ import annotations
+
 import sys
 
 from modelrunner import Result, run_script

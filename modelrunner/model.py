@@ -4,6 +4,8 @@ Base class describing a model
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
+from __future__ import annotations
+
 import argparse
 import functools
 import importlib.util
@@ -17,13 +19,9 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
     Literal,
-    Optional,
     Sequence,
-    Type,
     TypeVar,
-    Union,
     get_args,
     get_origin,
 )
@@ -44,15 +42,15 @@ if TYPE_CHECKING:
 class ModelBase(Parameterized, metaclass=ABCMeta):
     """base class for describing models"""
 
-    name: Optional[str] = None
+    name: str | None = None
     """str: the name of the model"""
-    description: Optional[str] = None
+    description: str | None = None
     """str: a longer description of the model"""
 
     def __init__(
         self,
-        parameters: Optional[Dict[str, Any]] = None,
-        output: Optional[str] = None,
+        parameters: dict[str, Any] | None = None,
+        output: str | None = None,
         *,
         mode: ModeType = "insert",
         strict: bool = False,
@@ -79,7 +77,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         super().__init__(parameters, strict=strict)
         self.output = output  # TODO: also allow already opened storages
         self.mode = mode
-        self._storage: Optional[open_storage] = None
+        self._storage: open_storage | None = None
         self._logger = logging.getLogger(self.__class__.__name__)
 
     @property
@@ -101,7 +99,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
     def __call__(self):
         """main method calculating the result. Needs to be specified by sub-class"""
 
-    def get_result(self, data: Any = None) -> "Result":
+    def get_result(self, data: Any = None) -> Result:
         """get the result as a :class:`~model.Result` object
 
         Args:
@@ -119,7 +117,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         info = {"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
         return Result(self, data, info=info)
 
-    def write_result(self, result: Optional["Result"] = None) -> None:
+    def write_result(self, result: Result | None = None) -> None:
         """write the result to the output file
 
         Args:
@@ -143,7 +141,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
             result.to_file(self.output, mode=self.mode)
 
     @classmethod
-    def _prepare_argparser(cls, name: Optional[str] = None) -> argparse.ArgumentParser:
+    def _prepare_argparser(cls, name: str | None = None) -> argparse.ArgumentParser:
         """create argument parser for setting parameters of this model
 
         Args:
@@ -182,8 +180,8 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
 
     @classmethod
     def from_command_line(
-        cls, args: Optional[Sequence[str]] = None, name: Optional[str] = None
-    ) -> "ModelBase":
+        cls, args: Sequence[str] | None = None, name: str | None = None
+    ) -> ModelBase:
         """create model from command line parameters
 
         Args:
@@ -222,8 +220,8 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
 
     @classmethod
     def run_from_command_line(
-        cls, args: Optional[Sequence[str]] = None, name: Optional[str] = None
-    ) -> "Result":
+        cls, args: Sequence[str] | None = None, name: str | None = None
+    ) -> Result:
         """run model using command line parameters
 
         Args:
@@ -254,7 +252,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         return result
 
     @property
-    def _state_attributes(self) -> Dict[str, Any]:
+    def _state_attributes(self) -> dict[str, Any]:
         """dict: information about the element state, which does not change in time"""
         return {
             "class": self.__class__.__name__,
@@ -264,7 +262,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         }
 
 
-_DEFAULT_MODEL: Union[Callable, ModelBase, None] = None
+_DEFAULT_MODEL: Callable | ModelBase | None = None
 """stores the default model that will be used automatically"""
 
 
@@ -309,7 +307,7 @@ def cleared_default_model(func: TFunc) -> TFunc:
     return inner  # type: ignore
 
 
-def make_model_class(func: Callable, *, default: bool = False) -> Type[ModelBase]:
+def make_model_class(func: Callable, *, default: bool = False) -> type[ModelBase]:
     """create a model from a function by interpreting its signature
 
     Args:
@@ -386,8 +384,8 @@ def make_model_class(func: Callable, *, default: bool = False) -> Type[ModelBase
 
 def make_model(
     func: Callable,
-    parameters: Optional[Dict[str, Any]] = None,
-    output: Optional[str] = None,
+    parameters: dict[str, Any] | None = None,
+    output: str | None = None,
     *,
     mode: ModeType = "insert",
     default: bool = False,
@@ -416,8 +414,8 @@ def make_model(
 
 
 def run_function_with_cmd_args(
-    func: Callable, args: Optional[Sequence[str]] = None, *, name: Optional[str] = None
-) -> "Result":
+    func: Callable, args: Sequence[str] | None = None, *, name: str | None = None
+) -> Result:
     """create model from a function and obtain parameters from command line
 
     Args:
@@ -436,7 +434,7 @@ def run_function_with_cmd_args(
 
 
 @cleared_default_model
-def run_script(script_path: str, model_args: Sequence[str]) -> "Result":
+def run_script(script_path: str, model_args: Sequence[str]) -> Result:
     """helper function that runs a model script
 
     The function detects models automatically by trying several methods until one yields
