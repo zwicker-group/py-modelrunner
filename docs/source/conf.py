@@ -226,8 +226,8 @@ napoleon_numpy_docstring = False
 napoleon_include_init_with_doc = False
 napoleon_include_private_with_doc = False
 napoleon_include_special_with_doc = False
-napoleon_use_admonition_for_examples = False
-napoleon_use_admonition_for_notes = False
+napoleon_use_admonition_for_examples = True
+napoleon_use_admonition_for_notes = True
 napoleon_use_admonition_for_references = False
 napoleon_use_ivar = False
 napoleon_use_param = True
@@ -239,13 +239,15 @@ napoleon_custom_sections = None
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    "https://docs.python.org/3/": None,
-    "https://docs.scipy.org/doc/numpy/": None,
-    "https://docs.scipy.org/doc/scipy/reference": None,
-    "https://matplotlib.org": None,
-    "http://docs.h5py.org/en/latest/": None,
-    "https://py-pde.readthedocs.io/en/latest": None,
-    "https://py-droplets.readthedocs.io/en/latest": None,
+    "h5py": ("https://docs.h5py.org/en/latest", None),
+    "matplotlib": ("https://matplotlib.org/stable", None),
+    "napari": ("https://napari.org/", None),
+    "numba": ("https://numba.pydata.org/numba-doc/latest/", None),
+    "numpy": ("https://numpy.org/doc/stable", None),
+    "pde": ("https://py-pde.readthedocs.io/en/latest", None),
+    "python": ("https://docs.python.org/3/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
+    "sympy": ("https://docs.sympy.org/latest/", None),
 }
 
 
@@ -254,6 +256,11 @@ graphviz_output_format = "svg"
 # in sphinx (https://github.com/sphinx-doc/sphinx/issues/3176) which implies wrong links
 # for the graph, which we here corrected manually, but which lead to issues if we also
 # used the inheritance_diagram extension
+
+# create all example files
+from parse_examples import main
+
+main()
 
 # run autodoc
 autodoc_typehints = "description"

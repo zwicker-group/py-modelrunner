@@ -10,6 +10,7 @@ One aim is to allow easy management of inheritance of parameters.
    DeprecatedParameter
    HideParameter
    Parameterized
+   get_all_parameters
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -17,13 +18,14 @@ One aim is to allow easy management of inheritance of parameters.
 from __future__ import annotations
 
 import copy
-import importlib
 import logging
 import warnings
 from dataclasses import dataclass, field
 from typing import Any, Callable, Container, Dict, Iterator, List, Optional, Type, Union
 
 import numpy as np
+
+from .utils import hybridmethod, import_class
 
 
 class NoValueType:
@@ -52,25 +54,6 @@ def auto_type(value):
         return int_val
     else:
         return float_val
-
-
-def import_class(identifier: str):
-    """import a class or module given an identifier
-
-    Args:
-        identifier (str):
-            The identifier can be a module or a class. For instance, calling the
-            function with the string `identifier == 'numpy.linalg.norm'` is
-            roughly equivalent to running `from numpy.linalg import norm` and
-            would return a reference to `norm`.
-    """
-    module_path, _, class_name = identifier.rpartition(".")
-    if module_path:
-        module = importlib.import_module(module_path)
-        return getattr(module, class_name)
-    else:
-        # this happens when identifier does not contain a dot
-        return importlib.import_module(class_name)
 
 
 @dataclass
@@ -175,8 +158,8 @@ class Parameter:
         return self.description.split(". ", 1)[0]
 
     def convert(self, value=NoValue, *, strict: bool = True):
-        """converts a `value` into the correct type for this parameter. If
-        `value` is not given, the default value is converted.
+        """converts a `value` into the correct type for this parameter. If `value` is
+        not given, the default value is converted.
 
         Note that this does not make a copy of the values, which could lead to
         unexpected effects where the default value is changed by an instance.
@@ -293,35 +276,8 @@ class HideParameter:
         pass
 
 
-class hybridmethod:
-    """
-    descriptor that can be used as a decorator to allow calling a method both
-    as a classmethod and an instance method
-
-    Adapted from https://stackoverflow.com/a/28238047
-    """
-
-    def __init__(self, fclass, finstance=None, doc=None):
-        self.fclass = fclass
-        self.finstance = finstance
-        self.__doc__ = doc or fclass.__doc__
-        # support use on abstract base classes
-        self.__isabstractmethod__ = bool(getattr(fclass, "__isabstractmethod__", False))
-
-    def classmethod(self, fclass):
-        return type(self)(fclass, self.finstance, None)
-
-    def instancemethod(self, finstance):
-        return type(self)(self.fclass, finstance, self.__doc__)
-
-    def __get__(self, instance, cls):
-        if instance is None or self.finstance is None:
-            # either bound to the class, or no instance method available
-            return self.fclass.__get__(cls, None)
-        return self.finstance.__get__(instance, cls)
-
-
 ParameterListType = List[Union[Parameter, HideParameter]]
+ParameterInputType = Optional[Dict[str, Any]]
 
 
 class Parameterized:
@@ -334,9 +290,7 @@ class Parameterized:
     _subclasses: Dict[str, Type[Parameterized]] = {}
     """dict: a dictionary of all classes inheriting from `Parameterized`"""
 
-    def __init__(
-        self, parameters: Optional[Dict[str, Any]] = None, *, strict: bool = True
-    ):
+    def __init__(self, parameters: ParameterInputType = None, *, strict: bool = True):
         """initialize the parameters of the object
 
         Args:
@@ -416,13 +370,15 @@ class Parameterized:
         """return a dictionary of parameters that the class supports
 
         Args:
-            include_hidden (bool): Include hidden parameters
-            include_deprecated (bool): Include deprecated parameters
-            sort (bool): Return ordered dictionary with sorted keys
+            include_hidden (bool):
+                Include hidden parameters
+            include_deprecated (bool):
+                Include deprecated parameters
+            sort (bool):
+                Return ordered dictionary with sorted keys
 
         Returns:
-            dict: a dictionary of instance of :class:`Parameter` with their
-            names as keys.
+            dict: a dictionary mapping names to instances of :class:`Parameter`
         """
         # collect the parameters from the class hierarchy
         parameters: Dict[str, Parameter] = {}
@@ -457,7 +413,7 @@ class Parameterized:
     @classmethod
     def _parse_parameters(
         cls,
-        parameters: Optional[Dict[str, Any]] = None,
+        parameters: ParameterInputType = None,
         *,
         check_validity: bool = True,
         allow_hidden: bool = True,
@@ -535,7 +491,7 @@ class Parameterized:
         show_hidden: bool = False,
         show_deprecated: bool = False,
         short_description: bool = False,
-        parameter_values: Optional[Dict[str, Any]] = None,
+        parameter_values: ParameterInputType = None,
         template: Optional[str] = None,
         template_object: Optional[str] = None,
     ) -> Iterator[str]:
@@ -553,8 +509,8 @@ class Parameterized:
             short_description (bool):
                 Whether to show a shortended version of the description
             parameter_values (dict):
-                A dictionary with values to show. Parameters not in this
-                dictionary are shown with their default value.
+                A dictionary with values to show. Parameters not in this dictionary are
+                shown with their default value.
 
         All flags default to `False`.
         """
@@ -597,7 +553,7 @@ class Parameterized:
     @hybridmethod
     def show_parameters(  # @NoSelf
         cls,
-        description: bool = False,  # @NoSelf
+        description: bool = False,
         sort: bool = False,
         show_hidden: bool = False,
         show_deprecated: bool = False,
@@ -627,7 +583,7 @@ class Parameterized:
     @show_parameters.instancemethod  # type: ignore
     def show_parameters(
         self,
-        description: bool = False,  # @NoSelf
+        description: bool = False,
         sort: bool = False,
         show_hidden: bool = False,
         show_deprecated: bool = False,
@@ -645,8 +601,8 @@ class Parameterized:
             show_deprecated (bool):
                 Flag determining whether deprecated parameters are shown
             default_value (bool):
-                Flag determining whether the default values or the current
-                values are shown
+                Flag determining whether the default values or the current values are
+                shown
 
         All flags default to `False`.
         """
@@ -665,9 +621,8 @@ def get_all_parameters(data: str = "name") -> Dict[str, Any]:
 
     Args:
         data (str):
-            Determines what data is returned. Possible values are 'name',
-            'value', or 'description', to return the respective information
-            about the parameters.
+            Determines what data is returned. Possible values are 'name', 'value', or
+            'description', to return the respective information about the parameters.
     """
     result = {}
     for cls_name, cls in Parameterized._subclasses.items():
