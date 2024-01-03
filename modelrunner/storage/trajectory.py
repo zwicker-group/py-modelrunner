@@ -1,5 +1,5 @@
 """
-Classes that describe time-dependences of data, i.e., trajectories.
+Classes that describe time-dependent data, i.e., trajectories.
 
 .. autosummary::
    :nosignatures:
@@ -13,7 +13,7 @@ Classes that describe time-dependences of data, i.e., trajectories.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, Iterator, Literal, Optional, Tuple
+from typing import Any, Iterator, Literal
 
 import numpy as np
 
@@ -56,8 +56,8 @@ class TrajectoryWriter:
         storage,
         loc: Location = "trajectory",
         *,
-        attrs: Optional[Dict[str, Any]] = None,
-        mode: Optional[ModeType] = None,
+        attrs: dict[str, Any] | None = None,
+        mode: ModeType | None = None,
     ):
         """
         Args:
@@ -94,13 +94,13 @@ class TrajectoryWriter:
         # make sure we don't overwrite data
         if "times" in self._trajectory or "data" in self._trajectory:
             if not storage._storage.mode.dynamic_append:
-                raise IOError("Storage already contains data and we cannot append")
+                raise OSError("Storage already contains data and we cannot append")
             self._item_type = self._trajectory.attrs["item_type"]
 
         if attrs is not None:
             self._trajectory.write_attrs(attrs=attrs)
 
-    def append(self, data: Any, time: Optional[float] = None) -> None:
+    def append(self, data: Any, time: float | None = None) -> None:
         """append data to the trajectory
 
         Args:
@@ -114,7 +114,7 @@ class TrajectoryWriter:
             # initialize new trajectory
             if isinstance(data, np.ndarray):
                 dtype = data.dtype
-                shape: Tuple[int, ...] = data.shape
+                shape: tuple[int, ...] = data.shape
                 self._item_type = "array"
             else:
                 dtype = object

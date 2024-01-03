@@ -9,7 +9,7 @@ Requires the optional :mod:`h5py` module.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Collection, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Collection, Sequence
 
 import h5py
 import numpy as np
@@ -28,7 +28,7 @@ class HDFStorage(StorageBase):
 
     def __init__(
         self,
-        file_or_path: Union[str, Path, h5py.File],
+        file_or_path: str | Path | h5py.File,
         *,
         mode: ModeType = "read",
         compression: bool = True,
@@ -46,7 +46,7 @@ class HDFStorage(StorageBase):
         """
         super().__init__(mode=mode)
         self.compression = compression
-        self._dynamic_array_size: Dict[str, int] = {}  # lengths of the dynamic arrays
+        self._dynamic_array_size: dict[str, int] = {}  # lengths of the dynamic arrays
 
         if isinstance(file_or_path, (str, Path)):
             # open HDF storage on file system
@@ -81,7 +81,7 @@ class HDFStorage(StorageBase):
 
     def _get_parent(
         self, loc: Sequence[str], *, create_groups: bool = True
-    ) -> Tuple[h5py.Group, str]:
+    ) -> tuple[h5py.Group, str]:
         """get the parent group for a particular location
 
         Args:
@@ -122,7 +122,7 @@ class HDFStorage(StorageBase):
             parent, name = self._get_parent(loc)
             return parent[name]
 
-    def keys(self, loc: Optional[Sequence[str]] = None) -> Collection[str]:
+    def keys(self, loc: Sequence[str] | None = None) -> Collection[str]:
         if loc:
             return self[loc].keys()  # type: ignore
         else:
@@ -142,7 +142,7 @@ class HDFStorage(StorageBase):
         self[loc].attrs[name] = value
 
     def _read_array(
-        self, loc: Sequence[str], *, copy: bool, index: Optional[int] = None
+        self, loc: Sequence[str], *, copy: bool, index: int | None = None
     ) -> np.ndarray:
         if index is None:
             arr_like = self[loc]
@@ -194,7 +194,7 @@ class HDFStorage(StorageBase):
     def _create_dynamic_array(
         self,
         loc: Sequence[str],
-        shape: Tuple[int, ...],
+        shape: tuple[int, ...],
         *,
         dtype: DTypeLike,
         record_array: bool = False,

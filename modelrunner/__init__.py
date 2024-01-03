@@ -2,7 +2,6 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-
 # determine the package version
 try:
     # try reading version of the automatically generated module

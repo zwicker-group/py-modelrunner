@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Collection, Iterator, List, Optional, Tuple, Type, Union
+from typing import Any, Collection, Iterator
 
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
@@ -20,7 +20,7 @@ from .utils import Array, Location, decode_class, encode_class, storage_actions
 class StorageGroup:
     """refers to a group within a storage"""
 
-    def __init__(self, storage: Union[StorageBase, StorageGroup], loc: Location = None):
+    def __init__(self, storage: StorageBase | StorageGroup, loc: Location = None):
         """
         Args:
             storage (:class:`StorageBase` or :class:`StorageGroup`):
@@ -49,7 +49,7 @@ class StorageGroup:
     def __repr__(self):
         return f'StorageGroup(storage={self._storage}, loc="/{"/".join(self.loc)}")'
 
-    def _get_loc(self, loc: Location) -> List[str]:
+    def _get_loc(self, loc: Location) -> list[str]:
         """return a normalized location from various input
 
         Args:
@@ -62,7 +62,7 @@ class StorageGroup:
         """
 
         # TODO: use regex to check whether loc is only alphanumerical and has no "/"
-        def parse_loc(loc_data) -> List[str]:
+        def parse_loc(loc_data) -> list[str]:
             if loc_data is None or loc_data == "":
                 return []
             elif isinstance(loc_data, str):
@@ -98,7 +98,7 @@ class StorageGroup:
         """check wether a particular item is contained in this group"""
         return self._get_loc(loc) in self._storage
 
-    def items(self) -> Iterator[Tuple[str, Any]]:
+    def items(self) -> Iterator[tuple[str, Any]]:
         """iterate over stored items, yielding the location and item of each"""
         for loc in self.keys():
             yield loc, self[loc]
@@ -115,7 +115,7 @@ class StorageGroup:
         """
         return self._storage.read_attrs(self._get_loc(loc))
 
-    def write_attrs(self, loc: Location = None, attrs: Optional[Attrs] = None) -> None:
+    def write_attrs(self, loc: Location = None, attrs: Attrs | None = None) -> None:
         """write attributes to a particular location
 
         Args:
@@ -131,7 +131,7 @@ class StorageGroup:
         """dict: the attributes associated with this group"""
         return self.read_attrs()
 
-    def get_class(self, loc: Location = None) -> Optional[Type]:
+    def get_class(self, loc: Location = None) -> type | None:
         """get the class associated with a particular location
 
         Class information can be written using the `cls` attribute of `write_array`,
@@ -184,7 +184,7 @@ class StorageGroup:
         loc: Location,
         item: Any,
         *,
-        attrs: Optional[Attrs] = None,
+        attrs: Attrs | None = None,
         use_class: bool = True,
     ) -> None:
         """write an item to a particular location
@@ -252,8 +252,8 @@ class StorageGroup:
         self,
         loc: Location,
         *,
-        attrs: Optional[Attrs] = None,
-        cls: Optional[Type] = None,
+        attrs: Attrs | None = None,
+        cls: type | None = None,
     ) -> StorageGroup:
         """create a new group at a particular location
 
@@ -275,8 +275,8 @@ class StorageGroup:
         self,
         loc: Location,
         *,
-        out: Optional[np.ndarray] = None,
-        index: Optional[int] = None,
+        out: np.ndarray | None = None,
+        index: int | None = None,
     ) -> np.ndarray:
         """read an array from a particular location
 
@@ -300,8 +300,8 @@ class StorageGroup:
         loc: Location,
         arr: np.ndarray,
         *,
-        attrs: Optional[Attrs] = None,
-        cls: Optional[Type] = None,
+        attrs: Attrs | None = None,
+        cls: type | None = None,
     ):
         """write an array to a particular location
 
@@ -322,12 +322,12 @@ class StorageGroup:
         self,
         loc: Location,
         *,
-        arr: Optional[np.ndarray] = None,
-        shape: Optional[Tuple[int, ...]] = None,
+        arr: np.ndarray | None = None,
+        shape: tuple[int, ...] | None = None,
         dtype: DTypeLike = float,
         record_array: bool = False,
-        attrs: Optional[Attrs] = None,
-        cls: Optional[Type] = None,
+        attrs: Attrs | None = None,
+        cls: type | None = None,
     ):
         """creates a dynamic array of flexible size
 
@@ -392,8 +392,8 @@ class StorageGroup:
         loc: Location,
         obj: Any,
         *,
-        attrs: Optional[Attrs] = None,
-        cls: Optional[Type] = None,
+        attrs: Attrs | None = None,
+        cls: type | None = None,
     ):
         """write an object to a particular location
 

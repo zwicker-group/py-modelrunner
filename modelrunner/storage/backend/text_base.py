@@ -8,7 +8,7 @@ import io
 from abc import ABCMeta, abstractmethod
 from io import StringIO
 from pathlib import Path
-from typing import Any, Optional, Sequence, Tuple, Union
+from typing import Any, Sequence
 
 import numpy as np
 from numpy.lib.recfunctions import (
@@ -31,7 +31,7 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
 
     def __init__(
         self,
-        path: Union[str, Path],
+        path: str | Path,
         *,
         mode: ModeType = "read",
         simplify: bool = True,
@@ -58,7 +58,7 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
                 if self.mode.file_mode == "x":
                     raise FileExistsError(f"File `{path}` already exists")
                 # read content from file
-                with open(self._path, mode="r") as fp:
+                with open(self._path) as fp:
                     data = self._read_data_from_fp(fp)
                 # interprete empty files correctly
                 self._data = {} if data is None else data
@@ -86,7 +86,7 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
         """close the file and write the data to the file"""
         self.flush()
 
-    def to_text(self, simplify: Optional[bool] = None) -> str:
+    def to_text(self, simplify: bool | None = None) -> str:
         """serialize the data and return it as a string
 
         Args:
@@ -124,7 +124,7 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
         self._modified = True
 
     def _read_array(
-        self, loc: Sequence[str], *, copy: bool, index: Optional[int] = None
+        self, loc: Sequence[str], *, copy: bool, index: int | None = None
     ) -> np.ndarray:
         # read the data from the location
         if index is None:
@@ -165,7 +165,7 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
     def _create_dynamic_array(
         self,
         loc: Sequence[str],
-        shape: Tuple[int, ...],
+        shape: tuple[int, ...],
         dtype: DTypeLike,
         *,
         record_array: bool = False,

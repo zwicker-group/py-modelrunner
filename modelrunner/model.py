@@ -464,7 +464,7 @@ def run_script(script_path: str, model_args: Sequence[str]) -> "Result":
     filename = os.path.basename(script_path)
     spec = importlib.util.spec_from_file_location("model_code", script_path)
     if spec is None:
-        raise IOError(f"Could not find job script `{script_path}`")
+        raise OSError(f"Could not find job script `{script_path}`")
     model_code = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(model_code)  # type: ignore
 

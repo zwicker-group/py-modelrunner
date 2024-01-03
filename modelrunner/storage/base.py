@@ -25,17 +25,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABCMeta, abstractmethod
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Collection,
-    List,
-    Literal,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-)
+from typing import TYPE_CHECKING, Any, Collection, Literal, Sequence
 
 import numcodecs
 import numpy as np
@@ -52,7 +42,7 @@ if TYPE_CHECKING:
 class StorageBase(metaclass=ABCMeta):
     """base class for storing data"""
 
-    extensions: List[str] = []
+    extensions: list[str] = []
     """list of str: all file extensions supported by this storage"""
     default_codec = numcodecs.Pickle()
     """:class:`numcodecs.Codec`: the default codec used for encoding binary data"""
@@ -143,9 +133,9 @@ class StorageBase(metaclass=ABCMeta):
         self,
         loc: Sequence[str],
         *,
-        attrs: Optional[Attrs] = None,
-        cls: Optional[Type] = None,
-    ) -> "StorageGroup":
+        attrs: Attrs | None = None,
+        cls: type | None = None,
+    ) -> StorageGroup:
         """create a new group at a particular location
 
         Args:
@@ -238,7 +228,7 @@ class StorageBase(metaclass=ABCMeta):
                 Value of the attribute
         """
 
-    def write_attrs(self, loc: Sequence[str], attrs: Optional[Attrs]) -> None:
+    def write_attrs(self, loc: Sequence[str], attrs: Attrs | None) -> None:
         """write attributes to a particular location
 
         Args:
@@ -265,10 +255,10 @@ class StorageBase(metaclass=ABCMeta):
     def _write_item_attrs(
         self,
         loc: Sequence[str],
-        attrs: Optional[Attrs],
+        attrs: Attrs | None,
         *,
-        item_type: Optional[Literal["array", "dynamic_array", "object"]] = None,
-        cls: Optional[Type] = None,
+        item_type: Literal["array", "dynamic_array", "object"] | None = None,
+        cls: type | None = None,
     ) -> None:
         """write attributes to a particular location
 
@@ -319,7 +309,7 @@ class StorageBase(metaclass=ABCMeta):
         loc: Sequence[str],
         *,
         copy: bool,
-        index: Optional[int] = None,
+        index: int | None = None,
     ) -> np.ndarray:
         """read an array from a particular location
 
@@ -342,8 +332,8 @@ class StorageBase(metaclass=ABCMeta):
         self,
         loc: Sequence[str],
         *,
-        out: Optional[np.ndarray] = None,
-        index: Optional[int] = None,
+        out: np.ndarray | None = None,
+        index: int | None = None,
     ) -> np.ndarray:
         """read an array from a particular location
 
@@ -376,8 +366,8 @@ class StorageBase(metaclass=ABCMeta):
         loc: Sequence[str],
         arr: np.ndarray,
         *,
-        attrs: Optional[Attrs] = None,
-        cls: Optional[Type] = None,
+        attrs: Attrs | None = None,
+        cls: type | None = None,
     ) -> None:
         """write an array to a particular location
 
@@ -400,7 +390,7 @@ class StorageBase(metaclass=ABCMeta):
     def _create_dynamic_array(
         self,
         loc: Sequence[str],
-        shape: Tuple[int, ...],
+        shape: tuple[int, ...],
         *,
         dtype: DTypeLike,
         record_array: bool = False,
@@ -410,12 +400,12 @@ class StorageBase(metaclass=ABCMeta):
     def create_dynamic_array(
         self,
         loc: Sequence[str],
-        shape: Tuple[int, ...],
+        shape: tuple[int, ...],
         *,
         dtype: DTypeLike = float,
         record_array: bool = False,
-        attrs: Optional[Attrs] = None,
-        cls: Optional[Type] = None,
+        attrs: Attrs | None = None,
+        cls: type | None = None,
     ) -> None:
         """creates a dynamic array of flexible size
 
@@ -485,8 +475,8 @@ class StorageBase(metaclass=ABCMeta):
         loc: Sequence[str],
         obj: Any,
         *,
-        attrs: Optional[Attrs] = None,
-        cls: Optional[Type] = None,
+        attrs: Attrs | None = None,
+        cls: type | None = None,
     ) -> None:
         """write an object to a particular location
 
