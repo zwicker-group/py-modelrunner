@@ -10,7 +10,7 @@ import json
 import warnings
 from abc import ABCMeta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Optional, Type, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
 import numpy as np
 
@@ -55,10 +55,10 @@ class StateBase(metaclass=ABCMeta):
     _state_format_version = 2
     """int: number indicating the version of the file format"""
 
-    _state_classes: Dict[str, Type[StateBase]] = {}
+    _state_classes: dict[str, type[StateBase]] = {}
     """dict: class-level list of all subclasses of StateBase"""
 
-    def _state_init(self, attributes: Dict[str, Any], data=NoData) -> None:
+    def _state_init(self, attributes: dict[str, Any], data=NoData) -> None:
         """initialize the state with attributes and (optionally) data
 
         Args:
@@ -71,7 +71,7 @@ class StateBase(metaclass=ABCMeta):
             self._state_attributes = attributes
 
     @classmethod
-    def from_data(cls: Type[TState], attributes: Dict[str, Any], data=NoData) -> TState:
+    def from_data(cls: type[TState], attributes: dict[str, Any], data=NoData) -> TState:
         """create instance of any state class from attributes and data
 
         Args:
@@ -97,7 +97,7 @@ class StateBase(metaclass=ABCMeta):
         return obj
 
     @classmethod
-    def _from_simple_objects(cls, content: Dict[str, Any]) -> StateBase:
+    def _from_simple_objects(cls, content: dict[str, Any]) -> StateBase:
         """create state from text data
 
         Args:
@@ -115,7 +115,7 @@ class StateBase(metaclass=ABCMeta):
             return ArrayCollectionState.from_data(content["attributes"], col_data)
 
         elif cls_name == "DictState":
-            dict_data: Dict[str, StateBase] = {}
+            dict_data: dict[str, StateBase] = {}
             for label, substate in content["data"].items():
                 dict_data[label] = cls._from_simple_objects(substate)
 
@@ -128,7 +128,7 @@ class StateBase(metaclass=ABCMeta):
             raise TypeError(f"Do not know how to load `{cls_name}`")
 
     @classmethod
-    def _from_zarr(cls, zarr_element: "zarrElement", *, index=...) -> StateBase:
+    def _from_zarr(cls, zarr_element: zarrElement, *, index=...) -> StateBase:
         """create instance of correct subclass from data stored in zarr"""
         # determine the class that knows how to read this data
         cls_name = zarr_element.attrs["__class__"]
@@ -180,7 +180,7 @@ class ObjectState(StateBase):
 
 
 def _Result_from_simple_objects(
-    content: Dict[str, Any], model: Optional[ModelBase] = None
+    content: dict[str, Any], model: ModelBase | None = None
 ) -> Result:
     """read result from simple object (like loaded from a JSON file) using version 1
 
@@ -202,7 +202,7 @@ def _Result_from_simple_objects(
 
 
 def _Result_from_zarr(
-    zarr_element: "zarrElement", *, index=..., model: Optional[ModelBase] = None
+    zarr_element: zarrElement, *, index=..., model: ModelBase | None = None
 ) -> Result:
     """create result from data stored in zarr"""
     attributes = {key: json.loads(value) for key, value in zarr_element.attrs.items()}
@@ -236,14 +236,14 @@ def result_from_file_v1(store: Path, *, label: str = "data", **kwargs) -> Result
     """
     fmt = guess_format(store)
     if fmt == "json":
-        with open(store, mode="r") as fp:
+        with open(store) as fp:
             content = json.load(fp)
         return _Result_from_simple_objects(content, **kwargs)
 
     elif fmt == "yaml":
         import yaml
 
-        with open(store, mode="r") as fp:
+        with open(store) as fp:
             content = yaml.safe_load(fp)
         return _Result_from_simple_objects(content, **kwargs)
 

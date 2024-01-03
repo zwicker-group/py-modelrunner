@@ -1,11 +1,12 @@
 """
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
+
 from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass
-from typing import ClassVar, Dict, Literal, Union
+from typing import ClassVar, Literal, Union
 
 FileMode = Literal[
     "r",  # open as readable
@@ -29,7 +30,7 @@ class AccessMode:
     dynamic_append: bool = False  # allow appending to dynamic arrays
 
     _defined: ClassVar[
-        Dict[str, AccessMode]
+        dict[str, AccessMode]
     ] = {}  # dictionary of all defined access modes
 
     def __repr__(self):
@@ -42,7 +43,7 @@ class AccessMode:
         self._defined[self.name] = self
 
     @classmethod
-    def parse(cls, obj_or_name: Union[str, AccessMode]) -> AccessMode:
+    def parse(cls, obj_or_name: str | AccessMode) -> AccessMode:
         """gets access mode from various formats
 
         Args:

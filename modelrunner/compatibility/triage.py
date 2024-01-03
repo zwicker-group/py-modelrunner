@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Mapping, Union
 
 from ..model import ModelBase
 from ..results import Result
@@ -42,7 +42,7 @@ def guess_format(path: Path) -> str:
         return "zarr"  # fallback to the default storage method based on zarr
 
 
-def normalize_zarr_store(store: Store, mode: str = "a") -> Optional[Store]:
+def normalize_zarr_store(store: Store, mode: str = "a") -> Store | None:
     """determine best file format for zarr storage
 
     In particular, we use a :class:`~zarr.storage.ZipStore` when a path looking like a
@@ -70,7 +70,7 @@ def normalize_zarr_store(store: Store, mode: str = "a") -> Optional[Store]:
     return store
 
 
-def _find_version(data: Mapping[str, Any], label: str) -> Optional[int]:
+def _find_version(data: Mapping[str, Any], label: str) -> int | None:
     """try finding version information in different places in `data`
 
     Args:
@@ -83,7 +83,7 @@ def _find_version(data: Mapping[str, Any], label: str) -> Optional[int]:
         int: The format version or None if it could not be found
     """
 
-    def read_version(item) -> Optional[str]:
+    def read_version(item) -> str | None:
         """try reading attribute from a particular item"""
         if hasattr(item, "attrs"):
             return read_version(item.attrs)
@@ -111,8 +111,8 @@ def _find_version(data: Mapping[str, Any], label: str) -> Optional[int]:
 
 
 def result_check_load_old_version(
-    path: Path, loc: str, *, model: Optional[ModelBase] = None
-) -> Optional[Result]:
+    path: Path, loc: str, *, model: ModelBase | None = None
+) -> Result | None:
     """check whether the resource can be loaded with an older version of the package
 
     Args:
@@ -132,13 +132,13 @@ def result_check_load_old_version(
     # check for compatibility
     fmt = guess_format(path)
     if fmt == "json":
-        with open(path, mode="r") as fp:
+        with open(path) as fp:
             format_version = _find_version(json.load(fp), label)
 
     elif fmt == "yaml":
         import yaml
 
-        with open(path, mode="r") as fp:
+        with open(path) as fp:
             format_version = _find_version(yaml.safe_load(fp), label)
 
     elif fmt == "hdf":

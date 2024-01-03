@@ -11,18 +11,7 @@ import inspect
 import pickle
 from collections import defaultdict
 from importlib import import_module
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Literal,
-    Optional,
-    Sequence,
-    Type,
-    Union,
-    overload,
-)
+from typing import TYPE_CHECKING, Any, Callable, Literal, Sequence, Union, overload
 
 import numpy as np
 
@@ -45,7 +34,7 @@ def encode_binary(obj: Any, *, binary: Literal[False]) -> str:
     ...
 
 
-def encode_binary(obj: Any, *, binary: bool = False) -> Union[str, bytes]:
+def encode_binary(obj: Any, *, binary: bool = False) -> str | bytes:
     """encodes an arbitrary object as a string
 
     The object can be decoded using :func:`decode_binary`.
@@ -66,7 +55,7 @@ def encode_binary(obj: Any, *, binary: bool = False) -> Union[str, bytes]:
         return codecs.encode(obj_bin, "base64").decode()
 
 
-def decode_binary(obj_str: Union[str, bytes]) -> Any:
+def decode_binary(obj_str: str | bytes) -> Any:
     """decode an object encoded with :func:`encode_binary`.
 
     Args:
@@ -81,7 +70,7 @@ def decode_binary(obj_str: Union[str, bytes]) -> Any:
     return pickle.loads(obj_str)
 
 
-def encode_class(cls: Type) -> str:
+def encode_class(cls: type) -> str:
     """encode a class such that it can be restored
 
     The class can be decoded using :func:`decode_class`.
@@ -98,9 +87,7 @@ def encode_class(cls: Type) -> str:
     return cls.__module__ + "." + cls.__qualname__
 
 
-def decode_class(
-    class_path: Optional[str], *, guess: Optional[Type] = None
-) -> Optional[Type]:
+def decode_class(class_path: str | None, *, guess: type | None = None) -> type | None:
     """decode a class encoded with :func:`encode_class`.
 
     Args:
@@ -146,7 +133,7 @@ def decode_class(
 class Array(np.ndarray):
     """Numpy array augmented with attributes"""
 
-    def __new__(cls, input_array, attrs: Optional["Attrs"] = None):
+    def __new__(cls, input_array, attrs: Attrs | None = None):
         obj = np.asarray(input_array).view(cls)
         obj.attrs = {} if attrs is None else attrs
         return obj
@@ -169,13 +156,13 @@ class _StorageRegistry:
     allowed_actions = set(ActionType.__args__)  # type: ignore
     """set: all actions that can be registered"""
 
-    _hooks: Dict[Type, Dict[str, Callable]]
+    _hooks: dict[type, dict[str, Callable]]
     """dict: register for all defined hooks"""
 
     def __init__(self):
         self._hooks = defaultdict(dict)
 
-    def register(self, action: ActionType, cls: Type, method_or_func: Callable) -> None:
+    def register(self, action: ActionType, cls: type, method_or_func: Callable) -> None:
         """register an action for the given class
 
         Example:
@@ -208,7 +195,7 @@ class _StorageRegistry:
         else:
             raise TypeError("`method_or_func` must be method or function")
 
-    def get(self, cls: Type, action: ActionType) -> Callable:
+    def get(self, cls: type, action: ActionType) -> Callable:
         """obtain an action for a given class
 
         Args:

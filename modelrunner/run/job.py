@@ -4,6 +4,8 @@ Provides functions for submitting models as jobs
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
+from __future__ import annotations
+
 import errno
 import itertools
 import json
@@ -14,7 +16,7 @@ import subprocess as sp
 import sys
 import warnings
 from pathlib import Path
-from typing import Any, Dict, Iterable, Literal, Optional, Tuple, Union
+from typing import Any, Iterable, Literal
 
 from tqdm.auto import tqdm
 
@@ -61,7 +63,7 @@ DEFAULT_CONFIG = [
 
 
 def get_config(
-    config: Union[str, Dict[str, Any], None] = None, *, load_user_config: bool = True
+    config: str | dict[str, Any] | None = None, *, load_user_config: bool = True
 ) -> Config:
     """create the job configuration
 
@@ -89,9 +91,7 @@ def get_config(
     return c
 
 
-def get_job_name(
-    base: str, args: Optional[Dict[str, Any]] = None, length: int = 7
-) -> str:
+def get_job_name(base: str, args: dict[str, Any] | None = None, length: int = 7) -> str:
     """create a suitable job name
 
     Args:
@@ -124,19 +124,19 @@ OverwriteStrategyType = Literal[
 
 
 def submit_job(
-    script: Union[str, Path],
-    output: Union[str, Path, None] = None,
+    script: str | Path,
+    output: str | Path | None = None,
     name: str = "job",
-    parameters: Union[str, Dict[str, Any], None] = None,
-    config: Union[str, Dict[str, Any], None] = None,
+    parameters: str | dict[str, Any] | None = None,
+    config: str | dict[str, Any] | None = None,
     *,
-    log_folder: Union[str, Path] = "logs",
+    log_folder: str | Path = "logs",
     method: str = "auto",
     use_modelrunner: bool = True,
-    template: Union[str, Path, None] = None,
+    template: str | Path | None = None,
     overwrite_strategy: OverwriteStrategyType = "error",
     **kwargs,
-) -> Tuple[str, str]:
+) -> tuple[str, str]:
     """submit a script to the cluster queue
 
     Args:
@@ -195,12 +195,12 @@ def submit_job(
     else:
         template_path = Path(template)
     logger.info("Load template `%s`", template_path)
-    with open(template_path, "r") as fp:
+    with open(template_path) as fp:
         script_template = fp.read()
 
     # prepare submission script
     ensure_directory_exists(log_folder)
-    script_args: Dict[str, Any] = {
+    script_args: dict[str, Any] = {
         "PACKAGE_PATH": Path(__file__).parents[2],
         "LOG_FOLDER": log_folder,
         "JOB_NAME": name,
@@ -296,14 +296,14 @@ def submit_job(
 
 
 def submit_jobs(
-    script: Union[str, Path],
-    output_folder: Union[str, Path],
+    script: str | Path,
+    output_folder: str | Path,
     name_base: str = "job",
-    parameters: Union[str, Dict[str, Any], None] = None,
-    config: Union[str, Dict[str, Any], None] = None,
+    parameters: str | dict[str, Any] | None = None,
+    config: str | dict[str, Any] | None = None,
     *,
     output_format: str = "hdf",
-    list_params: Optional[Iterable[str]] = None,
+    list_params: Iterable[str] | None = None,
     **kwargs,
 ) -> int:
     """submit many jobs of the same script with different parameters to the cluster

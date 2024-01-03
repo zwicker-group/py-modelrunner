@@ -21,7 +21,7 @@ import copy
 import logging
 import warnings
 from dataclasses import dataclass, field
-from typing import Any, Callable, Container, Dict, Iterator, List, Optional, Type, Union
+from typing import Any, Callable, Container, Dict, Iterator, List, Optional, Union
 
 import numpy as np
 
@@ -85,12 +85,12 @@ class Parameter:
 
     name: str
     default_value: Any = None
-    cls: Union[Type, Callable] = object
+    cls: type | Callable = object
     description: str = ""
-    choices: Optional[Container] = None
+    choices: Container | None = None
     required: bool = False
     hidden: bool = False
-    extra: Dict[str, Any] = field(default_factory=dict)
+    extra: dict[str, Any] = field(default_factory=dict)
 
     def _check_value(self, value) -> None:
         """checks whether the value is acceptable"""
@@ -287,7 +287,7 @@ class Parameterized:
     """list: parameters (with default values) of this subclass"""
     _parameters_default_full: ParameterListType = []
     """list: all parameters (including those of parent classes)"""
-    _subclasses: Dict[str, Type[Parameterized]] = {}
+    _subclasses: dict[str, type[Parameterized]] = {}
     """dict: a dictionary of all classes inheriting from `Parameterized`"""
 
     def __init__(self, parameters: ParameterInputType = None, *, strict: bool = True):
@@ -326,7 +326,7 @@ class Parameterized:
             ]
 
         # combine parameters with those of the parent class
-        parameters_default: Dict[str, Parameter] = {}
+        parameters_default: dict[str, Parameter] = {}
         for p in cls._parameters_default_full + cls.parameters_default:
             if isinstance(p, HideParameter):
                 if p.name in parameters_default:
@@ -366,7 +366,7 @@ class Parameterized:
         include_hidden: bool = False,
         include_deprecated: bool = False,
         sort: bool = True,
-    ) -> Dict[str, Parameter]:
+    ) -> dict[str, Parameter]:
         """return a dictionary of parameters that the class supports
 
         Args:
@@ -381,7 +381,7 @@ class Parameterized:
             dict: a dictionary mapping names to instances of :class:`Parameter`
         """
         # collect the parameters from the class hierarchy
-        parameters: Dict[str, Parameter] = {}
+        parameters: dict[str, Parameter] = {}
         for p in cls._parameters_default_full:
             if isinstance(p, HideParameter):
                 if include_hidden:
@@ -418,7 +418,7 @@ class Parameterized:
         check_validity: bool = True,
         allow_hidden: bool = True,
         include_deprecated: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """parse parameters from a given dictionary
 
         Args:
@@ -447,7 +447,7 @@ class Parameterized:
         )
 
         # initialize parameters with default ones from all parent classes
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
         for name, param_obj in param_objs.items():
             if not allow_hidden and param_obj.hidden:
                 continue  # skip hidden parameters
@@ -492,8 +492,8 @@ class Parameterized:
         show_deprecated: bool = False,
         short_description: bool = False,
         parameter_values: ParameterInputType = None,
-        template: Optional[str] = None,
-        template_object: Optional[str] = None,
+        template: str | None = None,
+        template_object: str | None = None,
     ) -> Iterator[str]:
         """private method showing all parameters in human readable format
 
@@ -616,7 +616,7 @@ class Parameterized:
             print(line)
 
 
-def get_all_parameters(data: str = "name") -> Dict[str, Any]:
+def get_all_parameters(data: str = "name") -> dict[str, Any]:
     """get a dictionary with all parameters of all registered classes
 
     Args:

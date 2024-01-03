@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping
 
 import numpy as np
 
@@ -32,7 +32,7 @@ def read_hdf_data(node):
 
 
 def _Result_from_simple_objects(
-    content: Mapping[str, Any], model: Optional[ModelBase] = None
+    content: Mapping[str, Any], model: ModelBase | None = None
 ) -> Result:
     """read result from simple object (like loaded from a JSON file) using version 0
 
@@ -54,7 +54,7 @@ def _Result_from_simple_objects(
     )
 
 
-def _Result_from_hdf(hdf_element, model: Optional[ModelBase] = None) -> Result:
+def _Result_from_hdf(hdf_element, model: ModelBase | None = None) -> Result:
     """old reader for backward compatible reading"""
     model_data = {key: json.loads(value) for key, value in hdf_element.attrs.items()}
     if "result" in hdf_element:
@@ -80,14 +80,14 @@ def result_from_file_v0(path: Path, **kwargs) -> Result:
     """
     fmt = guess_format(path)
     if fmt == "json":
-        with open(path, mode="r") as fp:
+        with open(path) as fp:
             content = json.load(fp)
         return _Result_from_simple_objects(content, **kwargs)
 
     elif fmt == "yaml":
         import yaml
 
-        with open(path, mode="r") as fp:
+        with open(path) as fp:
             content = yaml.safe_load(fp)
         return _Result_from_simple_objects(content, **kwargs)
 

@@ -12,7 +12,7 @@ import itertools
 import logging
 import warnings
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Iterator, List
 
 import numpy as np
 from tqdm.auto import tqdm
@@ -26,7 +26,7 @@ from .storage.attributes import Attrs
 class MockModel(ModelBase):
     """helper class to store parameter values when the original model is not present"""
 
-    def __init__(self, parameters: Optional[Dict[str, Any]] = None):
+    def __init__(self, parameters: dict[str, Any] | None = None):
         """
         Args:
             parameters (dict): A dictionary of parameters
@@ -47,7 +47,7 @@ class Result:
     """int: number indicating the version of the file format"""
 
     def __init__(
-        self, model: ModelBase, result: Any, info: Optional[Dict[str, Any]] = None
+        self, model: ModelBase, result: Any, info: dict[str, Any] | None = None
     ):
         """
         Args:
@@ -72,10 +72,10 @@ class Result:
     @classmethod
     def from_data(
         cls,
-        model_data: Dict[str, Any],
+        model_data: dict[str, Any],
         result,
-        model: Optional[ModelBase] = None,
-        info: Optional[Dict[str, Any]] = None,
+        model: ModelBase | None = None,
+        info: dict[str, Any] | None = None,
     ) -> Result:
         """create result from data
 
@@ -93,7 +93,7 @@ class Result:
             :class:`Result`: The result object
         """
         if model is None:
-            model_cls: Type[ModelBase] = MockModel
+            model_cls: type[ModelBase] = MockModel
         else:
             model_cls = model if inspect.isclass(model) else model.__class__
 
@@ -106,7 +106,7 @@ class Result:
         return cls(model, result, info)
 
     @property
-    def parameters(self) -> Dict[str, Any]:
+    def parameters(self) -> dict[str, Any]:
         return self.model.parameters
 
     @classmethod
@@ -115,7 +115,7 @@ class Result:
         storage: StorageID,
         loc: str = "result",
         *,
-        model: Optional[ModelBase] = None,
+        model: ModelBase | None = None,
     ):
         """load object from a file
 
@@ -189,9 +189,9 @@ class ResultCollection(List[Result]):
     @classmethod
     def from_folder(
         cls,
-        folder: Union[str, Path],
+        folder: str | Path,
         pattern: str = "*.*",
-        model: Optional[ModelBase] = None,
+        model: ModelBase | None = None,
         *,
         strict: bool = False,
         progress: bool = False,
@@ -265,7 +265,7 @@ class ResultCollection(List[Result]):
         )
 
     @property
-    def parameters(self) -> Dict[str, Set[Any]]:
+    def parameters(self) -> dict[str, set[Any]]:
         """dict: the parameter values in this result collection
 
         Note that parameters that are lists in the individual models are turned into
@@ -281,7 +281,7 @@ class ResultCollection(List[Result]):
         return dict(params)
 
     @property
-    def constant_parameters(self) -> Dict[str, Any]:
+    def constant_parameters(self) -> dict[str, Any]:
         """dict: the parameters that are constant in this result collection"""
         return {
             k: next(iter(v))  # get the single item from the set
@@ -290,7 +290,7 @@ class ResultCollection(List[Result]):
         }
 
     @property
-    def varying_parameters(self) -> Dict[str, List[Any]]:
+    def varying_parameters(self) -> dict[str, list[Any]]:
         """dict: the parameters that vary in this result collection"""
         return {k: sorted(v) for k, v in self.parameters.items() if len(v) > 1}
 
@@ -329,7 +329,7 @@ class ResultCollection(List[Result]):
             if all(item.parameters[k] == v for k, v in kwargs.items())
         )
 
-    def groupby(self, *args) -> Iterator[Tuple[Dict[str, List[Any]], ResultCollection]]:
+    def groupby(self, *args) -> Iterator[tuple[dict[str, list[Any]], ResultCollection]]:
         r"""group results according to the given variables
 
         Args:

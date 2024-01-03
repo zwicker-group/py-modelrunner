@@ -7,7 +7,7 @@ Defines a class storing data in memory.
 from __future__ import annotations
 
 import copy
-from typing import Any, Collection, Dict, Optional, Sequence, Tuple
+from typing import Any, Collection, Sequence
 
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
@@ -20,7 +20,7 @@ from ..base import StorageBase
 class MemoryStorage(StorageBase):
     """store items in memory"""
 
-    _data: Dict[str, Any]
+    _data: dict[str, Any]
 
     def __init__(self, *, mode: ModeType = "insert"):
         """
@@ -43,7 +43,7 @@ class MemoryStorage(StorageBase):
 
     def _get_parent(
         self, loc: Sequence[str], *, check_write: bool = False
-    ) -> Tuple[Dict, str]:
+    ) -> tuple[dict, str]:
         """get the parent group for a particular location
 
         Args:
@@ -116,7 +116,7 @@ class MemoryStorage(StorageBase):
             item["__attrs__"][name] = value
 
     def _read_array(
-        self, loc: Sequence[str], *, copy: bool, index: Optional[int] = None
+        self, loc: Sequence[str], *, copy: bool, index: int | None = None
     ) -> np.ndarray:
         # read the data from the location
         if index is None:
@@ -132,7 +132,7 @@ class MemoryStorage(StorageBase):
     def _create_dynamic_array(
         self,
         loc: Sequence[str],
-        shape: Tuple[int, ...],
+        shape: tuple[int, ...],
         dtype: DTypeLike,
         *,
         record_array: bool = False,

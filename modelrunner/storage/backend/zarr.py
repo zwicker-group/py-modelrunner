@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
-from typing import Any, Collection, Optional, Sequence, Tuple, Union
+from typing import Any, Collection, Sequence, Union
 
 import numpy as np
 import zarr
@@ -29,9 +29,7 @@ class ZarrStorage(StorageBase):
 
     extensions = ["zarr", "zip", "sqldb", "lmdb"]
 
-    def __init__(
-        self, store_or_path: Union[str, Path, Store], *, mode: ModeType = "read"
-    ):
+    def __init__(self, store_or_path: str | Path | Store, *, mode: ModeType = "read"):
         """
         Args:
             store_or_path (str or :class:`~pathlib.Path` or :class:`~zarr._storage.store.Store`):
@@ -99,7 +97,7 @@ class ZarrStorage(StorageBase):
             self._store.close()
         self._root = None
 
-    def _get_parent(self, loc: Sequence[str]) -> Tuple[zarr.Group, str]:
+    def _get_parent(self, loc: Sequence[str]) -> tuple[zarr.Group, str]:
         """get the parent group for a particular location
 
         Args:
@@ -131,7 +129,7 @@ class ZarrStorage(StorageBase):
             parent, name = self._get_parent(loc)
             return parent[name]
 
-    def keys(self, loc: Optional[Sequence[str]] = None) -> Collection[str]:
+    def keys(self, loc: Sequence[str] | None = None) -> Collection[str]:
         if loc:
             return self[loc].keys()  # type: ignore
         else:
@@ -151,7 +149,7 @@ class ZarrStorage(StorageBase):
         self[loc].attrs[name] = value
 
     def _read_array(
-        self, loc: Sequence[str], *, copy: bool, index: Optional[int] = None
+        self, loc: Sequence[str], *, copy: bool, index: int | None = None
     ) -> np.ndarray:
         arr_like = self[loc]
 
@@ -192,7 +190,7 @@ class ZarrStorage(StorageBase):
     def _create_dynamic_array(
         self,
         loc: Sequence[str],
-        shape: Tuple[int, ...],
+        shape: tuple[int, ...],
         dtype: DTypeLike,
         record_array: bool = False,
     ) -> None:

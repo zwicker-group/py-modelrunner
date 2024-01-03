@@ -14,7 +14,7 @@ from __future__ import annotations
 import collections
 import contextlib
 from pathlib import Path
-from typing import Any, Dict, Optional, Sequence, Union
+from typing import Any, Sequence
 
 from .parameters import DeprecatedParameter, Parameter
 
@@ -24,7 +24,7 @@ class Config(collections.UserDict):
 
     def __init__(
         self,
-        default: Optional[Sequence[Parameter]] = None,
+        default: Sequence[Parameter] | None = None,
         mode: str = "update",
         *,
         check_validity: bool = True,
@@ -66,14 +66,14 @@ class Config(collections.UserDict):
         # set the mode for future additions
         self.mode = mode
 
-    def load(self, path: Union[str, Path]):
+    def load(self, path: str | Path):
         """load configuration from yaml file"""
         import yaml
 
-        with open(path, "r") as fp:
+        with open(path) as fp:
             self.update(yaml.safe_load(fp))
 
-    def save(self, path: Union[str, Path]):
+    def save(self, path: str | Path):
         """save configuration to yaml file"""
         import yaml
 
@@ -119,7 +119,7 @@ class Config(collections.UserDict):
         obj.update(self)
         return obj
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """convert the configuration to a simple dictionary
 
         Returns:
@@ -132,7 +132,7 @@ class Config(collections.UserDict):
         return f"{self.__class__.__name__}({repr(self.to_dict())})"
 
     @contextlib.contextmanager
-    def __call__(self, values: Optional[Dict[str, Any]] = None, **kwargs):
+    def __call__(self, values: dict[str, Any] | None = None, **kwargs):
         """context manager temporarily changing the configuration
 
         Args:
