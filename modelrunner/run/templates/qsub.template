@@ -11,22 +11,20 @@
 #$ -V
 #$ -N {{ JOB_NAME }}
 # Queue (Partition):
-{% if PARTITION is defined %}
-#$ -q {{ PARTITION }}
-{% else %}
-#$ -q {{ DEFAULT_QUEUE }}
+{% if CONFIG['partition'] is defined %}
+#$ -q {{ CONFIG['partition'] }}
 {% endif %}
 
 hostname
 echo $JOB_ID
 
-{% if NUM_THREADS is number %}
+{% if CONFIG['num_threads'] is number %}
 # set the number of threads to use
-export MKL_NUM_THREADS={{ NUM_THREADS }}
-export NUMBA_NUM_THREADS={{ NUM_THREADS }}
-export NUMEXPR_NUM_THREADS={{ NUM_THREADS }}
-export OMP_NUM_THREADS={{ NUM_THREADS }}
-export OPENBLAS_NUM_THREADS={{ NUM_THREADS }}
+export MKL_NUM_THREADS={{ CONFIG['num_threads'] }}
+export NUMBA_NUM_THREADS={{ CONFIG['num_threads'] }}
+export NUMEXPR_NUM_THREADS={{ CONFIG['num_threads'] }}
+export OMP_NUM_THREADS={{ CONFIG['num_threads'] }}
+export OPENBLAS_NUM_THREADS={{ CONFIG['num_threads'] }}
 {% endif %}
 
 {% if OUTPUT_FOLDER is defined and OUTPUT_FOLDER %}
@@ -35,7 +33,7 @@ mkdir -p {{ OUTPUT_FOLDER }}
 
 # Run the program
 {% if USE_MODELRUNNER is defined and USE_MODELRUNNER %}
-{{ PYTHON_BIN }} -m modelrunner {{ MODEL_FILE }} {{ JOB_ARGS }}
+{{ CONFIG['python_bin'] }} -m modelrunner {{ MODEL_FILE }} {{ JOB_ARGS }}
 {% else %}
-{{ PYTHON_BIN }} {{ MODEL_FILE }} {{ JOB_ARGS }}
+{{ CONFIG['python_bin'] }} {{ MODEL_FILE }} {{ JOB_ARGS }}
 {% endif %}

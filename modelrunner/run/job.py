@@ -1,4 +1,6 @@
 """
+Provides functions for submitting models as jobs
+
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
@@ -16,6 +18,9 @@ from typing import Any, Dict, Iterable, Literal, Optional, Tuple, Union
 
 from tqdm.auto import tqdm
 
+from ..config import Config
+from ..parameters import Parameter
+
 
 def escape_string(obj) -> str:
     """escape a string for the command line"""
@@ -31,6 +36,57 @@ def ensure_directory_exists(folder):
     except OSError as err:
         if err.errno != errno.EEXIST:
             raise
+
+
+DEFAULT_CONFIG = [
+    Parameter(
+        "python_bin",
+        "sys.executable",
+        str,
+        "Path to the python executable to be used. The special value `sys.executable` "
+        "uses the value returned by `sys.executable`.",
+    ),
+    Parameter("num_threads", 1, int, "The number of threads to be used"),
+    Parameter(
+        "method",
+        "qsub",
+        str,
+        "The job submission method.",
+        choices=["background", "foreground", "qsub", "srun"],
+    ),
+    Parameter(
+        "partition", "", str, "The partition to which the job will be submitted."
+    ),
+]
+
+
+def get_config(
+    config: Union[str, Dict[str, Any], None] = None, *, load_user_config: bool = True
+) -> Config:
+    """create the job configuration
+
+    Args:
+        config (str or dict):
+            Configuration settings that will be used to update the default config
+        load_user_config (bool):
+            Determines whether the file `~/.modelrunner` is loaded as a YAML document to
+            provide user-defined settings.
+
+    Returns:
+        :class:`~modelrunner.config.Config`: the established configuration
+    """
+    c = Config(DEFAULT_CONFIG)
+
+    if load_user_config:
+        path = Path.home() / ".modelrunner"
+        if path.is_file():
+            c.load(path)
+
+    if isinstance(config, str):
+        c.update(json.loads(config))
+    elif config is not None:
+        c.update(config)
+    return c
 
 
 def get_job_name(
@@ -72,9 +128,10 @@ def submit_job(
     output: Union[str, Path, None] = None,
     name: str = "job",
     parameters: Union[str, Dict[str, Any], None] = None,
+    config: Union[str, Dict[str, Any], None] = None,
     *,
     log_folder: Union[str, Path] = "logs",
-    method: str = "qsub",
+    method: str = "auto",
     use_modelrunner: bool = True,
     template: Union[str, Path, None] = None,
     overwrite_strategy: OverwriteStrategyType = "error",
@@ -92,11 +149,15 @@ def submit_job(
         parameters (str or dict):
             Parameters for the script, either as a python dictionary or a string
             containing a JSON-encoded dictionary.
+        config (str or dict):
+            Configuration for the job, which determines how the job is run. Can be either
+            a python dictionary or a string containing a JSON-encoded dictionary.
         log_folder (str of :class:`~pathlib.Path`):
             Path to the logging folder
         method (str):
-            Specifies the submission method. Currently `background`, `foreground`, 'srun' and
-            `qsub` are supported.
+            Specifies the submission method. Currently `background`, `foreground`,
+            'srun', and `qsub` are supported. The special value `auto` reads the method
+            from the `config` argument.
         use_modelrunner (bool):
             If True, `script` is envoked with the modelrunner library, e.g. by calling
             `python -m modelrunner {script}`.
@@ -106,10 +167,6 @@ def submit_job(
         overwrite_strategy (str):
             Determines what to do when files already exist. Possible options include
             `error`, `warn_skip`, `silent_skip`, `overwrite`, and `silent_overwrite`.
-        **kwargs:
-            Extra arguments are forwarded as template variables to the script. A typical
-            use case is specifying the partition in a `qsub` script, which can be done
-            by giving the `partition` parameter here
 
     Returns:
         tuple: The result `(stdout, stderr)` of the submission call
@@ -118,6 +175,21 @@ def submit_job(
 
     logger = logging.getLogger("modelrunner.submit_job")
 
+    # prepare job configuration
+    configuration = get_config(config)
+    if kwargs:
+        # deprecated since 2024-01-03
+        warnings.warn("kwargs are deprecated. Use `config` instead", DeprecationWarning)
+        for k, v in kwargs.items():
+            configuration[k] = v
+    if configuration["python_bin"] == "sys.executable":
+        configuration["python_bin"] = sys.executable
+
+    # determine the submission method
+    if method == "auto":
+        method = configuration["method"]
+
+    # load the correct template
     if template is None:
         template_path = Path(__file__).parent / "templates" / (method + ".template")
     else:
@@ -128,18 +200,14 @@ def submit_job(
 
     # prepare submission script
     ensure_directory_exists(log_folder)
-
     script_args: Dict[str, Any] = {
         "PACKAGE_PATH": Path(__file__).parents[2],
         "LOG_FOLDER": log_folder,
         "JOB_NAME": name,
         "MODEL_FILE": escape_string(script),
         "USE_MODELRUNNER": use_modelrunner,
-        "PYTHON_BIN": sys.executable,
-        "DEFAULT_QUEUE": "teutates.q",
+        "CONFIG": configuration,
     }
-    for k, v in kwargs.items():
-        script_args[k.upper()] = v
 
     # add the parameters to the job arguments
     job_args = []
@@ -185,9 +253,6 @@ def submit_job(
         # if `output` is not specified, save data to current directory
         script_args["OUTPUT_FOLDER"] = "."
     script_args["JOB_ARGS"] = " ".join(job_args)
-
-    # set some default values if no values have been specified
-    script_args.setdefault("NUM_THREADS", 1)
 
     # replace parameters in submission script template
     script_content = Template(script_template).render(script_args)
@@ -235,6 +300,7 @@ def submit_jobs(
     output_folder: Union[str, Path],
     name_base: str = "job",
     parameters: Union[str, Dict[str, Any], None] = None,
+    config: Union[str, Dict[str, Any], None] = None,
     *,
     output_format: str = "hdf",
     list_params: Optional[Iterable[str]] = None,
@@ -254,6 +320,9 @@ def submit_jobs(
             containing a JSON-encoded dictionary. All combinations of parameter values
             that are iterable and not strings and not part of `keep_list` are submitted
             as separate jobs.
+        config (str or dict):
+            Configuration for the job, which determines how the job is run. Can be either
+            a python dictionary or a string containing a JSON-encoded dictionary.
         output_format (str):
             File extension determining the output format
         list_params (list):
@@ -300,6 +369,8 @@ def submit_jobs(
         params.update(p_job)
         name = get_job_name(name_base, p_job)
         output = Path(output_folder) / f"{name}{output_format}"
-        submit_job(script, output=output, name=name, parameters=params, **kwargs)
+        submit_job(
+            script, output=output, name=name, parameters=params, config=config, **kwargs
+        )
 
     return len(p_vary_list)
