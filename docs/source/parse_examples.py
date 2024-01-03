@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-import re
 import pathlib
+import re
 
 # Root direcotry of the package
 ROOT = pathlib.Path(__file__).absolute().parents[2]
@@ -29,6 +29,16 @@ def main():
 
             # read all content
             file_content = file_in.read()
+
+            # identify shebang
+            if file_content.startswith("#"):
+                shebang, file_content = file_content.split("\n", 1)
+                if shebang == "#!/usr/bin/env python3":
+                    shebang = ""  # filter trivial case
+            else:
+                shebang = None
+
+            # locate file docstring
             matches = re.search(regex, file_content, re.DOTALL)
             if matches:
                 for line in matches.group(1).split("\n"):
@@ -38,7 +48,10 @@ def main():
 
                 file_content = file_content[matches.end(0) :]
 
+            # write actual code
             file_out.write(".. code-block:: python\n\n")
+            if shebang:
+                file_out.write(f"    {shebang}\n\n")
             header = True
             for line in file_content.split("\n"):
                 # skip the shebang, comments and empty lines in the beginning
