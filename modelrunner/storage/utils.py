@@ -25,13 +25,11 @@ Location = Union[None, str, Sequence["Location"]]
 
 
 @overload
-def encode_binary(obj: Any, *, binary: Literal[True]) -> bytes:
-    ...
+def encode_binary(obj: Any, *, binary: Literal[True]) -> bytes: ...
 
 
 @overload
-def encode_binary(obj: Any, *, binary: Literal[False]) -> str:
-    ...
+def encode_binary(obj: Any, *, binary: Literal[False]) -> str: ...
 
 
 def encode_binary(obj: Any, *, binary: bool = False) -> str | bytes:

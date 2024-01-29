@@ -29,9 +29,9 @@ class AccessMode:
     overwrite: bool = False  # allow overwriting existing data
     dynamic_append: bool = False  # allow appending to dynamic arrays
 
-    _defined: ClassVar[
-        dict[str, AccessMode]
-    ] = {}  # dictionary of all defined access modes
+    _defined: ClassVar[dict[str, AccessMode]] = (
+        {}
+    )  # dictionary of all defined access modes
 
     def __repr__(self):
         return f"AccessMode(name={self.name})"

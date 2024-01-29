@@ -533,9 +533,9 @@ class Parameterized:
             data = {
                 "name": param.name,
                 "type": param.cls.__name__,
-                "description": param.short_description
-                if short_description
-                else param.description,
+                "description": (
+                    param.short_description if short_description else param.description
+                ),
             }
 
             # determine the value to show
