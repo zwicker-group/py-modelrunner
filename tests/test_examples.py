@@ -2,7 +2,6 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-
 import os
 import subprocess as sp
 import sys
