@@ -66,10 +66,11 @@ class Parameter:
         default_value:
             The default value of the parameter
         cls:
-            The type of the parameter, which is used for conversion
+            The type of the parameter, which is used for conversion. The conversion and
+            parsing of values can be disabled by using the default class `object`.
         description (str):
-            A string describing the impact of this parameter. This
-            description appears in the parameter help
+            A string describing the impact of this parameter. This description appears
+            in the parameter help.
         choices (container):
             A list or set of values that the parameter can take. Values (including the
             default value) that are not in this list will be rejected. Note that values
