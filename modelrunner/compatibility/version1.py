@@ -84,7 +84,8 @@ class StateBase(metaclass=ABCMeta):
         # copy attributes since they are modified in this function
         attributes = attributes.copy()
         cls_name = attributes["__class__"]
-        assert cls_name == cls.__name__
+        if cls_name != cls.__name__:
+            raise RuntimeError(f"Expected `{cls.__name__}` but data had `{cls_name}`")
 
         format_version = attributes.pop("__version__", 0)
         if format_version != 1:
