@@ -214,7 +214,8 @@ class ResultCollection(List[Result]):
         logger = logging.getLogger(cls.__name__)
 
         folder = Path(folder)
-        assert folder.is_dir()
+        if not folder.is_dir():
+            logger.warning(f"{folder} is not a directory")
 
         # iterate over all files and load them as a Result
         results = []
