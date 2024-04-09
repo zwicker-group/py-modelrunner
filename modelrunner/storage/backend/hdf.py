@@ -72,9 +72,9 @@ class HDFStorage(StorageBase):
         # shorten dynamic arrays to correct size
         for hdf_path, size in self._dynamic_array_size.items():
             self._file[hdf_path].resize(size, axis=0)
-
         if self._close:
             self._file.close()
+        super().close()
 
     def _get_hdf_path(self, loc: Sequence[str]) -> str:
         return "/" + "/".join(loc)
@@ -120,7 +120,12 @@ class HDFStorage(StorageBase):
             return self._file
         else:
             parent, name = self._get_parent(loc)
-            return parent[name]
+            try:
+                return parent[name]
+            except ValueError as e:
+                raise ValueError(
+                    f"Invalid location `{name}` in path `{parent.name}`"
+                ) from e
 
     def keys(self, loc: Sequence[str] | None = None) -> Collection[str]:
         if loc:
@@ -133,7 +138,10 @@ class HDFStorage(StorageBase):
 
     def _create_group(self, loc: Sequence[str]):
         parent, name = self._get_parent(loc)
-        return parent.create_group(name)
+        try:
+            return parent.create_group(name)
+        except ValueError as e:
+            raise ValueError(f"Cannot create group `{name}`") from e
 
     def _read_attrs(self, loc: Sequence[str]) -> AttrsLike:
         return self[loc].attrs  # type: ignore
@@ -152,7 +160,16 @@ class HDFStorage(StorageBase):
         # decode potentially binary data
         attrs = self._read_attrs(loc)
         if attrs.get("__pickled__", False):
-            arr_like = decode_binary(np.asarray(arr_like).item())
+            # data has been pickled inside the array
+            if np.issubdtype(arr_like.dtype, "O"):
+                # array of object dtype
+                arr_like = np.frompyfunc(decode_binary, nin=1, nout=1)(arr_like)
+            elif np.issubdtype(arr_like.dtype, np.uint8):
+                arr_like = decode_binary(arr_like)
+            else:
+                data = np.asarray(arr_like).item()
+                arr_like = decode_binary(data)
+
         elif not isinstance(arr_like, (h5py.Dataset, np.ndarray, np.generic)):
             raise RuntimeError(
                 f"Found {arr_like.__class__} at location `/{'/'.join(loc)}`"
@@ -173,16 +190,18 @@ class HDFStorage(StorageBase):
             # for this operation need to be checked by the caller!
             dataset = parent[name]
             if dataset.attrs.get("__pickled__", None) == encode_attr(True):
-                arr_str = encode_binary(arr, binary=True)
-                dataset[...] = np.void(arr_str)
+                arr_bin = encode_binary(arr, binary=True)
+                assert isinstance(arr_bin, bytes)
+                dataset[...] = np.void(arr_bin)
             else:
                 dataset[...] = arr
 
         else:
             # create a new data set
             if arr.dtype == object:
-                arr_str = encode_binary(arr, binary=True)
-                dataset = parent.create_dataset(name, data=np.void(arr_str))
+                arr_bin = encode_binary(arr, binary=True)
+                assert isinstance(arr_bin, bytes)
+                dataset = parent.create_dataset(name, data=np.void(arr_bin))
                 dataset.attrs["__pickled__"] = True
             else:
                 args = {"compression": "gzip"} if self.compression else {}
@@ -200,11 +219,13 @@ class HDFStorage(StorageBase):
         record_array: bool = False,
     ) -> None:
         parent, name = self._get_parent(loc)
-        if dtype == object:
-            dt = h5py.special_dtype(vlen=np.dtype("uint8"))
+        if np.issubdtype(dtype, "O"):
             try:
                 dataset = parent.create_dataset(
-                    name, shape=(1,) + shape, maxshape=(None,) + shape, dtype=dt
+                    name,
+                    shape=(1,) + shape,
+                    maxshape=(None,) + shape,
+                    dtype=h5py.vlen_dtype(np.uint8),
                 )
             except ValueError:
                 raise RuntimeError(f"Array `{'/'.join(loc)}` already exists")
@@ -250,7 +271,8 @@ class HDFStorage(StorageBase):
 
         if dataset.attrs.get("__pickled__", False):
             arr_bin = encode_binary(arr, binary=True)
-            dataset[size] = np.frombuffer(arr_bin, dtype="uint8")
+            assert isinstance(arr_bin, bytes)
+            dataset[size] = np.frombuffer(arr_bin, dtype=np.uint8)
         else:
             dataset[size] = arr
 

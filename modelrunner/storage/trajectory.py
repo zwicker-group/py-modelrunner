@@ -19,6 +19,8 @@ import numpy as np
 
 from modelrunner.storage.access_modes import ModeType
 
+from .access_modes import AccessError
+from .base import StorageBase
 from .group import StorageGroup
 from .tools import open_storage
 from .utils import Location, storage_actions
@@ -53,7 +55,7 @@ class TrajectoryWriter:
 
     def __init__(
         self,
-        storage,
+        storage: str | Path | StorageGroup | StorageBase,
         loc: Location = "trajectory",
         *,
         attrs: dict[str, Any] | None = None,
@@ -61,7 +63,7 @@ class TrajectoryWriter:
     ):
         """
         Args:
-            store (MutableMapping or string):
+            store:
                 Store or path to directory in file system or name of zip file.
             loc (str or list of str):
                 The location in the storage where the trajectory data is written.
@@ -84,21 +86,28 @@ class TrajectoryWriter:
                 )
             mode = "full"
 
-        storage = open_storage(storage, mode=mode)
+        self._storage = open_storage(storage, mode=mode)
 
-        if storage._storage.mode.insert:
-            self._trajectory = storage.create_group(loc, cls=Trajectory)
+        if self._storage.mode.insert:
+            self._trajectory = self._storage.create_group(loc, cls=Trajectory)
+        elif self._storage.mode.dynamic_append:
+            self._trajectory = StorageGroup(self._storage, loc)
         else:
-            self._trajectory = StorageGroup(storage, loc)
+            raise AccessError(f"Cannot insert data. Open storage with write access")
 
         # make sure we don't overwrite data
         if "times" in self._trajectory or "data" in self._trajectory:
-            if not storage._storage.mode.dynamic_append:
+            if not self._storage.mode.dynamic_append:
                 raise OSError("Storage already contains data and we cannot append")
             self._item_type = self._trajectory.attrs["item_type"]
 
         if attrs is not None:
             self._trajectory.write_attrs(attrs=attrs)
+
+    @property
+    def times(self) -> np.ndarray:
+        """:class:`~numpy.ndarray`: Time points written so far"""
+        return self._trajectory.read_array("time")
 
     def append(self, data: Any, time: float | None = None) -> None:
         """append data to the trajectory
@@ -140,7 +149,7 @@ class TrajectoryWriter:
         self._trajectory.extend_dynamic_array("time", time)
 
     def close(self):
-        self._trajectory._storage.close()
+        self._storage.close()
 
     def __enter__(self):
         return self
@@ -170,13 +179,14 @@ class Trajectory:
                 The location in the storage where the trajectory data is read.
         """
         # open the storage
-        storage = open_storage(storage, mode="read")
-        self._trajectory = StorageGroup(storage, loc)
+        self._storage = open_storage(storage, mode="read")
+        self._loc = self._storage._get_loc(loc)
+        # self._storage = storage#StorageGroup(storage, loc)
 
         # read some intial data from storage
-        self._item_type = self._trajectory.attrs["item_type"]
-        self.times = self._trajectory.read_array("time")
-        self.attrs = self._trajectory.read_attrs()
+        self.attrs = self._storage.read_attrs(self._loc)
+        self._item_type = self.attrs["item_type"]
+        self.times = self._storage.read_array(self._loc + ["time"])
 
         # check temporal ordering
         if np.any(np.diff(self.times) < 0):
@@ -184,7 +194,7 @@ class Trajectory:
 
     def close(self) -> None:
         """close the openend storage"""
-        self._trajectory._storage.close()
+        self._storage.close()
 
     def __len__(self) -> int:
         return len(self.times)
@@ -207,7 +217,7 @@ class Trajectory:
         if not 0 <= t_index < len(self):
             raise IndexError("Time index out of range")
 
-        res = self._trajectory.read_array("data", index=t_index)
+        res = self._storage.read_array(self._loc + ["data"], index=t_index)
         if self._item_type == "array":
             return res
         elif self._item_type == "object":

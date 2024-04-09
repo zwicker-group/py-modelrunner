@@ -96,6 +96,7 @@ class ZarrStorage(StorageBase):
         if self._close:
             self._store.close()
         self._root = None
+        super().close()
 
     def _get_parent(self, loc: Sequence[str]) -> tuple[zarr.Group, str]:
         """get the parent group for a particular location

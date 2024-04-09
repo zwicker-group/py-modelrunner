@@ -31,7 +31,7 @@ import numcodecs
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 
-from .access_modes import AccessError, AccessMode, ModeType
+from .access_modes import AccessError, AccessMode, ModeType, _access_closed
 from .attributes import Attrs, AttrsLike, decode_attrs, encode_attr
 from .utils import encode_class
 
@@ -46,6 +46,8 @@ class StorageBase(metaclass=ABCMeta):
     """list of str: all file extensions supported by this storage"""
     default_codec = numcodecs.Pickle()
     """:class:`numcodecs.Codec`: the default codec used for encoding binary data"""
+    mode: AccessMode
+    """:class:`~modelrunner.storage.access_modes.AccessMode`: access mode"""
 
     _codec: numcodecs.abc.Codec
     """:class:`numcodecs.Codec`: the specific codec used for encoding binary data"""
@@ -62,7 +64,12 @@ class StorageBase(metaclass=ABCMeta):
 
     def close(self) -> None:
         """closes the storage, potentially writing data to a persistent place"""
-        ...
+        self.mode = _access_closed
+
+    @property
+    def closed(self) -> bool:
+        """bool: determines whether the storage has been closed"""
+        return self.mode is _access_closed
 
     @property
     def can_update(self) -> bool:
