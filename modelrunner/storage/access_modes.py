@@ -56,6 +56,8 @@ class AccessMode:
         if isinstance(obj_or_name, AccessMode):
             return obj_or_name
         elif isinstance(obj_or_name, str):
+            if obj_or_name == "closed":
+                raise ValueError("Cannot use `closed` access mode.")
             try:
                 return cls._defined[obj_or_name]
             except KeyError:
@@ -67,6 +69,9 @@ class AccessMode:
 
 
 # define default access modes
+_access_closed = AccessMode(
+    name="closed", description="Does not allow anything", file_mode="r", read=False
+)
 access_read = AccessMode(
     name="read",
     description="Only allows reading",

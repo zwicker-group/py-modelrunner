@@ -9,6 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Union
 
+from .access_modes import AccessMode
 from .backend import AVAILABLE_STORAGE, MemoryStorage
 from .base import StorageBase
 from .group import StorageGroup
@@ -123,8 +124,10 @@ class open_storage(StorageGroup):
 
         if store_obj is None:
             raise TypeError(f"Unsupported store type {storage.__class__.__name__}")
+        assert isinstance(store_obj, StorageBase)
 
         super().__init__(store_obj, loc=loc)
+        self._closed = False
 
     def close(self) -> None:
         """close the storage (and flush all data to persistent storage if necessary)"""
@@ -132,10 +135,20 @@ class open_storage(StorageGroup):
             self._storage.close()
         else:
             self._storage.flush()
+        self._closed = True
+
+    @property
+    def closed(self) -> bool:
+        """bool: determines whether the storage group has been closed"""
+        return self._closed
+
+    @property
+    def mode(self) -> AccessMode:
+        """:class:`~modelrunner.storage.access_modes.AccessMode`: access mode"""
+        return self._storage.mode
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.close:
-            self.close()
+        self.close()

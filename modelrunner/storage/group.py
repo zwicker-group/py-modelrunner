@@ -30,7 +30,7 @@ class StorageGroup:
             loc (str or list of str):
                 Denotes the location (path) of the group within the storage
         """
-        self.loc = []
+        self.loc = []  # initialize empty location, since `loc` is relative to root
         self.loc = self._get_loc(loc)
 
         if isinstance(storage, StorageBase):
@@ -43,6 +43,14 @@ class StorageGroup:
                 f"Cannot interprete `storage` of type `{storage.__class__}`"
             )
 
+        assert isinstance(self._storage, StorageBase)
+        if self._storage.closed:
+            raise RuntimeError("Cannot access group in closed storage")
+        if self.loc not in self._storage:
+            raise RuntimeError(
+                f'"/{"/".join(self.loc)}" is not in storage. Available root items are: '
+                f"{list(self._storage.keys(loc=[]))}"
+            )
         if not self.is_group():
             raise RuntimeError(f'"/{"/".join(self.loc)}" is not a group')
 
@@ -172,10 +180,10 @@ class StorageGroup:
         # read the item using the generic classes
         obj_type = self._storage._read_attrs(loc_list).get("__type__")
         if obj_type in {"array", "dynamic_array"}:
-            arr = self._storage._read_array(loc_list, copy=True)
+            arr = self._storage.read_array(loc_list)
             return Array(arr, attrs=self._storage.read_attrs(loc_list))
         elif obj_type == "object":
-            return self._storage._read_object(loc_list)
+            return self._storage.read_object(loc_list)
         else:
             raise RuntimeError(f"Cannot read objects of type `{obj_type}`")
 

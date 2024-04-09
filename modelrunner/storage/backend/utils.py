@@ -24,7 +24,7 @@ def simplify_data(data):
     elif isinstance(data, np.ndarray):
         if np.isscalar(data):
             data = data.item()
-        elif data.dtype == object and data.size == 1:
+        elif np.issubdtype(data.dtype, "O") and data.size == 1:
             data = [simplify_data(data.item())]
         elif data.size <= 100:
             # for less than ~100 items a list is actually more efficient to store

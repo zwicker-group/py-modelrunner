@@ -85,6 +85,7 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
     def close(self) -> None:
         """close the file and write the data to the file"""
         self.flush()
+        super().close()
 
     def to_text(self, simplify: bool | None = None) -> str:
         """serialize the data and return it as a string

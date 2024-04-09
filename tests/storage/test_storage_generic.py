@@ -16,6 +16,24 @@ ARRAY_EXAMPLES = [
 ]
 
 
+STORAGE_CLASSES = {
+    "json": "JSONStorage",
+    "yaml": "YAMLStorage",
+    "hdf": "HDFStorage",
+    "zarr": "ZarrStorage",
+    "zip": "ZarrStorage",
+    "": "ZarrStorage",
+    "sqldb": "ZarrStorage",
+}
+
+
+@pytest.mark.parametrize("ext", STORAGE_EXT)
+def test_storage_class(ext, tmp_path):
+    """test whether open_storage uses the correct Storage class"""
+    storage = open_storage(tmp_path / f"file{ext}", mode="truncate")
+    assert storage._storage.__class__.__name__ == STORAGE_CLASSES[ext[1:]]
+
+
 @pytest.mark.parametrize("arr", ARRAY_EXAMPLES)
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_storage_persistence(arr, ext, tmp_path):
@@ -26,20 +44,25 @@ def test_storage_persistence(arr, ext, tmp_path):
         storage.write_array("group/test/arr", arr, attrs={"array": True})
         storage.create_dynamic_array("dyn", arr=arr)
         storage.extend_dynamic_array("dyn", arr)
+        storage.extend_dynamic_array("dyn", arr)
         storage.write_object("obj", OBJ)
 
         assert isinstance(str(storage), str)  # test whether __repr__ works somewhat
+        assert not storage.closed
 
     # read from storage
     with open_storage(tmp_path / f"file{ext}", mode="read") as storage:
         assert storage.is_group("empty") and len(storage["empty"].keys()) == 0
+
         arr_read = storage.read_array("group/test/arr")
         assert arr.__class__ is arr_read.__class__
         np.testing.assert_array_equal(arr_read, arr)
-
         assert storage.read_attrs("group/test/arr") == {"array": True}
-        np.testing.assert_array_equal(storage.read_array("dyn", index=0), arr)
-        out = storage.read_array("dyn", index=0, out=np.empty_like(arr))
+
+        out = storage.read_array("dyn", index=0)
+        np.testing.assert_array_equal(out, arr)
+        assert out.__class__ is arr.__class__
+        out = storage.read_array("dyn", index=1, out=np.empty_like(arr))
         np.testing.assert_array_equal(out, arr)
         assert out.__class__ is arr.__class__
         assert_data_equals(storage.read_object("obj"), OBJ)
@@ -50,6 +73,7 @@ def test_storage_persistence(arr, ext, tmp_path):
         assert len(list(storage.keys())) == 4
         assert len(list(storage.items())) == 4
         assert len(list(storage)) == 4
+        assert not storage.closed
 
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
@@ -277,3 +301,22 @@ def test_storage_copy_dict(ext, tmp_path):
         assert storage["obj"] == obj
         obj["c"] = 1
         assert storage["obj"] != obj
+
+
+@pytest.mark.parametrize("ext", STORAGE_EXT)
+def test_storage_close(ext, tmp_path):
+    """test closing of storages"""
+    writer = open_storage(tmp_path / f"file{ext}", mode="truncate")
+    assert not writer.closed
+    writer["obj"] = 1
+    writer.close()
+    assert writer.closed
+
+    with pytest.raises(Exception):
+        writer["obj"]
+
+    reader = open_storage(tmp_path / f"file{ext}", mode="read")
+    assert not reader.closed
+    assert reader["obj"] == 1
+    reader.close()
+    assert reader.closed

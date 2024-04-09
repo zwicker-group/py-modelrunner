@@ -53,7 +53,7 @@ def encode_binary(obj: Any, *, binary: bool = False) -> str | bytes:
         return codecs.encode(obj_bin, "base64").decode()
 
 
-def decode_binary(obj_str: str | bytes) -> Any:
+def decode_binary(obj_str: str | bytes | np.ndarray) -> Any:
     """decode an object encoded with :func:`encode_binary`.
 
     Args:
@@ -63,7 +63,12 @@ def decode_binary(obj_str: str | bytes) -> Any:
     Returns:
         Any: the object
     """
-    if isinstance(obj_str, str):
+    if isinstance(obj_str, np.ndarray):
+        if np.issubdtype(obj_str.dtype, np.uint8):
+            obj_str = obj_str.tobytes()
+        else:
+            raise TypeError(f"Unexpected dtype `{obj_str.dtype}`")
+    elif isinstance(obj_str, str):
         obj_str = codecs.decode(obj_str.encode(), "base64")
     return pickle.loads(obj_str)
 

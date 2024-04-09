@@ -1,4 +1,4 @@
--r ../requirements.txt
+-r ../requirements_full.txt
 Sphinx>=4
 sphinx-autodoc-annotation>=1.0
 sphinx-gallery>=0.6
