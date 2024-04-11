@@ -13,7 +13,7 @@ SCRIPT_PATH = Path(__file__).parent / "scripts"
 assert SCRIPT_PATH.is_dir()
 
 
-def test_submit_job(tmp_path):
+def test_submit_job(tmp_path, capsys):
     """test some basic usage of the submit_job function"""
 
     def run(**p):
@@ -32,6 +32,24 @@ def test_submit_job(tmp_path):
     assert run().data["a"] == 1
     assert run(a=2).data["a"] == 2
     assert run(b=[1, 2, 3]).data["b"] == [1, 2, 3]
+    std = capsys.readouterr()
+    assert std.out == std.err == ""
+
+
+def test_submit_job_stdout(tmp_path, capsys):
+    """test logging to stdout for the submit_job function"""
+
+    output = tmp_path / "output.json"
+    outs, errs = submit_job(
+        SCRIPT_PATH / "print.py",
+        output,
+        method="foreground",
+        overwrite_strategy="silent_overwrite",
+    )
+
+    assert outs == "3.0\n"
+    assert errs == ""
+    assert Result.from_file(output).data is None
 
 
 def test_submit_jobs(tmp_path):

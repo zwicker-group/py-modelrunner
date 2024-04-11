@@ -16,13 +16,13 @@
 hostname
 echo $JOB_ID
 
-{% if CONFIG['num_threads'] is number %}
+{% if CONFIG.num_threads is number %}
 # set the number of threads to use
-export MKL_NUM_THREADS={{ CONFIG['num_threads'] }}
-export NUMBA_NUM_THREADS={{ CONFIG['num_threads'] }}
-export NUMEXPR_NUM_THREADS={{ CONFIG['num_threads'] }}
-export OMP_NUM_THREADS={{ CONFIG['num_threads'] }}
-export OPENBLAS_NUM_THREADS={{ CONFIG['num_threads'] }}
+export MKL_NUM_THREADS={{ CONFIG.num_threads }}
+export NUMBA_NUM_THREADS={{ CONFIG.num_threads }}
+export NUMEXPR_NUM_THREADS={{ CONFIG.num_threads }}
+export OMP_NUM_THREADS={{ CONFIG.num_threads }}
+export OPENBLAS_NUM_THREADS={{ CONFIG.num_threads }}
 {% endif %}
 
 {% if OUTPUT_FOLDER is defined and OUTPUT_FOLDER %}
@@ -31,7 +31,7 @@ mkdir -p {{ OUTPUT_FOLDER }}
 
 # Run the program
 {% if USE_MODELRUNNER is defined and USE_MODELRUNNER %}
-{{ CONFIG['python_bin'] }} -m modelrunner {{ MODEL_FILE }} {{ JOB_ARGS }}
+{{ CONFIG.python_bin }} -m modelrunner {{ MODEL_FILE }} {{ JOB_ARGS }}
 {% else %}
-{{ CONFIG['python_bin'] }} {{ MODEL_FILE }} {{ JOB_ARGS }}
+{{ CONFIG.python_bin }} {{ MODEL_FILE }} {{ JOB_ARGS }}
 {% endif %}
