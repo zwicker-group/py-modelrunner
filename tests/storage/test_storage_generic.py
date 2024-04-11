@@ -33,6 +33,14 @@ def test_storage_class(ext, tmp_path):
     storage = open_storage(tmp_path / f"file{ext}", mode="truncate")
     assert storage._storage.__class__.__name__ == STORAGE_CLASSES[ext[1:]]
 
+    storage["item"] = 1
+    storage["a/b/c"] = 2
+    assert storage.is_group("a/b")
+    assert storage["a/b"]["c"] == 2
+
+    with pytest.raises(Exception):
+        storage["item/test"] = 1  # cannot make group when there is an item
+
 
 @pytest.mark.parametrize("arr", ARRAY_EXAMPLES)
 @pytest.mark.parametrize("ext", STORAGE_EXT)

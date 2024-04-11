@@ -48,7 +48,9 @@ class open_storage(StorageGroup):
         r"""
         Args:
             storage:
-                The path to a file or directory or a :class:`StorageBase` instance
+                The path to a file or directory or a :class:`StorageBase` instance. The
+                special value `None` creates a
+                :class:`~modelrunner.storage.backend.memory.MemoryStorage`
             loc (str or list of str):
                 Denotes the location that will be opened within the storage. The default
                 `None` opens the root group of the storage.
@@ -60,6 +62,7 @@ class open_storage(StorageGroup):
                 All other arguments are passed on to the storage class
         """
         store_obj: StorageBase | None = None
+
         if isinstance(storage, StorageBase):
             # storage is of type `StorageBase`
             self._close = False

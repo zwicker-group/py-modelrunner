@@ -56,17 +56,20 @@ class MemoryStorage(StorageBase):
             (group, str):
                 A tuple consisting of the parent group and the name of the current item
         """
-        value = self._data
+        if check_write and not self.is_group(loc[:-1]):
+            raise TypeError(f"Location `/{'/'.join(loc[:-1])}` is not a group")
+
+        parent = self._data
         for part in loc[:-1]:
             try:
-                value = value[part]
+                parent = parent[part]
             except KeyError:
-                if isinstance(value, dict):
-                    value[part] = {}
-                    value = value[part]
+                if isinstance(parent, dict):
+                    parent[part] = {}
+                    parent = parent[part]
                 else:
                     raise TypeError(f"Cannot add item to `/{'/'.join(loc)}`")
-        if not isinstance(value, dict):
+        if not isinstance(parent, dict):
             raise TypeError(f"Cannot add item to `/{'/'.join(loc)}`")
 
         try:
@@ -74,14 +77,17 @@ class MemoryStorage(StorageBase):
         except IndexError:
             raise KeyError(f"Location `/{'/'.join(loc)}` has no parent")
 
-        if check_write and not self.mode.overwrite and name in value:
+        if check_write and not self.mode.overwrite and name in parent:
             raise AccessError(f"Overwriting `/{'/'.join(loc)}` disabled")
-        return value, name
+        return parent, name
 
     def __getitem__(self, loc: Sequence[str]) -> Any:
         if loc:
             parent, name = self._get_parent(loc)
-            return parent[name]
+            try:
+                return parent[name]
+            except KeyError as e:
+                raise KeyError(f"Item `{name}` not in group {parent.keys()}") from e
         else:
             return self._data
 
