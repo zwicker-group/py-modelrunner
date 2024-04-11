@@ -11,7 +11,7 @@ import itertools
 import json
 import logging
 import os
-import pipes
+import shlex
 import subprocess as sp
 import sys
 import warnings
@@ -26,7 +26,7 @@ from ..parameters import Parameter
 
 def escape_string(obj) -> str:
     """escape a string for the command line"""
-    return pipes.quote(str(obj))
+    return shlex.quote(str(obj))
 
 
 def ensure_directory_exists(folder):
@@ -244,9 +244,9 @@ def submit_job(
 
         # check whether output points to a directory or whether this should be a file
         if output.is_dir():
-            script_args["OUTPUT_FOLDER"] = pipes.quote(str(output))
+            script_args["OUTPUT_FOLDER"] = shlex.quote(str(output))
         else:
-            script_args["OUTPUT_FOLDER"] = pipes.quote(str(output.parent))
+            script_args["OUTPUT_FOLDER"] = shlex.quote(str(output.parent))
             job_args.append(f"--output {escape_string(output)}")
 
     else:
