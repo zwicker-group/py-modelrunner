@@ -57,6 +57,37 @@ class StorageGroup:
     def __repr__(self):
         return f'StorageGroup(storage={self._storage}, loc="/{"/".join(self.loc)}")'
 
+    def tree(self) -> None:
+        """print the hierarchical storage as a tree structure"""
+        vertic = "│  "
+        cross = "├──"
+        corner = "└──"
+        space = "   "
+
+        def print_tree(loc: list[str], header: str = ""):
+            """recursive function printing information about one group"""
+            group = StorageGroup(self._storage, loc)
+            for i, key in enumerate(sorted(group.keys())):
+                last = i == len(group) - 1
+                if self._storage.is_group(loc + [key]):
+                    cls = self._storage._read_attrs(loc).get("__class__")
+                    if cls is None:
+                        # item is a sub group
+                        print(header + (corner if last else cross) + key)
+                        print_tree(
+                            loc + [key], header=header + (space if last else vertic)
+                        )
+                    else:
+                        # item contains information to restore a certain class
+                        print(header + (corner if last else cross) + f"{key} ({cls})")
+                else:
+                    # item is a simple, scalar item
+                    print(header + (corner if last else cross) + key)
+
+        if self.loc:
+            print("/" + "/".join(self.loc))
+        print_tree(self.loc)
+
     def _get_loc(self, loc: Location) -> list[str]:
         """return a normalized location from various input
 
@@ -74,7 +105,7 @@ class StorageGroup:
             if loc_data is None or loc_data == "":
                 return []
             elif isinstance(loc_data, str):
-                return loc_data.split("/")
+                return loc_data.strip("/").split("/")
             else:
                 return sum((parse_loc(k) for k in loc_data), start=list())
 
@@ -82,11 +113,11 @@ class StorageGroup:
 
     def __getitem__(self, loc: Location) -> Any:
         """read state or trajectory from storage"""
-        loc = self._get_loc(loc)
-        if self._storage.is_group(loc):  # storage points to a group
-            if "__class__" not in self._storage._read_attrs(loc):
+        loc_list = self._get_loc(loc)
+        if self._storage.is_group(loc_list):  # storage points to a group
+            if "__class__" not in self._storage._read_attrs(loc_list):
                 # group does not contain class information => just return a subgroup
-                return StorageGroup(self._storage, loc)
+                return StorageGroup(self._storage, loc_list)
         # reconstruct objected stored at this place
         return self.read_item(loc, use_class=True)
 
@@ -96,6 +127,9 @@ class StorageGroup:
     def keys(self) -> Collection[str]:
         """return name of all stored items in this group"""
         return self._storage.keys(self.loc)
+
+    def __len__(self) -> int:
+        return len(self.keys())
 
     def __iter__(self) -> Iterator[Any]:
         """iterate over all stored items in this group"""
@@ -169,15 +203,15 @@ class StorageGroup:
         Returns:
             The reconstructed python object
         """
-        loc_list = self._get_loc(loc)
         if use_class:
-            cls = self.get_class(loc_list)
+            cls = self.get_class(loc)
             if cls is not None:
                 # create object using a registered action
                 read_item = storage_actions.get(cls, "read_item")
-                return read_item(self._storage, loc_list)
+                return read_item(self._storage, loc)
 
         # read the item using the generic classes
+        loc_list = self._get_loc(loc)
         obj_type = self._storage._read_attrs(loc_list).get("__type__")
         if obj_type in {"array", "dynamic_array"}:
             arr = self._storage.read_array(loc_list)
