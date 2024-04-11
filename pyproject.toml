@@ -89,8 +89,11 @@ addopts = "--strict-markers"
 norecursedirs = "tests/helpers"
 pythonpath = ["tests/helpers"]
 filterwarnings = [
-    'ignore:.*importing the ABCs from.*:DeprecationWarning',
-    'ignore:.*IPython.utils.signatures backport for Python 2 is deprecated.*:DeprecationWarning',
+    "ignore:.*Duplicate name.*zarray.*:UserWarning",
+    "ignore:.*Duplicate name.*zattrs.*:UserWarning",
+    "ignore:.*importing the ABCs from.*:DeprecationWarning",
+    "ignore:.*IPython.utils.signatures backport for Python 2 is deprecated.*:DeprecationWarning",
+    "ignore:.*Redefining class.*:UserWarning",
 ]
 
 [tool.coverage.report]

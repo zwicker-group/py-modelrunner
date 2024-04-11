@@ -98,10 +98,10 @@ def test_trajectory_basic(obj, ext, tmp_path):
         remove_file_or_folder(path2)
 
 
-@pytest.mark.parametrize("obj", [np.arange(3)])  # STORAGE_OBJECTS)
+@pytest.mark.parametrize("obj", STORAGE_OBJECTS)
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_trajectory_writer_open_storage(obj, ext, tmp_path):
-    """test simple trajecotry writing"""
+    """test simple trajecotry writing in an externally opened storage"""
     path = tmp_path / ("file" + ext)
     storage = open_storage(path, mode="insert")
     assert not storage.closed

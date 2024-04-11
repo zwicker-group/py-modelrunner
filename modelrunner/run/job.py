@@ -130,7 +130,7 @@ def submit_job(
     parameters: str | dict[str, Any] | None = None,
     config: str | dict[str, Any] | None = None,
     *,
-    log_folder: str | Path = "logs",
+    log_folder: str | Path | None = None,
     method: str = "auto",
     use_modelrunner: bool = True,
     template: str | Path | None = None,
@@ -153,7 +153,10 @@ def submit_job(
             Configuration for the job, which determines how the job is run. Can be either
             a python dictionary or a string containing a JSON-encoded dictionary.
         log_folder (str of :class:`~pathlib.Path`):
-            Path to the logging folder
+            Path to the logging folder. If omitted, the default of the template is used,
+            which typically sends data to stdout for local scripts (which is thus
+            captured and returned by this function) or writes log files to the current
+            working directory for remote jobs.
         method (str):
             Specifies the submission method. Currently `background`, `foreground`,
             'srun', and `qsub` are supported. The special value `auto` reads the method
@@ -169,7 +172,9 @@ def submit_job(
             `error`, `warn_skip`, `silent_skip`, `overwrite`, and `silent_overwrite`.
 
     Returns:
-        tuple: The result `(stdout, stderr)` of the submission call
+        tuple: The result `(stdout, stderr)` of the submission call. These two strings
+            can contain the output from the actual scripts that is run when `log_folder`
+            is `None`.
     """
     from jinja2 import Template
 
@@ -191,7 +196,7 @@ def submit_job(
 
     # load the correct template
     if template is None:
-        template_path = Path(__file__).parent / "templates" / (method + ".template")
+        template_path = Path(__file__).parent / "templates" / (method + ".jinja")
     else:
         template_path = Path(template)
     logger.info("Load template `%s`", template_path)
@@ -199,15 +204,16 @@ def submit_job(
         script_template = fp.read()
 
     # prepare submission script
-    ensure_directory_exists(log_folder)
     script_args: dict[str, Any] = {
         "PACKAGE_PATH": Path(__file__).parents[2],
-        "LOG_FOLDER": log_folder,
         "JOB_NAME": name,
         "MODEL_FILE": escape_string(script),
         "USE_MODELRUNNER": use_modelrunner,
         "CONFIG": configuration,
     }
+    if log_folder is not None:
+        ensure_directory_exists(log_folder)
+        script_args["LOG_FOLDER"] = log_folder
 
     # add the parameters to the job arguments
     job_args = []
