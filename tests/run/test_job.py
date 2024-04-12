@@ -5,6 +5,7 @@
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from modelrunner import Result, ResultCollection
 from modelrunner.run.job import submit_job, submit_jobs
@@ -36,20 +37,40 @@ def test_submit_job(tmp_path, capsys):
     assert std.out == std.err == ""
 
 
-def test_submit_job_stdout(tmp_path, capsys):
+@pytest.mark.parametrize("method", ["foreground", "background"])
+def test_submit_job_fail(method):
+    """test some basic usage of the submit_job function"""
+    outs, errs = submit_job(SCRIPT_PATH / "fail.py", method=method)
+    assert outs == ""
+    assert "Traceback" in errs
+
+
+@pytest.mark.parametrize("method", ["foreground", "background"])
+def test_submit_job_stdout(tmp_path, method):
     """test logging to stdout for the submit_job function"""
 
     output = tmp_path / "output.json"
     outs, errs = submit_job(
         SCRIPT_PATH / "print.py",
         output,
-        method="foreground",
+        method=method,
         overwrite_strategy="silent_overwrite",
     )
 
     assert outs == "3.0\n"
     assert errs == ""
     assert Result.from_file(output).data is None
+
+
+def test_submit_job_no_output():
+    """test logging to stdout for the submit_job function"""
+    outs, errs = submit_job(
+        SCRIPT_PATH / "print.py",
+        method="foreground",
+        overwrite_strategy="silent_overwrite",
+    )
+    assert outs == "3.0\n"
+    assert errs == ""
 
 
 def test_submit_jobs(tmp_path):
