@@ -43,11 +43,12 @@ The main requirements for the storage classes were
 - *Usability*: The user should not need to think about how data is stored in different files
 - *Flexibility*: We want a general interface to write data in multiple file formats (YAML, HDF, zarr, ...)
 - *Stability*: Future versions of the package should be able to read older files even when the internal definitions of file formats change
-- *Extensibility*: States should be subclasses to implement more complicated requirements (e.g., particular serialization)
+- *Modularity*: Different parts of the package (like :mod:`~modelrunner.storage`, :mod:`~modelrunner.parameters`, and :mod:`~modelrunner.run`) should be rather independent of each other, so they can be used in isolation
+- *Extensibility*: Models should be easy to subclass to implement more complicated requirements (e.g., additional parameters)
 - *Self-explainability*: The files should in principle contain all information to reconstruct the data, even if the `py-modelrunner` package is no longer available.
 - *Efficiency*: The files should only store necessary information.
 
 The last point results in particular constraints if we want to store temporal simulation results.
 In most cases, there are are some data that are kept fixed for the simulation (describing physical parameters) and others that evolve with time.
 We denote by `attributes` the parameters that are kept fixed and by `data` the data that varies over time.
-The state classes are already prepared to deal with such data, in conjuction with the :mod:`~modelrunner.storage.trajectory` module.
+The :mod:`~modelrunner.storage.trajectory` module deals with such data.
