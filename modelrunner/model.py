@@ -64,7 +64,11 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
                 :meth:`~Parameterized.get_parameters` or displayed by calling
                 :meth:`~Parameterized.show_parameters`.
             output (str):
-                Path where the output file will be written.
+                Path where the output file will be written. The output will be written
+                using :mod:`~modelrunner.storage` and might contain two groups: `result`
+                to which the final result of the model is written, and `data`, which
+                can contain extra information that is written using
+                :attr:`~ModelBase.storage`.
             mode (str or :class:`~modelrunner.storage.access_modes.ModeType`):
                 The file mode with which the storage is accessed, which determines the
                 allowed operations. Common options are "read", "full", "append", and
@@ -87,7 +91,9 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
             if self.output is None:
                 raise RuntimeError("Output file needs to be specified")
             self._storage = open_storage(self.output, mode=self.mode)
-        return self._storage
+            return self._storage.create_group("data")
+        else:
+            return self._storage.open_group("data")
 
     def close(self) -> None:
         """close any opened storages"""
@@ -124,21 +130,21 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
             result:
                 The result data. If omitted, the model is run to obtain results
         """
+        from .results import Result  # @Reimport
+
         if self.output is None:
             raise RuntimeError("Output file needs to be specified")
 
         if result is None:
             result = self.get_result()
-        else:
-            from .results import Result  # @Reimport
-
-            assert isinstance(result, Result)
+        elif not isinstance(result, Result):
+            raise TypeError(f"result has type {result.__class__} instead of `Result`")
 
         if self._storage is not None:
             # reuse the opened storage
-            result.to_file(self.storage)
+            result.to_file(self._storage, loc="result")
         else:
-            result.to_file(self.output, mode=self.mode)
+            result.to_file(self.output, loc="result", mode=self.mode)
 
     @classmethod
     def _prepare_argparser(cls, name: str | None = None) -> argparse.ArgumentParser:

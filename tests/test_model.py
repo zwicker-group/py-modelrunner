@@ -325,7 +325,7 @@ def test_model_output(tmp_path):
     a.close()
 
     with open_storage(tmp_path / "model.json") as storage:
-        assert storage["info"] == {"args": 5}
+        assert storage["data/info"] == {"args": 5}
 
 
 @pytest.mark.parametrize("kwarg", [True, False])
@@ -351,5 +351,5 @@ def test_model_storage(kwarg, tmp_path):
     m.write_result()
 
     with open_storage(path) as storage:
-        assert storage["saved"] == {"A": "B"}
+        assert storage["data/saved"] == {"A": "B"}
         assert storage["result"].data == 5
