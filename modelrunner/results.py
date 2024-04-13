@@ -47,7 +47,12 @@ class Result:
     """int: number indicating the version of the file format"""
 
     def __init__(
-        self, model: ModelBase, result: Any, info: dict[str, Any] | None = None
+        self,
+        model: ModelBase,
+        result: Any,
+        *,
+        storage: StorageID = None,
+        info: dict[str, Any] | None = None,
     ):
         """
         Args:
@@ -55,13 +60,16 @@ class Result:
                 The model from which the result was obtained
             result:
                 The actual result
+            storage:
+                A storage containing additional data from the model run
             info (dict):
                 Additional information for this result
         """
         if not isinstance(model, ModelBase):
             raise TypeError("The model should be of type `ModelBase`")
-        self.model = model
         self.result = result
+        self.model = model
+        self.storage = storage
         self.info: Attrs = {} if info is None else info
 
     @property
@@ -76,7 +84,9 @@ class Result:
         cls,
         model_data: dict[str, Any],
         result,
+        *,
         model: ModelBase | None = None,
+        storage: StorageID = None,
         info: dict[str, Any] | None = None,
     ) -> Result:
         """create result from data
@@ -88,6 +98,8 @@ class Result:
                 The actual result data
             model (:class:`ModelBase`):
                 The model from which the result was obtained
+            storage:
+                A storage containing additional data from the model run
             info (dict):
                 Additional information for this result
 
@@ -105,7 +117,7 @@ class Result:
         model.name = model_data.get("name")
         model.description = model_data.get("description")
 
-        return cls(model, result, info)
+        return cls(model, result, storage=storage, info=info)
 
     @property
     def parameters(self) -> dict[str, Any]:
@@ -121,13 +133,20 @@ class Result:
     ):
         """load object from a file
 
+        This function loads the results from a hierachical storage. It also attempts to
+        read information about the model that was used to create this result and
+        additional data that might have been stored in a
+        :attr:`~modelrunner.results.Result.storage` while the model was running.
+
         Args:
             store (str or :class:`zarr.Store`):
                 Path or instance describing the storage, which is either a file path or
                 a :class:`zarr.Storage`.
-            key (str):
-                Name of the node in which the data was stored. This applies to some
-                hierarchical storage formats.
+            loc:
+                The location where the result is stored in the storage. This should
+                rarely be modified.
+            model (:class:`~modelrunner.model.ModelBase`):
+                The model which lead to this result
         """
         if isinstance(storage, (str, Path)):
             # check whether the file was written with an old format version
@@ -143,10 +162,15 @@ class Result:
             format_version = attrs.pop("format_version", None)
             if format_version == cls._format_version:
                 # current version of storing results
+                if "data" in storage_obj:
+                    data_storage = open_storage(storage, loc="data", mode="read")
+                else:
+                    data_storage = None
                 return cls.from_data(
                     model_data=attrs.get("model", {}),
                     result=storage_obj.read_item(loc, use_class=False),
                     model=model,
+                    storage=data_storage,
                     info=attrs.pop("info", {}),  # load additional info,
                 )
 
@@ -156,7 +180,10 @@ class Result:
     def to_file(
         self, storage: StorageID, loc: str = "result", *, mode: ModeType = "insert"
     ) -> None:
-        """write this object to a file
+        """write the results to a file
+
+        Note that this does only write the actual `results` but omits additional data
+        that might have been stored in a storage that is associated with the results.
 
         Args:
             storage (:class:`StorageBase` or :class:`StorageGroup`):

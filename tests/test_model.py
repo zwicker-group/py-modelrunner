@@ -7,6 +7,7 @@ from typing import Literal
 
 import pytest
 
+from modelrunner import Result, open_storage
 from modelrunner.model import ModelBase, make_model, make_model_class, run_script
 from modelrunner.parameters import (
     DeprecatedParameter,
@@ -14,7 +15,6 @@ from modelrunner.parameters import (
     NoValue,
     Parameter,
 )
-from modelrunner.storage import open_storage
 
 PACKAGEPATH = Path(__file__).parents[2].resolve()
 SCRIPT_PATH = Path(__file__).parent / "scripts"
@@ -350,6 +350,6 @@ def test_model_storage(kwarg, tmp_path):
     m = model_with_output(output=path)
     m.write_result()
 
-    with open_storage(path) as storage:
-        assert storage["data/saved"] == {"A": "B"}
-        assert storage["result"].result == 5
+    res = Result.from_file(path)
+    assert res.storage["saved"] == {"A": "B"}
+    assert res.result == 5

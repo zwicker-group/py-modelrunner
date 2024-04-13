@@ -61,8 +61,8 @@ def test_pde_field_storage(ext, tmp_path):
 
 @pytest.mark.skipif(not module_available("pde"), reason="requires `pde` module")
 @pytest.mark.parametrize("ext", STORAGE_EXT)
-def test_pde_trajectory_storage(ext, tmp_path):
-    """test writing pde trajectories"""
+def test_pde_trajectory_storage_manual(ext, tmp_path):
+    """test writing pde trajectories manually"""
     import pde
 
     # create the result
