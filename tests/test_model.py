@@ -7,6 +7,7 @@ from typing import Literal
 
 import pytest
 
+from modelrunner import Result, open_storage
 from modelrunner.model import ModelBase, make_model, make_model_class, run_script
 from modelrunner.parameters import (
     DeprecatedParameter,
@@ -14,7 +15,6 @@ from modelrunner.parameters import (
     NoValue,
     Parameter,
 )
-from modelrunner.storage import open_storage
 
 PACKAGEPATH = Path(__file__).parents[2].resolve()
 SCRIPT_PATH = Path(__file__).parent / "scripts"
@@ -24,7 +24,7 @@ assert SCRIPT_PATH.is_dir()
 def run(script, *args):
     """run a script (with potential arguments) and collect stdout"""
     result = run_script(SCRIPT_PATH / script, args)
-    return result.data
+    return result.result
 
 
 def test_empty_script():
@@ -137,7 +137,7 @@ def test_required_arguments_model_class():
             return self.parameters["a"] + self.parameters["b"]
 
     assert A({"a": 3})() == 5
-    assert A.run_from_command_line(["--a", "3"]).data == 5
+    assert A.run_from_command_line(["--a", "3"]).result == 5
     with pytest.raises(SystemExit):
         A.run_from_command_line([])
 
@@ -158,7 +158,7 @@ def test_choices_arguments_model_class():
     assert A({"a": 3})() == 5
     with pytest.raises(ValueError):
         A({"a": 4})
-    assert A.run_from_command_line(["--a", "3"]).data == 5
+    assert A.run_from_command_line(["--a", "3"]).result == 5
     with pytest.raises(SystemExit):
         A.run_from_command_line(["--a", "4"])
 
@@ -175,7 +175,7 @@ def test_make_model():
     assert model1() == 4
     assert model1(3) == 9
     assert model1(a=4) == 16
-    assert model1.get_result().data == 4
+    assert model1.get_result().result == 4
 
     @make_model
     def model2(a, b=2):
@@ -203,7 +203,7 @@ def test_make_model_class():
 
     assert model()() == 4
     assert model({"a": 3})() == 9
-    assert model({"a": 4}).get_result().data == 16
+    assert model({"a": 4}).get_result().result == 16
 
 
 def test_make_model_class_literal_args():
@@ -220,7 +220,7 @@ def test_make_model_class_literal_args():
     with pytest.raises(ValueError):
         model({"a": 3})
 
-    assert model.run_from_command_line(["--a", "a"]).data == "aa"
+    assert model.run_from_command_line(["--a", "a"]).result == "aa"
     with pytest.raises(SystemExit):
         model.run_from_command_line(["--a", "b"])
 
@@ -234,22 +234,22 @@ def test_argparse_boolean_arguments():
 
     with pytest.raises(SystemExit):
         parse_bool_0.run_from_command_line()
-    assert parse_bool_0.run_from_command_line(["--flag"]).data
-    assert not parse_bool_0.run_from_command_line(["--no-flag"]).data
+    assert parse_bool_0.run_from_command_line(["--flag"]).result
+    assert not parse_bool_0.run_from_command_line(["--no-flag"]).result
 
     @make_model
     def parse_bool_1(flag: bool = False):
         return flag
 
-    assert not parse_bool_1.run_from_command_line().data
-    assert parse_bool_1.run_from_command_line(["--flag"]).data
+    assert not parse_bool_1.run_from_command_line().result
+    assert parse_bool_1.run_from_command_line(["--flag"]).result
 
     @make_model
     def parse_bool_2(flag: bool = True):
         return flag
 
-    assert parse_bool_2.run_from_command_line().data
-    assert not parse_bool_2.run_from_command_line(["--no-flag"]).data
+    assert parse_bool_2.run_from_command_line().result
+    assert not parse_bool_2.run_from_command_line(["--no-flag"]).result
 
 
 def test_argparse_list_arguments():
@@ -261,18 +261,18 @@ def test_argparse_list_arguments():
 
     with pytest.raises(TypeError):
         assert parse_list_0.run_from_command_line()
-    assert parse_list_0.run_from_command_line(["--flag"]).data == []
-    assert parse_list_0.run_from_command_line(["--flag", "0"]).data == ["0"]
-    assert parse_list_0.run_from_command_line(["--flag", "0", "1"]).data == ["0", "1"]
+    assert parse_list_0.run_from_command_line(["--flag"]).result == []
+    assert parse_list_0.run_from_command_line(["--flag", "0"]).result == ["0"]
+    assert parse_list_0.run_from_command_line(["--flag", "0", "1"]).result == ["0", "1"]
 
     @make_model
     def parse_list_1(flag: list = [0, 1]):
         return flag
 
-    assert parse_list_1.run_from_command_line().data == [0, 1]
-    assert parse_list_1.run_from_command_line(["--flag"]).data == []
-    assert parse_list_1.run_from_command_line(["--flag", "0"]).data == ["0"]
-    assert parse_list_1.run_from_command_line(["--flag", "0", "1"]).data == ["0", "1"]
+    assert parse_list_1.run_from_command_line().result == [0, 1]
+    assert parse_list_1.run_from_command_line(["--flag"]).result == []
+    assert parse_list_1.run_from_command_line(["--flag", "0"]).result == ["0"]
+    assert parse_list_1.run_from_command_line(["--flag", "0", "1"]).result == ["0", "1"]
 
 
 def test_model_class_inheritence():
@@ -296,7 +296,7 @@ def test_model_class_inheritence():
 
     assert A().parameters == {"a": 1, "b": 2, "c": 3}
     assert A()() == 4
-    assert A.run_from_command_line(["--a", "2"]).data == 5
+    assert A.run_from_command_line(["--a", "2"]).result == 5
     with pytest.raises(SystemExit):
         A.run_from_command_line(["--b", "2"])
 
@@ -306,8 +306,8 @@ def test_model_class_inheritence():
         B.run_from_command_line(["--a", "2"])
     with pytest.raises(SystemExit):
         B.run_from_command_line(["--b", "2"])
-    assert B.run_from_command_line(["--c", "2"]).data == 8
-    assert B.run_from_command_line(["--d", "6"]).data == 11
+    assert B.run_from_command_line(["--c", "2"]).result == 8
+    assert B.run_from_command_line(["--d", "6"]).result == 11
 
 
 def test_model_output(tmp_path):
@@ -350,6 +350,6 @@ def test_model_storage(kwarg, tmp_path):
     m = model_with_output(output=path)
     m.write_result()
 
-    with open_storage(path) as storage:
-        assert storage["data/saved"] == {"A": "B"}
-        assert storage["result"].data == 5
+    res = Result.from_file(path)
+    assert res.storage["saved"] == {"A": "B"}
+    assert res.result == 5

@@ -31,7 +31,7 @@ def test_result_serialization(ext, tmp_path):
     # read data
     read = Result.from_file(path)
     assert read.model.name == "model"
-    np.testing.assert_equal(read.data, result.data)
+    np.testing.assert_equal(read.result, result.result)
 
 
 @pytest.mark.skipif(not module_available("pde"), reason="requires `pde` module")
@@ -56,13 +56,13 @@ def test_pde_field_storage(ext, tmp_path):
 
     # read data
     read = Result.from_file(path)
-    np.testing.assert_equal(read.data, result.data)
+    np.testing.assert_equal(read.result, result.result)
 
 
 @pytest.mark.skipif(not module_available("pde"), reason="requires `pde` module")
 @pytest.mark.parametrize("ext", STORAGE_EXT)
-def test_pde_trajectory_storage(ext, tmp_path):
-    """test writing pde trajectories"""
+def test_pde_trajectory_storage_manual(ext, tmp_path):
+    """test writing pde trajectories manually"""
     import pde
 
     # create the result
@@ -79,7 +79,7 @@ def test_pde_trajectory_storage(ext, tmp_path):
 
     # read data
     read = Result.from_file(path)
-    assert_data_equals(read.data, result.data)
+    assert_data_equals(read.result, result.result)
 
 
 def test_result_collections():
