@@ -35,6 +35,6 @@ def test_reading_compatibility(path):
         try:
             data = pickle.load(fp)
         except ModuleNotFoundError:
-            assert result.data is not None  # just test whether something was loaded
+            assert result.result is not None  # just test whether something was loaded
         else:
-            assert_data_equals(result.data, data, fuzzy=True)
+            assert_data_equals(result.result, data, fuzzy=True)

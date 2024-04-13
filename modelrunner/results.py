@@ -67,6 +67,8 @@ class Result:
     @property
     def data(self):
         """direct access to the underlying state data"""
+        # deprecated on 2024-04-13
+        warnings.warn("`.data` attribute was renamed to `.result`", DeprecationWarning)
         return self.result
 
     @classmethod

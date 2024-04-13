@@ -30,9 +30,9 @@ def test_submit_job(tmp_path, capsys):
         )
         return Result.from_file(output)
 
-    assert run().data["a"] == 1
-    assert run(a=2).data["a"] == 2
-    assert run(b=[1, 2, 3]).data["b"] == [1, 2, 3]
+    assert run().result["a"] == 1
+    assert run(a=2).result["a"] == 2
+    assert run(b=[1, 2, 3]).result["b"] == [1, 2, 3]
     std = capsys.readouterr()
     assert std.out == std.err == ""
 
@@ -59,7 +59,7 @@ def test_submit_job_stdout(tmp_path, method):
 
     assert outs == "3.0\n"
     assert errs == ""
-    assert Result.from_file(output).data is None
+    assert Result.from_file(output).result is None
 
 
 def test_submit_job_no_output():
