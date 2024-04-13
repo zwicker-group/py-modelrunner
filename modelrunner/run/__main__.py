@@ -28,6 +28,12 @@ def main():
 
     parser.add_argument("-o", "--output", help="Path to output file", metavar="PATH")
     parser.add_argument(
+        "-l",
+        "--log_folder",
+        help="Path for log files (skip for no logging)",
+        metavar="PATH",
+    )
+    parser.add_argument(
         "--overwrite",
         nargs="?",
         default="error",
@@ -52,6 +58,7 @@ def main():
         output=args.output,
         name=args.name,
         parameters=args.parameters,
+        log_folder=args.log_folder,
         method=args.method,
         template=args.template,
         overwrite_strategy=args.overwrite,
