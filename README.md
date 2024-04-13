@@ -184,7 +184,7 @@ def multiply(a=1, b=2):
     return a * b
 
 if __name__ == "__main__":
-    submit_job(__file__, parameters={'a': 2}, output="data.hdf5", method="foreground")
+    submit_job(__file__, parameters={"a": 2}, output="data.hdf5", method="foreground")
 ```
 Here, the `output` argument specifies a file to which the results are written, while
 `method` chooses how the script is submitted.
@@ -201,7 +201,7 @@ def multiply(a=1, b=2):
 
 if __name__ == "__main__":
     for a in range(5):
-        submit_job(__file__, parameters={'a': a}, output=f"data_{a}.hdf5", method="foreground")
+        submit_job(__file__, parameters={"a": a}, output=f"data_{a}.hdf5", method="foreground")
 ```
 
 Note that the safe-guard `if __name__ == "__main__"` is absolutely crucial to ensure that
@@ -219,7 +219,7 @@ def multiply(a=1, b=2):
     return a * b
 
 if __name__ == "__main__":
-    submit_jobs(__file__, parameters={'a': range(5)}, output_folder="data", method="foreground")
+    submit_jobs(__file__, parameters={"a": range(5)}, output_folder="data", method="foreground")
 ```
 
 Finally, the packages also offers a method to submit a model script to the cluster using
@@ -259,7 +259,7 @@ For instance, the data from the multiple jobs ran above can be collected using
 from modelrunner import ResultCollection
 
 results = ResultCollection.from_folder(".", pattern="data_*.hdf5")
-print(results.dataframe)
+print(results.to_dataframe())
 ```
 
 This example should print all results using a pandas Dataframe, where each row
