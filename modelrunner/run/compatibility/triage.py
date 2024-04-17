@@ -113,24 +113,15 @@ def _find_version(data: Mapping[str, Any], label: str) -> int | None:
         return format_version
 
 
-def result_check_load_old_version(
-    path: Path, loc: str | None, *, model: ModelBase | None = None
-) -> Result | None:
-    """check whether the resource can be loaded with an older version of the package
+def _get_format_version(path: Path, label: str) -> int | None:
+    """determine format version of the file in `path`
 
     Args:
         path (str or :class:`~pathlib.Path`):
             The path to the resource to be loaded
-        loc (str):
-            Label, key, or location of the item to be loaded
-        model (:class:`~modelrunner.model.ModelBase`, optional):
-            Optional model that was used to write this result
-
-    Returns:
-        :class:`~modelrunner.result.Result`:
-            The loaded result or `None` if we cannot load it with the old versions
+        label (str):
+            Label of the item to be loaded
     """
-    label = "data" if loc is None else loc
     format_version = None
     # check for compatibility
     fmt = guess_format(path)
@@ -155,7 +146,7 @@ def result_check_load_old_version(
 
         store = normalize_zarr_store(path, mode="r")
         if store is None:
-            return None  # could not open zarr file
+            raise RuntimeError
         with zarr.open_group(store, mode="r") as root:
             format_version = _find_version(root, label)
             if format_version is None and label != "data":
@@ -164,7 +155,32 @@ def result_check_load_old_version(
                     label = "data"
 
     else:
-        return None
+        raise RuntimeError
+    return format_version
+
+
+def result_check_load_old_version(
+    path: Path, loc: str | None, *, model: ModelBase | None = None
+) -> Result | None:
+    """check whether the resource can be loaded with an older version of the package
+
+    Args:
+        path (str or :class:`~pathlib.Path`):
+            The path to the resource to be loaded
+        loc (str):
+            Label, key, or location of the item to be loaded
+        model (:class:`~modelrunner.model.ModelBase`, optional):
+            Optional model that was used to write this result
+
+    Returns:
+        :class:`~modelrunner.result.Result`:
+            The loaded result or `None` if we cannot load it with the old versions
+    """
+    label = "data" if loc is None else loc
+    try:
+        format_version = _get_format_version(path, label)
+    except RuntimeError:
+        return None  # could not determine format version
 
     if format_version in {0, None}:
         # load result written with format version 0

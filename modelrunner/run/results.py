@@ -1,5 +1,5 @@
 """
-Classes that describe the final result of a model simulation.
+Classes that describe results of simulations of models
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -18,7 +18,7 @@ import numpy as np
 from tqdm.auto import tqdm
 
 from ..model.base import ModelBase
-from ..storage import Location, StorageID, open_storage, storage_actions
+from ..storage import Location, StorageGroup, StorageID, open_storage, storage_actions
 from ..storage.access_modes import ModeType
 from ..storage.attributes import Attrs
 from ..storage.utils import encode_class
@@ -42,12 +42,14 @@ class MockModel(ModelBase):
 
 
 class Result:
-    """describes the results of a model run together with auxillary information.
+    """describes the result of a single model run together with auxillary information
 
-    Besides storing the final outcome of the model in the :attr:`~Result.result`, the
-    class also stores information about the original model in :attr:`~Result.model`,
-    additional information in :attr:`~Result.info`, and potentially arbitrary objects
-    that were added during the model run in :attr:`~Result.storage`.
+    Besides storing the final outcome of the model in
+    :attr:`~modelrunner.run.results.Result.result`, the class also stores information
+    about the original model in :attr:`~modelrunner.run.results.Result.model`,
+    additional information in :attr:`~modelrunner.run.results.Result.info`, and
+    potentially arbitrary objects that were added during the model run in
+    :attr:`~modelrunner.run.results.Result.storage`.
 
     .. note::
         The result is represented as a hierarchical structure when safed using the
@@ -61,12 +63,23 @@ class Result:
     _format_version = 3
     """int: number indicating the version of the file format"""
 
+    model: ModelBase
+    """:class:`ModelBase`: Model that was run. This is a
+    :class:`~modelrunner.run.results.MockModel` instance if details are not available"""
+    result: Any
+    """the final outcome of the model"""
+    storage: StorageGroup | None
+    """:class:`StorageGroup`: Storage that might contain additional information, e.g.,
+    stored during the model run"""
+    info: dict[str, Any] | None
+    """dict: Additional information for this result"""
+
     def __init__(
         self,
         model: ModelBase,
         result: Any,
         *,
-        storage: StorageID = None,
+        storage: StorageGroup | None = None,
         info: dict[str, Any] | None = None,
     ):
         """
@@ -101,7 +114,7 @@ class Result:
         result,
         *,
         model: ModelBase | None = None,
-        storage: StorageID = None,
+        storage: StorageGroup | None = None,
         info: dict[str, Any] | None = None,
     ) -> Result:
         """create result from data
@@ -228,7 +241,9 @@ class Result:
 
 
 storage_actions.register("read_item", Result, Result.from_file)
-storage_actions.register("write_item", Result, lambda s, l, r: r.to_file(s, l))
+storage_actions.register(
+    "write_item", Result, lambda store, loc, result: result.to_file(store, loc)
+)
 
 
 class ResultCollection(List[Result]):
