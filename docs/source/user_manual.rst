@@ -12,9 +12,9 @@ Hierarchical input/output using :mod:`~modelrunner.storage`:
     Storages are conveniently created by :func:`~modelrunner.storage.tools.open_storage`,
     which returns a storage object that offers a dict-like interface.
 
-Defining parameters using :mod:`~modelrunner.parameters`:
-    The module provides the :class:`~modelrunner.parameters.Parameter` class, describing a single parameter. 
-    This can be used together with the mixin :class:`~modelrunner.parameters.Parametrized`,
+Defining parameters using :mod:`~modelrunner.model.parameters`:
+    The module provides the :class:`~modelrunner.model.parameters.Parameter` class, describing a single parameter. 
+    This can be used together with the mixin :class:`~modelrunner.model.parameters.Parameterized`,
     which allows to equip classes with default parameters and some convenience methods.
 
 Defining models using :mod:`~modelrunner.model`:
