@@ -22,10 +22,10 @@ Defining models using :mod:`~modelrunner.model`:
     Models can be conveniently created by decorating a function or by subclassing
     :class:`~modelrunner.model.ModelBase`, which is built on the parameter classes.
 
-Model results are captured by :mod:`~modelrunner.results`:
-    Results are returned as the special :class:`~modelrunner.results.Result`, which
+Model results are captured by :mod:`~modelrunner.run.results`:
+    Results are returned as the special :class:`~modelrunner.run.results.Result`, which
     keeps track of the input parameters and the data calculated by the model.
-    :class:`~modelrunner.results.ResultCollection` describes a collections of the same
+    :class:`~modelrunner.run.results.ResultCollection` describes a collections of the same
     model evoked with different parameter values.
 
 Submitting models to HPC using :mod:`~modelrunner.run`:
