@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from helpers import assert_data_equals, module_available, storage_extensions
-from modelrunner.results import Result, ResultCollection
+from modelrunner import Result, ResultCollection
 
 STORAGE_EXT = storage_extensions(incl_folder=True, dot=True)
 

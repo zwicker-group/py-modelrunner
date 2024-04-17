@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from helpers import STORAGE_EXT, STORAGE_OBJECTS, assert_data_equals
-from modelrunner.storage import AccessError, open_storage
+from modelrunner.storage import AccessError, StorageGroup, open_storage, storage_actions
 
 OBJ = {"a": 1, "b": np.arange(5)}
 ARRAY_EXAMPLES = [
@@ -328,3 +328,87 @@ def test_storage_close(ext, tmp_path):
     assert reader["obj"] == 1
     reader.close()
     assert reader.closed
+
+
+class A:
+
+    def __init__(self, value):
+        self.value = value
+        self.loaded = False
+
+    def save(self, storage, loc):
+        storage.write_object(loc, self.value, cls=self.__class__)
+
+    @classmethod
+    def load(cls, storage, loc):
+        obj = cls(storage.read_object(loc))
+        obj.loaded = True
+        return obj
+
+
+def save_A(storage, loc, obj):
+    obj.save(storage, loc)
+
+
+storage_actions.register("read_item", A, A.load)
+storage_actions.register("write_item", A, save_A)
+
+
+class B:
+
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+        self.loaded = False
+
+    def save(self, storage, loc):
+        group = storage.create_group(loc, cls=self.__class__)
+        self.a.save(group, "a")
+        group.write_object("b", self.b)
+
+    @classmethod
+    def load(cls, storage, loc):
+        group = StorageGroup(storage, loc)
+        obj = cls(a=group["a"], b=group.read_object("b"))
+        obj.loaded = True
+        return obj
+
+
+storage_actions.register("read_item", B, B.load)
+storage_actions.register("write_item", B, lambda s, l, o: o.save(s, l))
+
+
+@pytest.mark.parametrize("ext", STORAGE_EXT)
+def test_register_class_action(ext, tmp_path):
+    """test loading custom classes"""
+
+    a = A({"a": 1})
+    assert not a.loaded
+
+    with open_storage(tmp_path / f"file{ext}", mode="truncate") as store:
+        store["a"] = a
+
+    with open_storage(tmp_path / f"file{ext}", mode="read") as store:
+        b = store["a"]
+
+    assert b.loaded
+    assert b.value == {"a": 1}
+
+
+@pytest.mark.parametrize("ext", STORAGE_EXT)
+def test_register_class_action_nested(tmp_path, ext):
+    """test loading custom nested classes"""
+
+    a = A({"a": 1})
+    b = B(a, "str")
+    assert not a.loaded and not b.loaded
+
+    with open_storage(tmp_path / f"file{ext}", mode="truncate") as store:
+        store["data"] = b
+
+    with open_storage(tmp_path / f"file{ext}", mode="read") as store:
+        res = store["data"]
+
+    assert res.loaded and res.a.loaded
+    assert res.a.value == {"a": 1}
+    assert res.b == "str"

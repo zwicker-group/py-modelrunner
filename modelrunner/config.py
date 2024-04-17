@@ -16,7 +16,7 @@ import contextlib
 from pathlib import Path
 from typing import Any, Sequence
 
-from .parameters import DeprecatedParameter, Parameter
+from .model.parameters import DeprecatedParameter, Parameter
 
 
 class Config(collections.UserDict):

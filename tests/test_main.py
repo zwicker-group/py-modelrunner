@@ -31,7 +31,7 @@ def test_main():
     env["PYTHONPATH"] = str(PACKAGEPATH) + ":" + env.get("PYTHONPATH", "")
 
     # run example in temporary folder since it might create data files
-    path = PACKAGEPATH / "tests" / "scripts" / "function.py"
+    path = PACKAGEPATH / "tests" / "run" / "scripts" / "function.py"
     cmd_args = (sys.executable, "-m", "modelrunner", path)
     proc = sp.Popen(cmd_args, env=env, stdout=sp.PIPE, stderr=sp.PIPE)
     _, errs = proc.communicate(timeout=30)

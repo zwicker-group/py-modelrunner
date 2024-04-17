@@ -1,0 +1,19 @@
+__attrs__:
+  format_version: '3'
+  __class__: modelrunner.run.results.Result
+  __codec__:
+    id: pickle
+    protocol: 5
+_model:
+  data: !!binary |
+    gAWVRgAAAAAAAAB9lCiMBWNsYXNzlIwJTW9ja01vZGVslIwEbmFtZZSMBW1vZGVslIwLZGVzY3Jp
+    cHRpb26UTowKcGFyYW1ldGVyc5R9lHUu
+  __attrs__:
+    __type__: object
+result:
+  data: !!binary |
+    gAWVnwAAAAAAAAB9lCiMAWGUj5QoaAGMAWKUkGgDjBJudW1weS5jb3JlLm51bWVyaWOUjAtfZnJv
+    bWJ1ZmZlcpSTlCiWGAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAgAAAAAAAACUjAVudW1weZSMBWR0
+    eXBllJOUjAJpOJSJiIeUUpQoSwOMATyUTk5OSv////9K/////0sAdJRiSwOFlIwBQ5R0lFKUdS4=
+  __attrs__:
+    __type__: object

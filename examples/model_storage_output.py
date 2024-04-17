@@ -23,5 +23,5 @@ with tempfile.NamedTemporaryFile(suffix=".yaml") as fp:
 
     # read the file and check whether all the data is there
     with open_storage(fp.name) as storage:
-        print("Stored data:", storage["data"])
-        print("Model result:", storage["result"].result)
+        print("Stored data:", storage["storage/data"])
+        print("Model result:", storage["result"])

@@ -1,3 +1,16 @@
+"""
+Defines stroages, which contain store objects in a hierarchical format
+
+.. autosummary::
+   :nosignatures:
+
+   ~modelrunner.storage.tools.open_storage
+   ~modelrunner.storage.trajectory.Trajectory
+   ~modelrunner.storage.trajectory.TrajectoryWriter
+
+.. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
+"""
+
 from .access_modes import AccessError, ModeType
 from .attributes import Attrs
 from .backend import *

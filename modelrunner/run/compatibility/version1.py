@@ -14,10 +14,9 @@ from typing import TYPE_CHECKING, Any, TypeVar, Union
 
 import numpy as np
 
-from ..model import ModelBase
+from ...model import ModelBase
 from ..results import Result
 from .triage import guess_format, normalize_zarr_store
-from .version0 import read_hdf_data
 
 if TYPE_CHECKING:
     import zarr
@@ -44,12 +43,6 @@ class StateBase(metaclass=ABCMeta):
     storage, we define the properties `_state_data` and `_state_attributes`, which by
     default return `attributes` and `data` directly, but may be overwritten to process
     the data before storage (e.g., by additional serialization).
-
-    .. automethod:: StateBase._state_init
-    .. autoproperty:: StateBase._state_attributes
-    .. autoproperty:: StateBase._state_attributes_store
-    .. autoproperty:: StateBase._state_data
-    .. autoproperty:: StateBase._state_data_store
     """
 
     _state_format_version = 2
@@ -223,8 +216,7 @@ def result_from_file_v1(store: Path, *, label: str = "data", **kwargs) -> Result
 
     Args:
         store (Path):
-            Path or instance describing the storage, which is either a file path or
-            a :class:`zarr.Storage`.
+            Path of file to read
         fmt (str):
             Explicit file format. Determined from `store` if omitted.
         label (str):
@@ -253,6 +245,3 @@ def result_from_file_v1(store: Path, *, label: str = "data", **kwargs) -> Result
 
     else:
         raise NotImplementedError(f"Format `{fmt}` not implemented")
-
-
-__all__ = ["result_from_file"]

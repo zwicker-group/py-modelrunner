@@ -20,8 +20,8 @@ from typing import Any, Iterable, Literal
 
 from tqdm.auto import tqdm
 
+from .. import Parameter
 from ..config import Config
-from ..parameters import Parameter
 
 
 def escape_string(obj) -> str:

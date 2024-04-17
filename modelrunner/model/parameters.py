@@ -25,7 +25,7 @@ from typing import Any, Callable, Container, Dict, Iterator, List, Optional, Uni
 
 import numpy as np
 
-from .utils import hybridmethod, import_class
+from ..utils import hybridmethod, import_class
 
 
 class NoValueType:

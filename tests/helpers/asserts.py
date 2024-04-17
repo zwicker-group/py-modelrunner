@@ -2,9 +2,18 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-from typing import Any
+from typing import Any, Sequence
 
 import numpy as np
+
+
+def homogeneous_shape(arr: Sequence) -> bool:
+    """test whether sequence items have all the same length"""
+    try:
+        return len({len(a) for a in arr}) == 1
+    except TypeError:
+        # happens if one of the items does not have __len__
+        return True
 
 
 def assert_data_equals(left: Any, right: Any, *, fuzzy: bool = False) -> bool:
@@ -48,7 +57,12 @@ def assert_data_equals(left: Any, right: Any, *, fuzzy: bool = False) -> bool:
     elif fuzzy:
         if isinstance(left, np.ndarray) or isinstance(right, np.ndarray):
             # one of the operands numpy array, while the other might be a list
-            assert np.array_equal(np.asarray(left), np.asarray(right))
+            if homogeneous_shape(left) and homogeneous_shape(right):
+                assert np.array_equal(np.asarray(left), np.asarray(right))
+            else:
+                assert len(left) == len(right)
+                for l, r in zip(left, right):
+                    assert_data_equals(l, r, fuzzy=fuzzy)
 
         elif isinstance(left, np.number) or isinstance(right, np.number):
             # one of the operands numpy number, while the other might be a normal number
