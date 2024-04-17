@@ -20,7 +20,7 @@ Defining parameters using :mod:`~modelrunner.model.parameters`:
 Defining models using :mod:`~modelrunner.model`:
     Models are augmented functions, which define input, calculations, and output.
     Models can be conveniently created by decorating a function or by subclassing
-    :class:`~modelrunner.model.ModelBase`, which is built on the parameter classes.
+    :class:`~modelrunner.model.base.ModelBase`, which is built on the parameter classes.
 
 Model results are captured by :mod:`~modelrunner.run.results`:
     Results are returned as the special :class:`~modelrunner.run.results.Result`, which
@@ -32,21 +32,21 @@ Submitting models to HPC using :mod:`~modelrunner.run`:
     A single model can be submitted to a compute node using :func:`~modelrunner.run.job.submit_job`,
     e.g., to run the computation on a high performance compute cluster.
     A parameter study using multiple jobs can be conveniently submitted using :func:`~modelrunner.run.job.submit_jobs`.
-    The results written to one directory can then be conveniently analyzed using :meth:`~modelrunner.results.ResultCollection.from_folder`.
+    The results written to one directory can then be conveniently analyzed using :func:`~modelrunner.run.results.ResultCollection.from_folder`.
 
 
 Design philosophy
 -----------------
 
-The main requirements for the storage classes were
+The main requirements for the package can be summarized as follows:
 
-- *Usability*: The user should not need to think about how data is stored in different files
-- *Flexibility*: We want a general interface to write data in multiple file formats (YAML, HDF, zarr, ...)
-- *Stability*: Future versions of the package should be able to read older files even when the internal definitions of file formats change
-- *Modularity*: Different parts of the package (like :mod:`~modelrunner.storage`, :mod:`~modelrunner.parameters`, and :mod:`~modelrunner.run`) should be rather independent of each other, so they can be used in isolation
-- *Extensibility*: Models should be easy to subclass to implement more complicated requirements (e.g., additional parameters)
-- *Self-explainability*: The files should in principle contain all information to reconstruct the data, even if the `py-modelrunner` package is no longer available.
-- *Efficiency*: The files should only store necessary information.
+- **Usability**: The user should not need to think about how data is stored in different files. The :class:`~modelrunner.run.results.Result` class should simply work.
+- **Flexibility**: :mod:`~modelrunner.storage` should provide a unified interface to write data in multiple file formats (JSON, YAML, HDF, zarr, ...)
+- **Stability**: Future versions of the package should be able to read older files even when the internal definitions of file formats change
+- **Modularity**: Different parts of the package (like :mod:`~modelrunner.storage`, :mod:`~modelrunner.model.parameters`, and :mod:`~modelrunner.run`) should be rather independent of each other, so they can be used in isolation
+- **Extensibility**: Models inherting from :class:`~modelrunner.model.base.ModelBase` should be easy to subclass to implement more complicated requirements (e.g., additional parameters)
+- **Self-explainability**: The files should in principle contain all information to reconstruct the data, even if the :mod:`modelrunner` package is no longer available.
+- **Efficiency**: The files should only store necessary information.
 
 The last point results in particular constraints if we want to store temporal simulation results.
 In most cases, there are are some data that are kept fixed for the simulation (describing physical parameters) and others that evolve with time.
