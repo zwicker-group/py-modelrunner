@@ -57,6 +57,18 @@ class StorageGroup:
     def __repr__(self):
         return f'StorageGroup(storage={self._storage}, loc="/{"/".join(self.loc)}")'
 
+    @property
+    def parent(self) -> StorageGroup:
+        """:class:`StorageGroup`: Parent group
+
+        Raises:
+            RuntimeError: If current group is root group
+        """
+        if self.loc:
+            return StorageGroup(self._storage, loc=self.loc[:-1])
+        else:
+            raise RuntimeError("Root group has no parent")
+
     def tree(self) -> None:
         """print the hierarchical storage as a tree structure"""
         vertic = "│  "
@@ -120,6 +132,12 @@ class StorageGroup:
                 return StorageGroup(self._storage, loc_list)
         # reconstruct objected stored at this place
         return self.read_item(loc, use_class=True)
+
+    def get(self, loc: Location, default: Any = None) -> Any:
+        try:
+            return self[loc]
+        except KeyError:
+            return default
 
     def __setitem__(self, loc: Location, obj: Any) -> None:
         self.write_item(loc, obj)
@@ -203,15 +221,15 @@ class StorageGroup:
         Returns:
             The reconstructed python object
         """
+        loc_list = self._get_loc(loc)
         if use_class:
             cls = self.get_class(loc)
             if cls is not None:
                 # create object using a registered action
                 read_item = storage_actions.get(cls, "read_item")
-                return read_item(self._storage, loc)
+                return read_item(self._storage, loc_list)
 
         # read the item using the generic classes
-        loc_list = self._get_loc(loc)
         obj_type = self._storage._read_attrs(loc_list).get("__type__")
         if obj_type in {"array", "dynamic_array"}:
             arr = self._storage.read_array(loc_list)

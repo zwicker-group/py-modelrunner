@@ -17,10 +17,11 @@ from typing import Any, Iterator, List
 import numpy as np
 from tqdm.auto import tqdm
 
-from .model import ModelBase
-from .storage import StorageID, open_storage, storage_actions
-from .storage.access_modes import ModeType
-from .storage.attributes import Attrs
+from ..model.base import ModelBase
+from ..storage import Location, StorageID, open_storage, storage_actions
+from ..storage.access_modes import ModeType
+from ..storage.attributes import Attrs
+from ..storage.utils import encode_class
 
 
 class MockModel(ModelBase):
@@ -41,9 +42,23 @@ class MockModel(ModelBase):
 
 
 class Result:
-    """describes a model (with parameters) together with its result"""
+    """describes the results of a model run together with auxillary information.
 
-    _format_version = 2
+    Besides storing the final outcome of the model in the :attr:`~Result.result`, the
+    class also stores information about the original model in :attr:`~Result.model`,
+    additional information in :attr:`~Result.info`, and potentially arbitrary objects
+    that were added during the model run in :attr:`~Result.storage`.
+
+    .. note::
+        The result is represented as a hierarchical structure when safed using the
+        :mod:`~modelrunner.storage`. The actual result is stored in the `result` group,
+        whereas the model information can be found in `_model` group. Additional
+        information is stored in the root attribute. Thus, the full :class:`Result` can
+        be read using :code:`storage[loc]`, where `loc` denotes the result location. If
+        only the actual result is needed, :code:`storage[loc + "/result"]` can be read.
+    """
+
+    _format_version = 3
     """int: number indicating the version of the file format"""
 
     def __init__(
@@ -127,7 +142,7 @@ class Result:
     def from_file(
         cls,
         storage: StorageID,
-        loc: str = "result",
+        loc: Location = None,
         *,
         model: ModelBase | None = None,
     ):
@@ -148,7 +163,7 @@ class Result:
             model (:class:`~modelrunner.model.ModelBase`):
                 The model which lead to this result
         """
-        if isinstance(storage, (str, Path)):
+        if isinstance(storage, (str, Path)) and (isinstance(loc, str) or loc is None):
             # check whether the file was written with an old format version
             from .compatibility.triage import result_check_load_old_version
 
@@ -162,13 +177,13 @@ class Result:
             format_version = attrs.pop("format_version", None)
             if format_version == cls._format_version:
                 # current version of storing results
-                if "data" in storage_obj:
-                    data_storage = open_storage(storage, loc="data", mode="read")
+                if "storage" in storage_obj:
+                    data_storage = open_storage(storage, loc="storage", mode="read")
                 else:
                     data_storage = None
                 return cls.from_data(
-                    model_data=attrs.get("model", {}),
-                    result=storage_obj.read_item(loc, use_class=False),
+                    model_data=storage_obj.get("_model", {}),
+                    result=storage_obj.read_item("result", use_class=False),
                     model=model,
                     storage=data_storage,
                     info=attrs.pop("info", {}),  # load additional info,
@@ -178,7 +193,7 @@ class Result:
                 raise RuntimeError(f"Cannot read format version {format_version}")
 
     def to_file(
-        self, storage: StorageID, loc: str = "result", *, mode: ModeType = "insert"
+        self, storage: StorageID, loc: Location = None, *, mode: ModeType = "insert"
     ) -> None:
         """write the results to a file
 
@@ -197,19 +212,23 @@ class Result:
                 allowed operations. Common options are "read", "full", "append", and
                 "truncate".
         """
-        with open_storage(storage, mode=mode) as storage_obj:
+        with open_storage(storage, loc=loc, mode=mode) as storage_obj:
             # collect attributes from the result
             attrs: Attrs = {
-                "model": dict(self.model._state_attributes),
+                # "model": dict(self.model._state_attributes),
                 "format_version": self._format_version,
+                "__class__": encode_class(self.__class__),
             }
             if self.info:
                 attrs["info"] = self.info
             # write the actual data
-            storage_obj.write_object(loc, self.result, attrs=attrs, cls=self.__class__)
+            storage_obj.write_attrs([], attrs=attrs)
+            storage_obj.write_object("_model", dict(self.model._state_attributes))
+            storage_obj.write_object("result", self.result)
 
 
 storage_actions.register("read_item", Result, Result.from_file)
+storage_actions.register("write_item", Result, lambda s, l, r: r.to_file(s, l))
 
 
 class ResultCollection(List[Result]):

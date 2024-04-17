@@ -303,7 +303,7 @@ class StorageBase(metaclass=ABCMeta):
             if not self.can_update:
                 raise RuntimeError("Storage does not support updating items")
             if not self.mode.overwrite:
-                raise AccessError(f"{name} `/{'/'.join(loc)}` already exists")
+                raise AccessError(f"{name} `/{'/'.join(loc)}` already exists in {self}")
         else:
             # check whether we can insert a new array
             if not self.mode.insert:

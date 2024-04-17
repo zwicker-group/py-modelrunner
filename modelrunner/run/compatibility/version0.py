@@ -12,7 +12,7 @@ from typing import Any, Mapping
 
 import numpy as np
 
-from ..model import ModelBase
+from ...model import ModelBase
 from ..results import Result
 from .triage import guess_format
 

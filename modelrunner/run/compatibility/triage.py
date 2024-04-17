@@ -7,10 +7,11 @@ Contains code necessary for deciding which format version was used to write a fi
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Mapping, Union
 
-from ..model import ModelBase
+from ...model import ModelBase
 from ..results import Result
 
 if TYPE_CHECKING:
@@ -103,6 +104,8 @@ def _find_version(data: Mapping[str, Any], label: str) -> int | None:
         format_version = read_version(data[label])
     if format_version is None and "state" in data:
         format_version = read_version(data["state"])
+    if format_version is None and "result" in data:
+        format_version = read_version(data["result"])
 
     if isinstance(format_version, str):
         return json.loads(format_version)  # type: ignore
@@ -111,7 +114,7 @@ def _find_version(data: Mapping[str, Any], label: str) -> int | None:
 
 
 def result_check_load_old_version(
-    path: Path, loc: str, *, model: ModelBase | None = None
+    path: Path, loc: str | None, *, model: ModelBase | None = None
 ) -> Result | None:
     """check whether the resource can be loaded with an older version of the package
 
@@ -167,13 +170,25 @@ def result_check_load_old_version(
         # load result written with format version 0
         from .version0 import result_from_file_v0
 
+        logger = logging.getLogger("modelrunner.compatiblity")
+        logger.info("Load data with format version 0")
         return result_from_file_v0(path, model=model)
 
     elif format_version == 1:
         # load result written with format version 1
         from .version1 import result_from_file_v1
 
+        logger = logging.getLogger("modelrunner.compatiblity")
+        logger.info("Load data with format version 1")
         return result_from_file_v1(path, label=label, model=model)
+
+    elif format_version == 2:
+        # load result written with format version 1
+        from .version2 import result_from_file_v2
+
+        logger = logging.getLogger("modelrunner.compatiblity")
+        logger.info("Load data with format version 2")
+        return result_from_file_v2(path, label=label, model=model)
 
     elif not isinstance(format_version, int):
         raise RuntimeError(f"Unsupported format version {format_version}")

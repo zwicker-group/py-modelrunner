@@ -7,16 +7,22 @@ from typing import Literal
 
 import pytest
 
-from modelrunner import Result, open_storage
-from modelrunner.model import ModelBase, make_model, make_model_class, run_script
-from modelrunner.parameters import (
+from modelrunner import (
+    ModelBase,
+    Result,
+    make_model,
+    make_model_class,
+    open_storage,
+    run_script,
+)
+from modelrunner.model.parameters import (
     DeprecatedParameter,
     HideParameter,
     NoValue,
     Parameter,
 )
 
-PACKAGEPATH = Path(__file__).parents[2].resolve()
+PACKAGEPATH = Path(__file__).parents[3].resolve()
 SCRIPT_PATH = Path(__file__).parent / "scripts"
 assert SCRIPT_PATH.is_dir()
 
@@ -325,7 +331,7 @@ def test_model_output(tmp_path):
     a.close()
 
     with open_storage(tmp_path / "model.json") as storage:
-        assert storage["data/info"] == {"args": 5}
+        assert storage["info"] == {"args": 5}
 
 
 @pytest.mark.parametrize("kwarg", [True, False])

@@ -15,10 +15,10 @@ PACKAGE_PATH = Path(__file__).resolve().parents[1]  # base path of the package
 assert (PACKAGE_PATH / PACKAGE).is_dir()
 sys.path.insert(0, str(PACKAGE_PATH))
 
-from modelrunner import Result
+from modelrunner import Result, make_model_class
 
 # locate the storage for the compatibility files
-FORMAT_VERSION = 2
+FORMAT_VERSION = "3"
 STORAGE_PATH = PACKAGE_PATH / "tests" / "compatibility" / str(FORMAT_VERSION)
 assert STORAGE_PATH.is_dir()
 
@@ -38,8 +38,8 @@ DATASETS = {
 EXTENSIONS = [".yaml", ".json", ".hdf", ".zip"]
 
 
-def create_files(name, data, extensions=EXTENSIONS):
-    """create example file
+def create_result_files(name, data, extensions=EXTENSIONS):
+    """create example file storing a simple result
 
     Args:
         name (str): The name of the dataset
@@ -62,10 +62,34 @@ def create_files(name, data, extensions=EXTENSIONS):
         pickle.dump(data, fp)
 
 
+def create_model_result_files(name, data, extensions=EXTENSIONS):
+    """create example file storing a trajectory
+
+    Args:
+        name (str): The name of the dataset
+        data: The data contained in the result
+        extensions: The extensions defining the file formats being used
+    """
+
+    @make_model_class
+    def MyModel(storage):
+        storage["custom"] = data
+        return data
+
+    for extension in extensions:
+        model = MyModel(output=STORAGE_PATH / f"model_{name}{extension}")
+        model.write_result()
+
+    # write the exact data to check later
+    with open(STORAGE_PATH / f"model_{name}.pkl", "wb") as fp:
+        pickle.dump(data, fp)
+
+
 def main():
     """main function"""
     for key, value in DATASETS.items():
-        create_files(key, value)
+        create_result_files(key, value)
+        create_model_result_files(key, value)
 
 
 if __name__ == "__main__":

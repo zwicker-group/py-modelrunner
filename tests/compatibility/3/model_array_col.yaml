@@ -1,0 +1,30 @@
+storage:
+  custom:
+    data: !!binary |
+      gAWVuAAAAAAAAABdlCiMEm51bXB5LmNvcmUubnVtZXJpY5SMC19mcm9tYnVmZmVylJOUKJYQAAAA
+      AAAAAAAAAAAAAAAAAQAAAAAAAACUjAVudW1weZSMBWR0eXBllJOUjAJpOJSJiIeUUpQoSwOMATyU
+      Tk5OSv////9K/////0sAdJRiSwKFlIwBQ5R0lFKUaAMolhgAAAAAAAAAAAAAAAAAAAABAAAAAAAA
+      AAIAAAAAAAAAlGgKSwOFlGgOdJRSlGUu
+    __attrs__:
+      __type__: object
+__attrs__:
+  __codec__:
+    id: pickle
+    protocol: 5
+  format_version: '3'
+  __class__: modelrunner.run.results.Result
+  info: '{"time": "2024-04-16 17:23:01"}'
+_model:
+  data: !!binary |
+    gAWVPgAAAAAAAAB9lCiMBWNsYXNzlIwHTXlNb2RlbJSMBG5hbWWUaAKMC2Rlc2NyaXB0aW9ulE6M
+    CnBhcmFtZXRlcnOUfZR1Lg==
+  __attrs__:
+    __type__: object
+result:
+  data: !!binary |
+    gAWVuAAAAAAAAABdlCiMEm51bXB5LmNvcmUubnVtZXJpY5SMC19mcm9tYnVmZmVylJOUKJYQAAAA
+    AAAAAAAAAAAAAAAAAQAAAAAAAACUjAVudW1weZSMBWR0eXBllJOUjAJpOJSJiIeUUpQoSwOMATyU
+    Tk5OSv////9K/////0sAdJRiSwKFlIwBQ5R0lFKUaAMolhgAAAAAAAAAAAAAAAAAAAABAAAAAAAA
+    AAIAAAAAAAAAlGgKSwOFlGgOdJRSlGUu
+  __attrs__:
+    __type__: object

@@ -4,8 +4,8 @@
 
 import pytest
 
+from modelrunner import Parameter
 from modelrunner.config import Config
-from modelrunner.parameters import Parameter
 
 
 def test_config():

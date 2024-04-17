@@ -5,7 +5,7 @@ Simple sphinx plug-in that simplifies  type information in function signatures
 import collections
 import re
 
-from modelrunner.parameters import Parameterized
+from modelrunner import Parameterized
 
 # simple (literal) replacement rules
 REPLACEMENTS = collections.OrderedDict(
@@ -18,64 +18,6 @@ REPLACEMENTS = collections.OrderedDict(
         ("Optional[int]", "int"),
         ("Optional[dict]", "dict"),
         ("Optional[Dict[str, Any]]", "dict"),
-        # Complex types that can be represented by some descriptive name
-        ("Union[dict, str, BCBase]", "BoundaryData"),
-        (
-            "Union[Dict[str, BoundaryData], "
-            "BoundaryData, Tuple[BoundaryData, BoundaryData]]",
-            "BoundaryPairData",
-        ),
-        (
-            "Union[Dict[str, BoundaryData], dict, str, BCBase, "
-            "Tuple[BoundaryData, BoundaryData]]",
-            "BoundaryPairData",
-        ),
-        ("Union[BoundaryPairData, Sequence[BoundaryPairData]]", "BoundariesData"),
-        (
-            "Union[Dict[str, BoundaryData], dict, str, BCBase, "
-            "Tuple[BoundaryData, BoundaryData], Sequence[BoundaryPairData]]",
-            "BoundariesData",
-        ),
-        (
-            "Union[dict, str, BCBase, Tuple[Union[dict, str, BCBase], "
-            "Union[dict, str, BCBase]], Sequence[Union[dict, str, BCBase, "
-            "Tuple[Union[dict, str, BCBase], Union[dict, str, BCBase]]]]]",
-            "BoundaryConditionData",
-        ),
-        (
-            "Union[Dict[str, Union[Dict, str, BCBase]], Dict, str, BCBase, "
-            "Tuple[Union[Dict, str, BCBase], Union[Dict, str, BCBase]], "
-            "Sequence[Union[Dict[str, Union[Dict, str, BCBase]], Dict, str, BCBase, "
-            "Tuple[Union[Dict, str, BCBase], Union[Dict, str, BCBase]]]]]",
-            "BoundaryConditionData",
-        ),
-        (
-            "Union[dict, str, BCBase, Tuple[Union[dict, str, BCBase], "
-            "Union[dict, str, BCBase]], Sequence[Union[dict, str, BCBase, "
-            "Tuple[Union[dict, str, BCBase], Union[dict, str, BCBase]]]], "
-            "Sequence[BoundaryConditionData]]",
-            "BoundaryConditionData",
-        ),
-        (
-            "Union[Dict[str, BoundaryData], dict, str, BCBase, "
-            "Tuple[BoundaryData, BoundaryData], "
-            "Sequence[BoundaryPairData], Sequence[BoundariesData]]",
-            "BoundariesDataList",
-        ),
-        (
-            "Union[Dict[str, Union[Dict, str, BCBase]], Dict, str, BCBase, "
-            "Tuple[Union[Dict, str, BCBase], Union[Dict, str, BCBase]], "
-            "Sequence[Union[Dict[str, Union[Dict, str, BCBase]], Dict, str, BCBase, "
-            "Tuple[Union[Dict, str, BCBase], Union[Dict, str, BCBase]]]], "
-            "Sequence[BoundaryConditionData]]",
-            "BoundariesDataList",
-        ),
-        ("Union[List[Union[TrackerBase, str]], TrackerBase, str, None]", "TrackerData"),
-        (
-            "Union[agent_based.agents.base.AgentsBase, "
-            "Sequence[agent_based.agents.base.AgentsBase]]",
-            "AgentsData",
-        ),
     ]
 )
 
@@ -83,7 +25,7 @@ REPLACEMENTS = collections.OrderedDict(
 # replacement rules based on regular expressions
 REPLACEMENTS_REGEX = {
     # remove full package path and only leave the module/class identifier
-    r"multicomp\.(\w+\.)*": "",
+    r"modelrunner\.(\w+\.)*": "",
 }
 
 
