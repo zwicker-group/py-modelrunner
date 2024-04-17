@@ -55,7 +55,7 @@ class Result:
         The result is represented as a hierarchical structure when safed using the
         :mod:`~modelrunner.storage`. The actual result is stored in the `result` group,
         whereas the model information can be found in `_model` group. Additional
-        information is stored in the root attribute. Thus, the full :class:`Result` can
+        information is stored in the `storage` group. Thus, the full :class:`Result` can
         be read using :code:`storage[loc]`, where `loc` denotes the result location. If
         only the actual result is needed, :code:`storage[loc + "/result"]` can be read.
     """
