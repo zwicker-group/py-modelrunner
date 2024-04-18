@@ -159,13 +159,20 @@ class _StorageRegistry:
     allowed_actions = set(ActionType.__args__)  # type: ignore
     """set: all actions that can be registered"""
 
-    _hooks: dict[type, dict[str, Callable]]
+    _hooks: dict[type, dict[str, tuple[Callable, bool]]]
     """dict: register for all defined hooks"""
 
     def __init__(self):
         self._hooks = defaultdict(dict)
 
-    def register(self, action: ActionType, cls: type, method_or_func: Callable) -> None:
+    def register(
+        self,
+        action: ActionType,
+        cls: type,
+        method_or_func: Callable,
+        *,
+        inherit: bool = True,
+    ) -> None:
         """register an action for the given class
 
         Example:
@@ -182,6 +189,9 @@ class _StorageRegistry:
                 The class this action is associated with
             method_or_func (callable):
                 The function/method that is called for the action
+            inherit (bool):
+                Determines whether child classes of `cls` inherit this action and will
+                be able to use it.
         """
         if action not in self.allowed_actions:
             raise ValueError(f"Unknown action `{action}` ")
@@ -192,9 +202,9 @@ class _StorageRegistry:
                 """helper function to call the classmethod"""
                 return method_or_func(cls, *args, **kwargs)
 
-            self._hooks[cls][action] = _call_classmethod
+            self._hooks[cls][action] = (_call_classmethod, inherit)
         elif callable(method_or_func):
-            self._hooks[cls][action] = method_or_func
+            self._hooks[cls][action] = (method_or_func, inherit)
         else:
             raise TypeError("`method_or_func` must be method or function")
 
@@ -214,7 +224,9 @@ class _StorageRegistry:
         classes = inspect.getmro(cls)[:-1]
         for c in classes:
             if c in self._hooks and action in self._hooks[c]:
-                return self._hooks[c][action]
+                func, inherit = self._hooks[c][action]
+                if inherit or c is cls:
+                    return func
 
         raise RuntimeError(f"No action `{action}` for `{cls.__name__}`")
 

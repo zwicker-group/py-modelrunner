@@ -80,7 +80,7 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
         elif self._modified:
             # The storage was modified, but it cannot be written to the file. This
             # should not happen, but it's better to throw an explicit error
-            raise AccessError("Cannot write to file")
+            raise AccessError("Cannot write modifications to file opened read-only")
 
     def close(self) -> None:
         """close the file and write the data to the file"""
