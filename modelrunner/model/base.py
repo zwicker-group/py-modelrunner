@@ -14,16 +14,8 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Sequence
 
 from ..storage import ModeType, StorageGroup, open_storage
+from ..utils import is_serial_or_mpi_root
 from .parameters import DeprecatedParameter, HideParameter, Parameterized
-
-# read state of the current MPI node
-try:
-    from mpi4py import MPI
-except ImportError:
-    mpi_rank: int = 0  # no MPI -> current process is main process
-else:
-    mpi_rank = MPI.COMM_WORLD.rank
-
 
 if TYPE_CHECKING:
     from ..run.results import Result  # @UnusedImport
@@ -234,7 +226,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         result = mdl.get_result()
 
         # write the results
-        if mdl.output and mpi_rank == 0:
+        if mdl.output and is_serial_or_mpi_root():
             # Write the results to a file if `output` is specified and if we are on the
             # root node of an MPI run (or a serial program). The second check is a
             # safe-guard against writing data on sub-nodes during an MPI program.
