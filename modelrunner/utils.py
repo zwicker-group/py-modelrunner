@@ -69,3 +69,13 @@ def import_class(identifier: str):
     else:
         # this happens when identifier does not contain a dot
         return importlib.import_module(class_name)
+
+
+def is_serial_or_mpi_root() -> bool:
+    """function determining whether the current program is serial or an MPI root node"""
+    try:
+        from mpi4py import MPI
+    except ImportError:
+        return True
+    else:
+        return MPI.COMM_WORLD.rank == 0
