@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations
+
 import argparse
 import os
 import subprocess as sp
@@ -66,6 +68,7 @@ def run_unit_tests(
     coverage: bool = False,
     no_numba: bool = False,
     pattern: str = None,
+    pytest_args: list[str] = [],
 ) -> int:
     """run the unit tests
 
@@ -74,6 +77,9 @@ def run_unit_tests(
         coverage (bool): Whether to determine the test coverage
         no_numba (bool): Whether to disable numba jit compilation
         pattern (str): A pattern that determines which tests are ran
+        pytest_args (list of str):
+            Additional arguments forwarded to py.test. For instance ["--maxfail=1"]
+            fails tests early.
 
     Returns:
         int: The return code indicating success or failure
@@ -116,6 +122,8 @@ def run_unit_tests(
                 f"--cov={PACKAGE}",
             ]
         )
+
+    args.extend(pytest_args)
 
     # specify the package to run
     args.append("tests")
@@ -191,6 +199,13 @@ def main():
         help="Write a report of the results",
     )
 
+    # set py.test arguments
+    group = parser.add_argument_group(
+        "py.test arguments",
+        description="Additional arguments separated by `--` are forward to py.test",
+    )
+    group.add_argument("pytest_args", nargs="*", help=argparse.SUPPRESS)
+
     # parse the command line arguments
     args = parser.parse_args()
     run_all = not (args.style or args.types or args.unit)
@@ -206,6 +221,7 @@ def main():
             parallel=args.parallel,
             no_numba=args.no_numba,
             pattern=args.pattern,
+            pytest_args=args.pytest_args,
         )
 
 

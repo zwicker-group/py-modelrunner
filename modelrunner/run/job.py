@@ -219,10 +219,13 @@ def submit_job(
     job_args = []
     if parameters is not None and len(parameters) > 0:
         if isinstance(parameters, dict):
-            parameters = json.dumps(parameters)
-        elif not isinstance(parameters, str):
+            parameters_json = json.dumps(parameters)
+        elif isinstance(parameters, str):
+            parameters_json = parameters
+        else:
             raise TypeError("Parameters need to be given as a string or a dict")
-        job_args.append(f"--json {escape_string(parameters)}")
+        job_args.append(f"--json {escape_string(parameters_json)}")
+        script_args["PARAMETERS"] = parameters  # allow using parameters in job script
 
     logger.debug("Job arguments: `%s`", job_args)
 

@@ -1,0 +1,19 @@
+#!/bin/bash -l
+
+export PYTHONPATH={{ PACKAGE_PATH }}:$PYTHONPATH
+
+{% if CONFIG.num_threads is number %}
+# set the number of threads to use
+export MKL_NUM_THREADS={{ CONFIG.num_threads }}
+export NUMBA_NUM_THREADS={{ CONFIG.num_threads }}
+export NUMEXPR_NUM_THREADS={{ CONFIG.num_threads }}
+export OMP_NUM_THREADS={{ CONFIG.num_threads }}
+export OPENBLAS_NUM_THREADS={{ CONFIG.num_threads }}
+{% endif %}
+
+{% if OUTPUT_FOLDER is defined and OUTPUT_FOLDER %}
+mkdir -p {{ OUTPUT_FOLDER }}
+{% endif %}
+
+# Run the program
+{{ CONFIG.python_bin }} -m modelrunner {{ MODEL_FILE }} --a {{ PARAMETERS.a }}

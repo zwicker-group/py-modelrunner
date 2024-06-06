@@ -57,8 +57,8 @@ def test_submit_job_stdout(tmp_path, method):
         overwrite_strategy="silent_overwrite",
     )
 
-    assert outs == "3.0\n"
     assert errs == ""
+    assert outs == "3.0\n"
     assert Result.from_file(output).result is None
 
 
@@ -69,8 +69,8 @@ def test_submit_job_no_output():
         method="foreground",
         overwrite_strategy="silent_overwrite",
     )
-    assert outs == "3.0\n"
     assert errs == ""
+    assert outs == "3.0\n"
 
 
 def test_submit_jobs(tmp_path):
@@ -137,3 +137,17 @@ def test_submit_job_no_modelrunner(tmp_path):
 
     assert run() == ("", "")
     assert run(a=1) == ('--json{"a": 1}', "")
+
+
+def test_submit_job_own_template(tmp_path):
+    """test the submit_job function with a custom template"""
+    outs, errs = submit_job(
+        SCRIPT_PATH / "print.py",
+        method="foreground",
+        parameters={"a": 5, "b": 10},  # b is not used by template
+        template=SCRIPT_PATH / "custom.jinja",
+        overwrite_strategy="silent_overwrite",
+    )
+
+    assert errs == ""
+    assert outs == "7.0\n"  # a + 2 (default value of b)
