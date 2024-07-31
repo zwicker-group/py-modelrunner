@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-This example shows how a function is turned into a model explicitly.
+"""This example shows how a function is turned into a model explicitly.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -9,7 +8,7 @@ from modelrunner import run_function_with_cmd_args
 
 
 def multiply(a: float = 1, b: float = 2):
-    """Multiply two numbers"""
+    """Multiply two numbers."""
     return a * b
 
 

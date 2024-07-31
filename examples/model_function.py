@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-This example shows defining a custom model class using a function.
+"""This example shows defining a custom model class using a function.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """

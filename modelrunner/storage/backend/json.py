@@ -1,5 +1,4 @@
-"""
-Defines a class storing data in memory and writing it to a file in JSON format
+"""Defines a class storing data in memory and writing it to a file in JSON format.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -13,7 +12,7 @@ from .text_base import TextStorageBase
 
 
 class JSONStorage(TextStorageBase):
-    """storage that stores data in a JSON text file
+    """Storage that stores data in a JSON text file.
 
     Note that the data is only written once the storage is closed.
     """

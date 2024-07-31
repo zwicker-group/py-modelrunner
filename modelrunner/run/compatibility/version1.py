@@ -1,5 +1,4 @@
-"""
-Contains code necessary for loading results from format version 1
+"""Contains code necessary for loading results from format version 1.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -25,7 +24,7 @@ if TYPE_CHECKING:
 
 
 class NoData:
-    """helper class that marks data omission"""
+    """Helper class that marks data omission."""
 
     ...
 
@@ -34,7 +33,7 @@ TState = TypeVar("TState", bound="StateBase")
 
 
 class StateBase(metaclass=ABCMeta):
-    """Base class for specifying the state of a simulation
+    """Base class for specifying the state of a simulation.
 
     A state contains values of all degrees of freedom of a physical system (called the
     `data`) and some additional information (called `attributes`). The `data` is mutable
@@ -52,7 +51,7 @@ class StateBase(metaclass=ABCMeta):
     """dict: class-level list of all subclasses of StateBase"""
 
     def _state_init(self, attributes: dict[str, Any], data=NoData) -> None:
-        """initialize the state with attributes and (optionally) data
+        """Initialize the state with attributes and (optionally) data.
 
         Args:
             attributes (dict): Additional (unserialized) attributes
@@ -65,7 +64,7 @@ class StateBase(metaclass=ABCMeta):
 
     @classmethod
     def from_data(cls: type[TState], attributes: dict[str, Any], data=NoData) -> TState:
-        """create instance of any state class from attributes and data
+        """Create instance of any state class from attributes and data.
 
         Args:
             attributes (dict): Additional (unserialized) attributes
@@ -92,7 +91,7 @@ class StateBase(metaclass=ABCMeta):
 
     @classmethod
     def _from_simple_objects(cls, content: dict[str, Any]) -> StateBase:
-        """create state from text data
+        """Create state from text data.
 
         Args:
             content: The loaded data
@@ -123,7 +122,7 @@ class StateBase(metaclass=ABCMeta):
 
     @classmethod
     def _from_zarr(cls, zarr_element: zarrElement, *, index=...) -> StateBase:
-        """create instance of correct subclass from data stored in zarr"""
+        """Create instance of correct subclass from data stored in zarr."""
         # determine the class that knows how to read this data
         cls_name = zarr_element.attrs["__class__"]
         attributes = zarr_element.attrs.asdict()
@@ -172,7 +171,7 @@ class ObjectState(StateBase): ...
 def _Result_from_simple_objects(
     content: dict[str, Any], model: ModelBase | None = None
 ) -> Result:
-    """read result from simple object (like loaded from a JSON file) using version 1
+    """Read result from simple object (like loaded from a JSON file) using version 1.
 
     Args:
         content (dict):
@@ -194,7 +193,7 @@ def _Result_from_simple_objects(
 def _Result_from_zarr(
     zarr_element: zarrElement, *, index=..., model: ModelBase | None = None
 ) -> Result:
-    """create result from data stored in zarr"""
+    """Create result from data stored in zarr."""
     attributes = {key: json.loads(value) for key, value in zarr_element.attrs.items()}
     # extract version information from attributes
     format_version = attributes.pop("__version__", None)
@@ -212,7 +211,7 @@ def _Result_from_zarr(
 
 
 def result_from_file_v1(store: Path, *, label: str = "data", **kwargs) -> Result:
-    """load object from a file using format version 1
+    """Load object from a file using format version 1.
 
     Args:
         store (Path):

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-This example shows defining a custom model class by subclassing.
+"""This example shows defining a custom model class by subclassing.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """

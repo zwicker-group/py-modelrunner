@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-This example shows defining a custom model that stores additional data
+"""This example shows defining a custom model that stores additional data.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """

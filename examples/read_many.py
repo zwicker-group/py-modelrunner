@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-This example shows how a collection of results can be read.
+"""This example shows how a collection of results can be read.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -11,7 +10,7 @@ from modelrunner import ResultCollection, make_model_class
 
 
 def multiply(a: float = 1, b: float = 2):
-    """Multiply two numbers"""
+    """Multiply two numbers."""
     return a * b
 
 

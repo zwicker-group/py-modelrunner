@@ -1,5 +1,4 @@
-"""
-Base class describing a model
+"""Base class describing a model.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -22,7 +21,7 @@ if TYPE_CHECKING:
 
 
 class ModelBase(Parameterized, metaclass=ABCMeta):
-    """base class for describing models"""
+    """Base class for describing models."""
 
     name: str | None = None
     """str: the name of the model"""
@@ -37,7 +36,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         mode: ModeType = "insert",
         strict: bool = False,
     ):
-        """initialize the parameters of the object
+        """Initialize the parameters of the object.
 
         Args:
             parameters (dict):
@@ -68,7 +67,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
 
     @property
     def storage(self) -> StorageGroup:
-        """:class:`StorageGroup`: Storage to which data can be written"""
+        """:class:`StorageGroup`: Storage to which data can be written."""
         if self._storage is None:
             if self.output is None:
                 raise RuntimeError("Output file needs to be specified")
@@ -76,17 +75,20 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         return self._storage
 
     def close(self) -> None:
-        """close any opened storages"""
+        """Close any opened storages."""
         if self._storage is not None:
             self._storage.close()
         self._storage = None
 
     @abstractmethod
     def __call__(self):
-        """main method calculating the result. Needs to be specified by sub-class"""
+        """Main method calculating the result.
+
+        Needs to be specified by sub-class
+        """
 
     def get_result(self, data: Any = None) -> Result:
-        """get the result as a :class:`~model.Result` object
+        """Get the result as a :class:`~model.Result` object.
 
         Args:
             data:
@@ -104,7 +106,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         return Result(self, data, info=info)
 
     def write_result(self, result: Result | None = None) -> None:
-        """write the result to the output file
+        """Write the result to the output file.
 
         Args:
             result:
@@ -128,7 +130,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
 
     @classmethod
     def _prepare_argparser(cls, name: str | None = None) -> argparse.ArgumentParser:
-        """create argument parser for setting parameters of this model
+        """Create argument parser for setting parameters of this model.
 
         Args:
             name (str):
@@ -168,7 +170,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
     def from_command_line(
         cls, args: Sequence[str] | None = None, name: str | None = None
     ) -> ModelBase:
-        """create model from command line parameters
+        """Create model from command line parameters.
 
         Args:
             args (list):
@@ -208,7 +210,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
     def run_from_command_line(
         cls, args: Sequence[str] | None = None, name: str | None = None
     ) -> Result:
-        """run model using command line parameters
+        """Run model using command line parameters.
 
         Args:
             args (list):

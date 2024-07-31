@@ -13,7 +13,7 @@ from modelrunner.storage import MemoryStorage, open_storage
 
 @pytest.mark.parametrize("obj", STORAGE_OBJECTS)
 def test_memory_storage(obj):
-    """test MemoryStorage"""
+    """Test MemoryStorage."""
     with open_storage(MemoryStorage()) as storage:
         storage["a"] = obj
         assert_data_equals(storage["a"], obj)
@@ -25,7 +25,7 @@ def test_memory_storage(obj):
 
 @pytest.mark.skipif(not module_available("h5py"), reason="requires `h5py` module")
 def test_hdf_storage(tmp_path):
-    """test HDFStorage"""
+    """Test HDFStorage."""
     import h5py
 
     with h5py.File(tmp_path / "storage.hdf", "w") as root:
@@ -41,7 +41,7 @@ def test_hdf_storage(tmp_path):
 
 @pytest.mark.skipif(not module_available("zarr"), reason="requires `zarr` module")
 def test_zarr_storage(tmp_path):
-    """test ZarrStorage"""
+    """Test ZarrStorage."""
     import zarr
 
     with zarr.open(tmp_path / "storage.zarr", "w") as root:
@@ -56,7 +56,7 @@ def test_zarr_storage(tmp_path):
 
 
 def test_json_storage(tmp_path):
-    """test JSONStorage"""
+    """Test JSONStorage."""
     with open_storage(tmp_path / "test.json", mode="truncate") as storage:
         storage["obj"] = {"info": True}
         json_txt = storage._storage.to_text()
@@ -67,7 +67,7 @@ def test_json_storage(tmp_path):
 
 @pytest.mark.skipif(not module_available("yaml"), reason="requires `yaml` module")
 def test_yaml_storage(tmp_path):
-    """test YAMLStorage"""
+    """Test YAMLStorage."""
     import yaml
 
     with open_storage(tmp_path / "test.yaml", mode="truncate") as storage:

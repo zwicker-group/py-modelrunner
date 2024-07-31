@@ -14,7 +14,7 @@ assert SCRIPT_PATH.is_dir()
 
 
 def test_run_main_help():
-    """test the __main__ module help system"""
+    """Test the __main__ module help system."""
     # prepare environment
     env = os.environ.copy()
     env["PYTHONPATH"] = str(PACKAGEPATH) + ":" + env.get("PYTHONPATH", "")
@@ -29,7 +29,7 @@ def test_run_main_help():
 
 
 def test_run_main_without_log():
-    """test running script with the __main__ module system"""
+    """Test running script with the __main__ module system."""
     # prepare environment
     env = os.environ.copy()
     env["PYTHONPATH"] = str(PACKAGEPATH) + ":" + env.get("PYTHONPATH", "")
@@ -53,7 +53,7 @@ def test_run_main_without_log():
 
 
 def test_run_main_with_log(tmp_path):
-    """test running script with the __main__ module system"""
+    """Test running script with the __main__ module system."""
     # prepare environment
     env = os.environ.copy()
     env["PYTHONPATH"] = str(PACKAGEPATH) + ":" + env.get("PYTHONPATH", "")

@@ -39,7 +39,7 @@ EXTENSIONS = [".yaml", ".json", ".hdf", ".zip"]
 
 
 def create_result_files(name, data, extensions=EXTENSIONS):
-    """create example file storing a simple result
+    """Create example file storing a simple result.
 
     Args:
         name (str): The name of the dataset
@@ -63,7 +63,7 @@ def create_result_files(name, data, extensions=EXTENSIONS):
 
 
 def create_model_result_files(name, data, extensions=EXTENSIONS):
-    """create example file storing a trajectory
+    """Create example file storing a trajectory.
 
     Args:
         name (str): The name of the dataset
@@ -86,7 +86,7 @@ def create_model_result_files(name, data, extensions=EXTENSIONS):
 
 
 def main():
-    """main function"""
+    """Main function."""
     for key, value in DATASETS.items():
         create_result_files(key, value)
         create_model_result_files(key, value)

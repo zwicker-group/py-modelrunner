@@ -6,7 +6,7 @@ from modelrunner.storage import MemoryStorage, StorageGroup
 
 
 def test_group_location():
-    """test location managment"""
+    """Test location managment."""
     group = StorageGroup(MemoryStorage())
     assert group._get_loc(None) == []
     assert group._get_loc("a") == ["a"]
@@ -24,7 +24,7 @@ def test_group_location():
 
 
 def test_group_tree():
-    """test printing a tree"""
+    """Test printing a tree."""
     group = StorageGroup(MemoryStorage())
     group["a/b/c"] = 1
     group["a/d"] = 2

@@ -1,5 +1,4 @@
-"""
-Main module allowing to use the package to wrap existing code
+"""Main module allowing to use the package to wrap existing code.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -12,7 +11,7 @@ from modelrunner import Result, run_script
 
 
 def run_script_from_command_line() -> Result:
-    """helper function that runs a model from flags specified at the command line
+    """Helper function that runs a model from flags specified at the command line.
 
     The function detects models automatically by trying several methods until one yields
     a unique model to run:

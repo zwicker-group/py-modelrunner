@@ -1,5 +1,4 @@
-"""
-Functions for creating models and model classes from other input
+"""Functions for creating models and model classes from other input.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -18,14 +17,14 @@ if TYPE_CHECKING:
     from ..run.results import Result  # @UnusedImport
 
 _DEFAULT_MODEL: Callable | ModelBase | None = None
-"""stores the default model that will be used automatically"""
+"""Stores the default model that will be used automatically."""
 
 
 TModel = TypeVar("TModel", Callable, ModelBase, None)
 
 
 def set_default(func_or_model: TModel) -> TModel:
-    """sets the function or model as the default model
+    """Sets the function or model as the default model.
 
     The last model that received this flag will be run automatically. This only affects
     the behavior when the script is run using `modelrunner` from the command line, e.g.,
@@ -47,7 +46,7 @@ TFunc = TypeVar("TFunc", bound=Any)
 
 
 def cleared_default_model(func: TFunc) -> TFunc:
-    """run the function with a cleared _DEFAULT_MODEL and restore it afterwards"""
+    """Run the function with a cleared _DEFAULT_MODEL and restore it afterwards."""
 
     @functools.wraps(func)
     def inner(*args, **kwargs):
@@ -63,7 +62,7 @@ def cleared_default_model(func: TFunc) -> TFunc:
 
 
 def make_model_class(func: Callable, *, default: bool = False) -> type[ModelBase]:
-    """create a model from a function by interpreting its signature
+    """Create a model from a function by interpreting its signature.
 
     Args:
         func (callable):
@@ -103,7 +102,7 @@ def make_model_class(func: Callable, *, default: bool = False) -> type[ModelBase
             parameters_default.append(parameter)
 
     def __call__(self, *args, **kwargs):
-        """call the function preserving the original signature"""
+        """Call the function preserving the original signature."""
         parameters = {}
         for i, (name, value) in enumerate(self.parameters.items()):
             if len(args) > i:
@@ -150,7 +149,7 @@ def make_model(
     mode: ModeType = "insert",
     default: bool = False,
 ) -> ModelBase:
-    """create model from a function and a dictionary of parameters
+    """Create model from a function and a dictionary of parameters.
 
     Args:
         func (callable):

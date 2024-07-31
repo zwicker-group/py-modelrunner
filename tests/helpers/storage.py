@@ -1,5 +1,4 @@
-"""
-Helper functions for dealing with storage
+"""Helper functions for dealing with storage.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -13,7 +12,7 @@ TFunc = TypeVar("TFunc", bound=Callable[..., Any])
 
 
 def module_available(module_name: str) -> bool:
-    """check whether a python module is available
+    """Check whether a python module is available.
 
     Args:
         module_name (str):
@@ -33,7 +32,7 @@ def module_available(module_name: str) -> bool:
 def storage_extensions(
     incl_folder: bool = True, dot: bool = False, *, exclude: Optional[List] = None
 ):
-    """determine the extensions for storage objects
+    """Determine the extensions for storage objects.
 
     Args:
         incl_folder (bool):

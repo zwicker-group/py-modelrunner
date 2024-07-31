@@ -1,5 +1,4 @@
-"""
-Provides functions for submitting models as jobs
+"""Provides functions for submitting models as jobs.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -25,12 +24,12 @@ from ..config import Config
 
 
 def escape_string(obj) -> str:
-    """escape a string for the command line"""
+    """Escape a string for the command line."""
     return shlex.quote(str(obj))
 
 
 def ensure_directory_exists(folder):
-    """creates a folder if it not already exists"""
+    """Creates a folder if it not already exists."""
     if folder == "":
         return
     try:
@@ -65,7 +64,7 @@ DEFAULT_CONFIG = [
 def get_config(
     config: str | dict[str, Any] | None = None, *, load_user_config: bool = True
 ) -> Config:
-    """create the job configuration
+    """Create the job configuration.
 
     Args:
         config (str or dict):
@@ -92,7 +91,7 @@ def get_config(
 
 
 def get_job_name(base: str, args: dict[str, Any] | None = None, length: int = 7) -> str:
-    """create a suitable job name
+    """Create a suitable job name.
 
     Args:
         base (str):
@@ -137,7 +136,7 @@ def submit_job(
     overwrite_strategy: OverwriteStrategyType = "error",
     **kwargs,
 ) -> tuple[str, str]:
-    """submit a script to the cluster queue
+    """Submit a script to the cluster queue.
 
     Args:
         script (str of :class:`~pathlib.Path`):
@@ -315,7 +314,7 @@ def submit_jobs(
     list_params: Iterable[str] | None = None,
     **kwargs,
 ) -> int:
-    """submit many jobs of the same script with different parameters to the cluster
+    """Submit many jobs of the same script with different parameters to the cluster.
 
     Args:
         script (str of :class:`~pathlib.Path`):

@@ -14,7 +14,7 @@ AttrsLike = Mapping[str, Any]
 
 
 class AttrsEncoder(json.JSONEncoder):
-    """helper class for encoding python data in JSON"""
+    """Helper class for encoding python data in JSON."""
 
     def default(self, obj):
         if isinstance(obj, dict) and "__pickled__" in obj:
@@ -26,7 +26,7 @@ class AttrsEncoder(json.JSONEncoder):
 
 
 def _decode_pickled(dct: AttrsLike) -> AttrsLike:
-    """decode pickled data
+    """Decode pickled data.
 
     Args:
         dct (dict): The encoded attributes dictionary
@@ -40,7 +40,7 @@ def _decode_pickled(dct: AttrsLike) -> AttrsLike:
 
 
 def encode_attr(value: Any) -> str:
-    """encode an attribute using JSON
+    """Encode an attribute using JSON.
 
     Args:
         value: The value to be encoded
@@ -52,7 +52,7 @@ def encode_attr(value: Any) -> str:
 
 
 def encode_attrs(attrs: AttrsLike) -> Attrs:
-    """encode many attributes
+    """Encode many attributes.
 
     Args:
         attrs (dict): The attributes dictionary
@@ -64,7 +64,7 @@ def encode_attrs(attrs: AttrsLike) -> Attrs:
 
 
 def decode_attr(value: str) -> Any:
-    """decode an attribute
+    """Decode an attribute.
 
     Args:
         value (str): The encoded attribute
@@ -76,7 +76,7 @@ def decode_attr(value: str) -> Any:
 
 
 def decode_attrs(attrs: AttrsLike) -> Attrs:
-    """decode many attributes
+    """Decode many attributes.
 
     Args:
         attrs (dict): The attributes dictionary

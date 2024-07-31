@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""
-This example shows how to submit the same model with multiple parameters.
+"""This example shows how to submit the same model with multiple parameters.
 
 Note that the method `foreground` just runs the script locally, thus not really queuing. To
 actually queue a job on a high performance computing cluster, replace the `method`
-argument by something more suitable; see the documentation. 
+argument by something more suitable; see the documentation.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -15,7 +14,7 @@ from modelrunner import make_model, submit_job
 
 @make_model
 def main(a: float = 1, b: float = 2):
-    """Multiply two numbers"""
+    """Multiply two numbers."""
     return a * b
 
 

@@ -1,5 +1,4 @@
-"""
-Classes that describe results of simulations of models
+"""Classes that describe results of simulations of models.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -25,7 +24,7 @@ from ..storage.utils import encode_class
 
 
 class MockModel(ModelBase):
-    """helper class to store parameter values when the original model is not present"""
+    """Helper class to store parameter values when the original model is not present."""
 
     def __init__(self, parameters: dict[str, Any] | None = None):
         """
@@ -42,7 +41,7 @@ class MockModel(ModelBase):
 
 
 class Result:
-    """describes the result of a single model run together with auxillary information
+    """Describes the result of a single model run together with auxillary information.
 
     Besides storing the final outcome of the model in
     :attr:`~modelrunner.run.results.Result.result`, the class also stores information
@@ -64,13 +63,16 @@ class Result:
     """int: number indicating the version of the file format"""
 
     model: ModelBase
-    """:class:`ModelBase`: Model that was run. This is a
-    :class:`~modelrunner.run.results.MockModel` instance if details are not available"""
+    """:class:`ModelBase`: Model that was run.
+
+    This is a
+    :class:`~modelrunner.run.results.MockModel` instance if details are not available
+    """
     result: Any
-    """the final outcome of the model"""
+    """The final outcome of the model."""
     storage: StorageGroup | None
     """:class:`StorageGroup`: Storage that might contain additional information, e.g.,
-    stored during the model run"""
+    stored during the model run."""
     info: dict[str, Any] | None
     """dict: Additional information for this result"""
 
@@ -102,7 +104,7 @@ class Result:
 
     @property
     def data(self):
-        """direct access to the underlying state data"""
+        """Direct access to the underlying state data."""
         # deprecated on 2024-04-13
         warnings.warn("`.data` attribute was renamed to `.result`", DeprecationWarning)
         return self.result
@@ -117,7 +119,7 @@ class Result:
         storage: StorageGroup | None = None,
         info: dict[str, Any] | None = None,
     ) -> Result:
-        """create result from data
+        """Create result from data.
 
         Args:
             model_data (dict):
@@ -159,7 +161,7 @@ class Result:
         *,
         model: ModelBase | None = None,
     ):
-        """load object from a file
+        """Load object from a file.
 
         This function loads the results from a hierachical storage. It also attempts to
         read information about the model that was used to create this result and
@@ -208,7 +210,7 @@ class Result:
     def to_file(
         self, storage: StorageID, loc: Location = None, *, mode: ModeType = "insert"
     ) -> None:
-        """write the results to a file
+        """Write the results to a file.
 
         Note that this does only write the actual `results` but omits additional data
         that might have been stored in a storage that is associated with the results.
@@ -247,7 +249,7 @@ storage_actions.register(
 
 
 class ResultCollection(List[Result]):
-    """represents a collection of results"""
+    """Represents a collection of results."""
 
     @classmethod
     def from_folder(
@@ -259,7 +261,7 @@ class ResultCollection(List[Result]):
         strict: bool = False,
         progress: bool = False,
     ):
-        """create results collection from a folder
+        """Create results collection from a folder.
 
         args:
             folder (str):
@@ -359,7 +361,7 @@ class ResultCollection(List[Result]):
         return {k: sorted(v) for k, v in self.parameters.items() if len(v) > 1}
 
     def get(self, **kwargs) -> Result:
-        """return a single result with the given parameters
+        """Return a single result with the given parameters.
 
         Warning:
             If there are multiple results compatible with the specified parameters, only
@@ -378,7 +380,7 @@ class ResultCollection(List[Result]):
         raise ValueError("Result not contained in collection")
 
     def filtered(self, **kwargs) -> ResultCollection:
-        r"""return a subset of the results
+        r"""Return a subset of the results.
 
         Args:
             **kwargs: Specify parameter values of results that are retained
@@ -394,7 +396,7 @@ class ResultCollection(List[Result]):
         )
 
     def groupby(self, *args) -> Iterator[tuple[dict[str, list[Any]], ResultCollection]]:
-        r"""group results according to the given variables
+        r"""Group results according to the given variables.
 
         Args:
             *args: Specify parameters according to which the results are sorted
@@ -413,7 +415,7 @@ class ResultCollection(List[Result]):
                 yield group_parameters, subset
 
     def sorted(self, *args, reverse: bool = False) -> ResultCollection:
-        r"""return a sorted version of the results
+        r"""Return a sorted version of the results.
 
         Args:
             *args: Specify parameters according to which the results are sorted
@@ -424,13 +426,13 @@ class ResultCollection(List[Result]):
         """
 
         def sort_func(item):
-            """helper function for ordering the results"""
+            """Helper function for ordering the results."""
             return [item.parameters[name] for name in args]
 
         return self.__class__(sorted(self, key=sort_func, reverse=reverse))
 
     def remove_duplicates(self) -> ResultCollection:
-        """remove duplicates in the result collection"""
+        """Remove duplicates in the result collection."""
         #  we cannot use a set for `seen`, since parameters might not always be hashable
         unique_results, seen = [], []
         for result in self:
@@ -441,13 +443,13 @@ class ResultCollection(List[Result]):
 
     @property
     def dataframe(self):
-        """create a pandas dataframe summarizing the data"""
+        """Create a pandas dataframe summarizing the data."""
         # deprecated on 2023-10-19
         warnings.warn("Property `dataframe` deprecated; use method `as_dataframe`")
         return self.as_dataframe()
 
     def as_dataframe(self, *, enforce_same_model: bool = True):
-        """create a pandas dataframe summarizing the data
+        """Create a pandas dataframe summarizing the data.
 
         Args:
             enforce_same_model (bool):
@@ -459,7 +461,7 @@ class ResultCollection(List[Result]):
             raise RuntimeError("Results are not from the same model")
 
         def get_data(result):
-            """helper function to extract the data"""
+            """Helper function to extract the data."""
             df_data = result.parameters.copy()
 
             # try obtaining the name of the result

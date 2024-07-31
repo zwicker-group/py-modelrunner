@@ -1,5 +1,4 @@
-"""
-Functions and classes that are used commonly used by the storage classes.
+"""Functions and classes that are used commonly used by the storage classes.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -33,7 +32,7 @@ def encode_binary(obj: Any, *, binary: Literal[False]) -> str: ...
 
 
 def encode_binary(obj: Any, *, binary: bool = False) -> str | bytes:
-    """encodes an arbitrary object as a string
+    """Encodes an arbitrary object as a string.
 
     The object can be decoded using :func:`decode_binary`.
 
@@ -54,7 +53,7 @@ def encode_binary(obj: Any, *, binary: bool = False) -> str | bytes:
 
 
 def decode_binary(obj_str: str | bytes | np.ndarray) -> Any:
-    """decode an object encoded with :func:`encode_binary`.
+    """Decode an object encoded with :func:`encode_binary`.
 
     Args:
         obj_str (str or bytes):
@@ -74,7 +73,7 @@ def decode_binary(obj_str: str | bytes | np.ndarray) -> Any:
 
 
 def encode_class(cls: type) -> str:
-    """encode a class such that it can be restored
+    """Encode a class such that it can be restored.
 
     The class can be decoded using :func:`decode_class`.
 
@@ -91,7 +90,7 @@ def encode_class(cls: type) -> str:
 
 
 def decode_class(class_path: str | None, *, guess: type | None = None) -> type | None:
-    """decode a class encoded with :func:`encode_class`.
+    """Decode a class encoded with :func:`encode_class`.
 
     Args:
         class_path (str):
@@ -134,7 +133,7 @@ def decode_class(class_path: str | None, *, guess: type | None = None) -> type |
 
 
 class Array(np.ndarray):
-    """Numpy array augmented with attributes"""
+    """Numpy array augmented with attributes."""
 
     def __new__(cls, input_array, attrs: Attrs | None = None):
         obj = np.asarray(input_array).view(cls)
@@ -154,7 +153,7 @@ ActionType = Literal[
 
 
 class _StorageRegistry:
-    """registry that stores information about how to use storage"""
+    """Registry that stores information about how to use storage."""
 
     allowed_actions = set(ActionType.__args__)  # type: ignore
     """set: all actions that can be registered"""
@@ -173,7 +172,7 @@ class _StorageRegistry:
         *,
         inherit: bool = True,
     ) -> None:
-        """register an action for the given class
+        """Register an action for the given class.
 
         Example:
             The method is used like so
@@ -199,7 +198,7 @@ class _StorageRegistry:
         if isinstance(method_or_func, classmethod):
             # extract class from decorated object
             def _call_classmethod(*args, **kwargs):
-                """helper function to call the classmethod"""
+                """Helper function to call the classmethod."""
                 return method_or_func(cls, *args, **kwargs)
 
             self._hooks[cls][action] = (_call_classmethod, inherit)
@@ -209,7 +208,7 @@ class _StorageRegistry:
             raise TypeError("`method_or_func` must be method or function")
 
     def get(self, cls: type, action: ActionType) -> Callable:
-        """obtain an action for a given class
+        """Obtain an action for a given class.
 
         Args:
             action (str):

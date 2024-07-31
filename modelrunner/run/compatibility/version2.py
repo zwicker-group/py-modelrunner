@@ -1,5 +1,4 @@
-"""
-Contains code necessary for loading results from format version 2
+"""Contains code necessary for loading results from format version 2.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -13,7 +12,7 @@ from ..results import Result
 
 
 def result_from_file_v2(store: Path, *, loc: str = "result", **kwargs) -> Result:
-    """load object from a file using format version 1
+    """Load object from a file using format version 1.
 
     Args:
         store (Path):

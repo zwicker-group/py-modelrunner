@@ -13,7 +13,7 @@ STORAGE_EXT = storage_extensions(incl_folder=True, dot=True)
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_result_serialization(ext, tmp_path):
-    """test reading and writing results"""
+    """Test reading and writing results."""
     # prepare test result
     data = {
         "number": -1,
@@ -37,7 +37,7 @@ def test_result_serialization(ext, tmp_path):
 @pytest.mark.skipif(not module_available("pde"), reason="requires `pde` module")
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_pde_field_storage(ext, tmp_path):
-    """test writing pde fields"""
+    """Test writing pde fields."""
     import pde
 
     # create the result
@@ -62,7 +62,7 @@ def test_pde_field_storage(ext, tmp_path):
 @pytest.mark.skipif(not module_available("pde"), reason="requires `pde` module")
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_pde_trajectory_storage_manual(ext, tmp_path):
-    """test writing pde trajectories manually"""
+    """Test writing pde trajectories manually."""
     import pde
 
     # create the result
@@ -83,7 +83,7 @@ def test_pde_trajectory_storage_manual(ext, tmp_path):
 
 
 def test_result_collections():
-    """test some aspects of result collections"""
+    """Test some aspects of result collections."""
     p1 = {"a": 1, "b": [0, 1], "c": "c"}
     r1 = Result.from_data({"name": "1", "parameters": p1}, p1)
     p2 = {"a": 2, "b": [0, 1], "c": "c"}
@@ -131,7 +131,7 @@ def test_result_collections():
 
 
 def test_collection_groupby():
-    """test grouping of result collections"""
+    """Test grouping of result collections."""
     p1 = {"a": 1, "b": (0, 1), "c": "c"}
     r1 = Result.from_data({"name": "1", "parameters": p1}, p1)
     p2 = {"a": 2, "b": (0, 1), "c": "c"}

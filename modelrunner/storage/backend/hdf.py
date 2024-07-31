@@ -1,9 +1,9 @@
-"""
-Defines a class storing data on the file system using the hierarchical data format (hdf)
+"""Defines a class storing data on the file system using the hierarchical data format
+(hdf)
 
 Requires the optional :mod:`h5py` module.
 
-.. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de> 
+.. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from ..utils import decode_binary, encode_binary
 
 
 class HDFStorage(StorageBase):
-    """storage that stores data in an HDF file"""
+    """Storage that stores data in an HDF file."""
 
     extensions = ["h5", "hdf", "hdf5"]
 
@@ -82,7 +82,7 @@ class HDFStorage(StorageBase):
     def _get_parent(
         self, loc: Sequence[str], *, create_groups: bool = True
     ) -> tuple[h5py.Group, str]:
-        """get the parent group for a particular location
+        """Get the parent group for a particular location.
 
         Args:
             loc (list of str):

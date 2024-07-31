@@ -9,7 +9,7 @@ from modelrunner.config import Config
 
 
 def test_config():
-    """test configuration system"""
+    """Test configuration system."""
     conf1 = Config([Parameter("a", 1)])
     conf2 = conf1.copy()
 
@@ -31,7 +31,7 @@ def test_config():
 
 
 def test_config_modes():
-    """test configuration system running in different modes"""
+    """Test configuration system running in different modes."""
     c = Config([Parameter("a", 1)], mode="insert")
     assert c["a"] > 0
     c["a"] = 0
@@ -75,7 +75,7 @@ def test_config_modes():
 
 
 def test_config_contexts():
-    """test context manager temporarily changing configuration"""
+    """Test context manager temporarily changing configuration."""
     c = Config([Parameter("a", 10)])
     assert c["a"] == 10
 
@@ -95,7 +95,7 @@ def test_config_contexts():
 
 
 def test_config_io(tmp_path):
-    """test configuration system"""
+    """Test configuration system."""
     path = tmp_path / "config.yaml"
     conf1 = Config([Parameter("a", 1)])
     conf2 = conf1.copy()
