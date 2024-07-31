@@ -1,5 +1,4 @@
-"""
-Base classes for managing hierarchical storage in which data is stored
+"""Base classes for managing hierarchical storage in which data is stored.
 
 The storage classes provide low-level abstraction to store data in a hierarchical format
 and should thus not be used directly. Instead, the user typically interacts with
@@ -18,7 +17,7 @@ attributes, which are a mapping with string keys and arbitrary values, which are
 serialized transparently. Note that keys with double underscores are reserved for
 internal use and should thus not be used.
 
-.. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de> 
+.. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
 from __future__ import annotations
@@ -40,17 +39,17 @@ if TYPE_CHECKING:
 
 
 class StorageBase(metaclass=ABCMeta):
-    """base class for storing data"""
+    """Base class for storing data."""
 
     extensions: list[str] = []
     """list of str: all file extensions supported by this storage"""
     default_codec = numcodecs.Pickle()
-    """:class:`numcodecs.Codec`: the default codec used for encoding binary data"""
+    """:class:`numcodecs.Codec`: the default codec used for encoding binary data."""
     mode: AccessMode
-    """:class:`~modelrunner.storage.access_modes.AccessMode`: access mode"""
+    """:class:`~modelrunner.storage.access_modes.AccessMode`: access mode."""
 
     _codec: numcodecs.abc.Codec
-    """:class:`numcodecs.Codec`: the specific codec used for encoding binary data"""
+    """:class:`numcodecs.Codec`: the specific codec used for encoding binary data."""
 
     def __init__(self, *, mode: ModeType = "read"):
         """
@@ -63,7 +62,7 @@ class StorageBase(metaclass=ABCMeta):
         self._logger = logging.getLogger(self.__class__.__name__)
 
     def close(self) -> None:
-        """closes the storage, potentially writing data to a persistent place"""
+        """Closes the storage, potentially writing data to a persistent place."""
         self.mode = _access_closed
 
     @property
@@ -78,11 +77,11 @@ class StorageBase(metaclass=ABCMeta):
         return True
 
     def flush(self) -> None:
-        """write (cached) data to storage"""
+        """Write (cached) data to storage."""
 
     @property
     def codec(self) -> numcodecs.abc.Codec:
-        """:class:`~numcodecs.abc.Codec`: A codec used to encode binary data"""
+        """:class:`~numcodecs.abc.Codec`: A codec used to encode binary data."""
         try:
             return self._codec
         except AttributeError:
@@ -97,7 +96,7 @@ class StorageBase(metaclass=ABCMeta):
 
     @abstractmethod
     def keys(self, loc: Sequence[str]) -> Collection[str]:
-        """return all sub-items defined at a given location
+        """Return all sub-items defined at a given location.
 
         Args:
             loc (sequence of str):
@@ -117,7 +116,7 @@ class StorageBase(metaclass=ABCMeta):
 
     @abstractmethod
     def is_group(self, loc: Sequence[str]) -> bool:
-        """determine whether the location is a group
+        """Determine whether the location is a group.
 
         Args:
             loc (sequence of str):
@@ -129,7 +128,7 @@ class StorageBase(metaclass=ABCMeta):
 
     @abstractmethod
     def _create_group(self, loc: Sequence[str]) -> None:
-        """create a group at a particular location
+        """Create a group at a particular location.
 
         Args:
             loc (sequence of str):
@@ -143,7 +142,7 @@ class StorageBase(metaclass=ABCMeta):
         attrs: Attrs | None = None,
         cls: type | None = None,
     ) -> StorageGroup:
-        """create a new group at a particular location
+        """Create a new group at a particular location.
 
         Args:
             loc (list of str):
@@ -181,7 +180,7 @@ class StorageBase(metaclass=ABCMeta):
         return StorageGroup(self, loc)
 
     def ensure_group(self, loc: Sequence[str]) -> None:
-        """ensures the a group exists in the storage
+        """Ensures the a group exists in the storage.
 
         If the group is not already in the storage, it is created (recursively).
 
@@ -198,7 +197,7 @@ class StorageBase(metaclass=ABCMeta):
 
     @abstractmethod
     def _read_attrs(self, loc: Sequence[str]) -> AttrsLike:
-        """read attributes at a particular location
+        """Read attributes at a particular location.
 
         Args:
             loc (sequence of str):
@@ -206,7 +205,7 @@ class StorageBase(metaclass=ABCMeta):
         """
 
     def read_attrs(self, loc: Sequence[str]) -> Attrs:
-        """read attributes associated with a particular location
+        """Read attributes associated with a particular location.
 
         Args:
             loc (list of str):
@@ -224,7 +223,7 @@ class StorageBase(metaclass=ABCMeta):
 
     @abstractmethod
     def _write_attr(self, loc: Sequence[str], name: str, value: str) -> None:
-        """write a single attribute to a particular location
+        """Write a single attribute to a particular location.
 
         Args:
             loc (list of str):
@@ -236,7 +235,7 @@ class StorageBase(metaclass=ABCMeta):
         """
 
     def write_attrs(self, loc: Sequence[str], attrs: Attrs | None) -> None:
-        """write attributes to a particular location
+        """Write attributes to a particular location.
 
         Args:
             loc (list of str):
@@ -267,7 +266,7 @@ class StorageBase(metaclass=ABCMeta):
         item_type: Literal["array", "dynamic_array", "object"] | None = None,
         cls: type | None = None,
     ) -> None:
-        """write attributes to a particular location
+        """Write attributes to a particular location.
 
         Args:
             loc (list of str):
@@ -288,7 +287,7 @@ class StorageBase(metaclass=ABCMeta):
         self.write_attrs(loc, attrs)
 
     def _check_write_access(self, loc: Sequence[str], *, name: str = "item") -> None:
-        """check whether we can safely write to a location
+        """Check whether we can safely write to a location.
 
         Args:
             loc (list of str):
@@ -318,7 +317,7 @@ class StorageBase(metaclass=ABCMeta):
         copy: bool,
         index: int | None = None,
     ) -> np.ndarray:
-        """read an array from a particular location
+        """Read an array from a particular location.
 
         Args:
             loc (list of str):
@@ -342,7 +341,7 @@ class StorageBase(metaclass=ABCMeta):
         out: np.ndarray | None = None,
         index: int | None = None,
     ) -> np.ndarray:
-        """read an array from a particular location
+        """Read an array from a particular location.
 
         Args:
             loc (list of str):
@@ -376,7 +375,7 @@ class StorageBase(metaclass=ABCMeta):
         attrs: Attrs | None = None,
         cls: type | None = None,
     ) -> None:
-        """write an array to a particular location
+        """Write an array to a particular location.
 
         Args:
             loc (list of str):
@@ -414,7 +413,7 @@ class StorageBase(metaclass=ABCMeta):
         attrs: Attrs | None = None,
         cls: type | None = None,
     ) -> None:
-        """creates a dynamic array of flexible size
+        """Creates a dynamic array of flexible size.
 
         Args:
             loc (list of str):
@@ -441,7 +440,7 @@ class StorageBase(metaclass=ABCMeta):
         raise NotImplementedError(f"No dynamic arrays for {self.__class__.__name__}")
 
     def extend_dynamic_array(self, loc: Sequence[str], arr: ArrayLike) -> None:
-        """extend a dynamic array previously created
+        """Extend a dynamic array previously created.
 
         Args:
             loc (list of str):
@@ -459,7 +458,7 @@ class StorageBase(metaclass=ABCMeta):
         raise NotImplementedError(f"Cannot read objects from {self.__class__.__name__}")
 
     def read_object(self, loc: Sequence[str]) -> Any:
-        """read an object from a particular location
+        """Read an object from a particular location.
 
         Args:
             loc (list of str):
@@ -485,7 +484,7 @@ class StorageBase(metaclass=ABCMeta):
         attrs: Attrs | None = None,
         cls: type | None = None,
     ) -> None:
-        """write an object to a particular location
+        """Write an object to a particular location.
 
         Args:
             loc (list of str):

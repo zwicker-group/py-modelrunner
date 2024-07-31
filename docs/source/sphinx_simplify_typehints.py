@@ -1,6 +1,4 @@
-"""
-Simple sphinx plug-in that simplifies  type information in function signatures
-"""
+"""Simple sphinx plug-in that simplifies  type information in function signatures."""
 
 import collections
 import re
@@ -32,7 +30,7 @@ REPLACEMENTS_REGEX = {
 def process_signature(
     app, what: str, name: str, obj, options, signature, return_annotation
 ):
-    """Process signature by applying replacement rules"""
+    """Process signature by applying replacement rules."""
     if signature is not None:
         for key, value in REPLACEMENTS.items():
             signature = signature.replace(key, value)
@@ -42,7 +40,7 @@ def process_signature(
 
 
 def sphinx_display_parameters(app, what, name, obj, options, lines):
-    """helper function to display parameters in sphinx documentation
+    """Helper function to display parameters in sphinx documentation.
 
     Example:
         This function should be connected to the 'autodoc-process-docstring'
@@ -69,6 +67,6 @@ def sphinx_display_parameters(app, what, name, obj, options, lines):
 
 
 def setup(app):
-    """set up hooks for this sphinx plugin"""
+    """Set up hooks for this sphinx plugin."""
     app.connect("autodoc-process-signature", process_signature)
     app.connect("autodoc-process-docstring", sphinx_display_parameters)

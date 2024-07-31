@@ -1,5 +1,4 @@
-"""
-Contains code necessary for loading results from format version 0
+"""Contains code necessary for loading results from format version 0.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -18,7 +17,7 @@ from .triage import guess_format
 
 
 def read_hdf_data(node):
-    """read structured data written with :func:`write_hdf_dataset` from an HDF node"""
+    """Read structured data written with :func:`write_hdf_dataset` from an HDF node."""
     import h5py
 
     if isinstance(node, h5py.Dataset):
@@ -34,7 +33,7 @@ def read_hdf_data(node):
 def _Result_from_simple_objects(
     content: Mapping[str, Any], model: ModelBase | None = None
 ) -> Result:
-    """read result from simple object (like loaded from a JSON file) using version 0
+    """Read result from simple object (like loaded from a JSON file) using version 0.
 
     Args:
         content (dict):
@@ -55,7 +54,7 @@ def _Result_from_simple_objects(
 
 
 def _Result_from_hdf(hdf_element, model: ModelBase | None = None) -> Result:
-    """old reader for backward compatible reading"""
+    """Old reader for backward compatible reading."""
     model_data = {key: json.loads(value) for key, value in hdf_element.attrs.items()}
     if "result" in hdf_element:
         result = read_hdf_data(hdf_element["result"])
@@ -71,7 +70,7 @@ def _Result_from_hdf(hdf_element, model: ModelBase | None = None) -> Result:
 
 
 def result_from_file_v0(path: Path, **kwargs) -> Result:
-    """load object from a file using format version 1
+    """Load object from a file using format version 1.
 
     Args:
         store (str or :class:`zarr.Store`):

@@ -18,7 +18,7 @@ from .utils import Array, Location, decode_class, encode_class, storage_actions
 
 
 class StorageGroup:
-    """refers to a group within a storage"""
+    """Refers to a group within a storage."""
 
     def __init__(self, storage: StorageBase | StorageGroup, loc: Location = None):
         """
@@ -59,7 +59,7 @@ class StorageGroup:
 
     @property
     def parent(self) -> StorageGroup:
-        """:class:`StorageGroup`: Parent group
+        """:class:`StorageGroup`: Parent group.
 
         Raises:
             RuntimeError: If current group is root group
@@ -70,14 +70,14 @@ class StorageGroup:
             raise RuntimeError("Root group has no parent")
 
     def tree(self) -> None:
-        """print the hierarchical storage as a tree structure"""
+        """Print the hierarchical storage as a tree structure."""
         vertic = "│  "
         cross = "├──"
         corner = "└──"
         space = "   "
 
         def print_tree(loc: list[str], header: str = ""):
-            """recursive function printing information about one group"""
+            """Recursive function printing information about one group."""
             group = StorageGroup(self._storage, loc)
             for i, key in enumerate(sorted(group.keys())):
                 last = i == len(group) - 1
@@ -101,7 +101,7 @@ class StorageGroup:
         print_tree(self.loc)
 
     def _get_loc(self, loc: Location) -> list[str]:
-        """return a normalized location from various input
+        """Return a normalized location from various input.
 
         Args:
             loc (str or list of str):
@@ -124,7 +124,7 @@ class StorageGroup:
         return self.loc + parse_loc(loc)
 
     def __getitem__(self, loc: Location) -> Any:
-        """read state or trajectory from storage"""
+        """Read state or trajectory from storage."""
         loc_list = self._get_loc(loc)
         if self._storage.is_group(loc_list):  # storage points to a group
             if "__class__" not in self._storage._read_attrs(loc_list):
@@ -143,28 +143,28 @@ class StorageGroup:
         self.write_item(loc, obj)
 
     def keys(self) -> Collection[str]:
-        """return name of all stored items in this group"""
+        """Return name of all stored items in this group."""
         return self._storage.keys(self.loc)
 
     def __len__(self) -> int:
         return len(self.keys())
 
     def __iter__(self) -> Iterator[Any]:
-        """iterate over all stored items in this group"""
+        """Iterate over all stored items in this group."""
         for loc in self.keys():
             yield self[loc]
 
     def __contains__(self, loc: Location):
-        """check wether a particular item is contained in this group"""
+        """Check wether a particular item is contained in this group."""
         return self._get_loc(loc) in self._storage
 
     def items(self) -> Iterator[tuple[str, Any]]:
-        """iterate over stored items, yielding the location and item of each"""
+        """Iterate over stored items, yielding the location and item of each."""
         for loc in self.keys():
             yield loc, self[loc]
 
     def read_attrs(self, loc: Location = None) -> Attrs:
-        """read attributes associated with a particular location
+        """Read attributes associated with a particular location.
 
         Args:
             loc (str or list of str):
@@ -176,7 +176,7 @@ class StorageGroup:
         return self._storage.read_attrs(self._get_loc(loc))
 
     def write_attrs(self, loc: Location = None, attrs: Attrs | None = None) -> None:
-        """write attributes to a particular location
+        """Write attributes to a particular location.
 
         Args:
             loc (str or list of str):
@@ -192,7 +192,7 @@ class StorageGroup:
         return self.read_attrs()
 
     def get_class(self, loc: Location = None) -> type | None:
-        """get the class associated with a particular location
+        """Get the class associated with a particular location.
 
         Class information can be written using the `cls` attribute of `write_array`,
         `write_object`, and similar functions.
@@ -208,7 +208,7 @@ class StorageGroup:
         return decode_class(attrs.get("__class__"))
 
     def read_item(self, loc: Location, *, use_class: bool = True) -> Any:
-        """read an item from a particular location
+        """Read an item from a particular location.
 
         Args:
             loc (str or list of str):
@@ -247,7 +247,7 @@ class StorageGroup:
         attrs: Attrs | None = None,
         use_class: bool = True,
     ) -> None:
-        """write an item to a particular location
+        """Write an item to a particular location.
 
         Args:
             loc (sequence of str):
@@ -282,7 +282,7 @@ class StorageGroup:
             self.write_object(loc, item, attrs=attrs)
 
     def is_group(self, loc: Location = None) -> bool:
-        """determine whether the location is a group
+        """Determine whether the location is a group.
 
         Args:
             loc (sequence of str):
@@ -294,7 +294,7 @@ class StorageGroup:
         return self._storage.is_group(self._get_loc(loc))
 
     def open_group(self, loc: Location) -> StorageGroup:
-        """open an existing group at a particular location
+        """Open an existing group at a particular location.
 
         Args:
             loc (str or list of str):
@@ -315,7 +315,7 @@ class StorageGroup:
         attrs: Attrs | None = None,
         cls: type | None = None,
     ) -> StorageGroup:
-        """create a new group at a particular location
+        """Create a new group at a particular location.
 
         Args:
             loc (str or list of str):
@@ -338,7 +338,7 @@ class StorageGroup:
         out: np.ndarray | None = None,
         index: int | None = None,
     ) -> np.ndarray:
-        """read an array from a particular location
+        """Read an array from a particular location.
 
         Args:
             loc (str or list of str):
@@ -363,7 +363,7 @@ class StorageGroup:
         attrs: Attrs | None = None,
         cls: type | None = None,
     ):
-        """write an array to a particular location
+        """Write an array to a particular location.
 
         Args:
             loc (str or list of str):
@@ -389,7 +389,7 @@ class StorageGroup:
         attrs: Attrs | None = None,
         cls: type | None = None,
     ):
-        """creates a dynamic array of flexible size
+        """Creates a dynamic array of flexible size.
 
         Args:
             loc (str or list of str):
@@ -425,7 +425,7 @@ class StorageGroup:
         )
 
     def extend_dynamic_array(self, loc: Location, data: ArrayLike):
-        """extend a dynamic array previously created
+        """Extend a dynamic array previously created.
 
         Args:
             loc (str or list of str):
@@ -436,7 +436,7 @@ class StorageGroup:
         self._storage.extend_dynamic_array(self._get_loc(loc), data)
 
     def read_object(self, loc: Location) -> Any:
-        """read an object from a particular location
+        """Read an object from a particular location.
 
         Args:
             loc (str or list of str):
@@ -455,7 +455,7 @@ class StorageGroup:
         attrs: Attrs | None = None,
         cls: type | None = None,
     ):
-        """write an object to a particular location
+        """Write an object to a particular location.
 
         Args:
             loc (str or list of str):

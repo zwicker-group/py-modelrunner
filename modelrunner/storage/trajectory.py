@@ -1,5 +1,4 @@
-"""
-Classes that describe time-dependent data, i.e., trajectories.
+"""Classes that describe time-dependent data, i.e., trajectories.
 
 .. autosummary::
    :nosignatures:
@@ -27,7 +26,7 @@ from .utils import Location, storage_actions
 
 
 class TrajectoryWriter:
-    """writes trajectories into a storage
+    """Writes trajectories into a storage.
 
     Stored data can then be read using :class:`Trajectory`.
 
@@ -106,11 +105,11 @@ class TrajectoryWriter:
 
     @property
     def times(self) -> np.ndarray:
-        """:class:`~numpy.ndarray`: Time points written so far"""
+        """:class:`~numpy.ndarray`: Time points written so far."""
         return self._trajectory.read_array("time")
 
     def append(self, data: Any, time: float | None = None) -> None:
-        """append data to the trajectory
+        """Append data to the trajectory.
 
         Args:
             data:
@@ -193,14 +192,14 @@ class Trajectory:
             raise ValueError(f"Times are not monotonously increasing: {self.times}")
 
     def close(self) -> None:
-        """close the openend storage"""
+        """Close the openend storage."""
         self._storage.close()
 
     def __len__(self) -> int:
         return len(self.times)
 
     def _get_item(self, t_index: int) -> Any:
-        """return the data object corresponding to the given time index
+        """Return the data object corresponding to the given time index.
 
         Load the data given an index, i.e., the data at time `self.times[t_index]`.
 
@@ -226,14 +225,14 @@ class Trajectory:
             raise NotImplementedError
 
     def __getitem__(self, key: int) -> Any:
-        """return field at given index or a list of fields for a slice"""
+        """Return field at given index or a list of fields for a slice."""
         if isinstance(key, int):
             return self._get_item(key)
         else:
             raise TypeError("Unknown key type")
 
     def __iter__(self) -> Iterator[Any]:
-        """iterate over all stored fields"""
+        """Iterate over all stored fields."""
         for i in range(len(self)):
             yield self[i]
 

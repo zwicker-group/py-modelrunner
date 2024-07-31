@@ -1,6 +1,5 @@
 #!/usr/bin/env python3 -m modelrunner
-"""
-This example displays a minimal script containing a model class. 
+"""This example displays a minimal script containing a model class.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """

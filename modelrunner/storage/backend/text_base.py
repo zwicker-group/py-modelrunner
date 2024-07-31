@@ -24,7 +24,7 @@ from .utils import simplify_data
 
 
 class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
-    """base class for storage that stores data in a text file
+    """Base class for storage that stores data in a text file.
 
     Note that the data is only written once the storage is closed.
     """
@@ -67,7 +67,7 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
         return f'{self.__class__.__name__}("{self._path}", ' f'mode="{self.mode.name}")'
 
     def flush(self) -> None:
-        """write (cached) data to storage"""
+        """Write (cached) data to storage."""
         if self.mode.file_mode in {"x", "a", "w"}:
             # Write the data to the writeable file. Note that we do not check the
             # self._modified flag since it might not capture all changes, e.g., when an
@@ -83,12 +83,12 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
             raise AccessError("Cannot write modifications to file opened read-only")
 
     def close(self) -> None:
-        """close the file and write the data to the file"""
+        """Close the file and write the data to the file."""
         self.flush()
         super().close()
 
     def to_text(self, simplify: bool | None = None) -> str:
-        """serialize the data and return it as a string
+        """Serialize the data and return it as a string.
 
         Args:
             simplify (bool):
@@ -105,7 +105,7 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
 
     @abstractmethod
     def _read_data_from_fp(self, fp: io.TextIOBase):
-        """read data from an open file
+        """Read data from an open file.
 
         Args:
             fp (:class:`io.TextIOBase`): The opened text file
@@ -113,7 +113,7 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
 
     @abstractmethod
     def _write_data_to_fp(self, fp: io.TextIOBase, data) -> None:
-        """write data to an open file
+        """Write data to an open file.
 
         Args:
             fp (:class:`io.TextIOBase`): The opened text file

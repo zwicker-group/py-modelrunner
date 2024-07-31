@@ -1,7 +1,6 @@
-"""
-Defines a class storing data in memory. 
+"""Defines a class storing data in memory.
 
-.. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de> 
+.. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
 from __future__ import annotations
@@ -18,7 +17,7 @@ from ..base import StorageBase
 
 
 class MemoryStorage(StorageBase):
-    """store items in memory"""
+    """Store items in memory."""
 
     _data: dict[str, Any]
 
@@ -33,7 +32,7 @@ class MemoryStorage(StorageBase):
         self._data = {}
 
     def clear(self) -> None:
-        """truncate the storage by removing all stored data.
+        """Truncate the storage by removing all stored data.
 
         Args:
             clear_data_shape (bool):
@@ -44,7 +43,7 @@ class MemoryStorage(StorageBase):
     def _get_parent(
         self, loc: Sequence[str], *, check_write: bool = False
     ) -> tuple[dict, str]:
-        """get the parent group for a particular location
+        """Get the parent group for a particular location.
 
         Args:
             loc (list of str):

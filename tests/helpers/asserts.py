@@ -8,7 +8,7 @@ import numpy as np
 
 
 def homogeneous_shape(arr: Sequence) -> bool:
-    """test whether sequence items have all the same length"""
+    """Test whether sequence items have all the same length."""
     try:
         return len({len(a) for a in arr}) == 1
     except TypeError:
@@ -17,7 +17,7 @@ def homogeneous_shape(arr: Sequence) -> bool:
 
 
 def assert_data_equals(left: Any, right: Any, *, fuzzy: bool = False) -> bool:
-    """checks whether two objects are equal, also supporting :class:~numpy.ndarray`
+    """Checks whether two objects are equal, also supporting :class:~numpy.ndarray`
 
     Args:
         left: one object

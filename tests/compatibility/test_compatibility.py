@@ -17,7 +17,7 @@ POSSIBLE_EXTENSIONS = {".yaml", ".json", ".hdf", ".zarr", ".zip"}
 
 
 def get_compatibility_files(version=None):
-    """find all files that need to be checked for compatibility"""
+    """Find all files that need to be checked for compatibility."""
     for path in CWD.glob("**/*.*"):
         if path.suffix in POSSIBLE_EXTENSIONS:
             if path.parts[-2].startswith("_"):
@@ -28,7 +28,7 @@ def get_compatibility_files(version=None):
 
 @pytest.mark.parametrize("path", get_compatibility_files())
 def test_reading_compatibility(path):
-    """test reading old files"""
+    """Test reading old files."""
     result = Result.from_file(path)
 
     with open(path.with_suffix(".pkl"), "rb") as fp:

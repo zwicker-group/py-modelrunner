@@ -10,7 +10,7 @@ from .job import submit_job
 
 
 def main():
-    """submit a script using command line arguments"""
+    """Submit a script using command line arguments."""
     parser = argparse.ArgumentParser(
         prog="python -m modelrunner.run", description="Run a script as a job"
     )

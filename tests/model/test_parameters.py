@@ -22,7 +22,7 @@ from modelrunner.model.parameters import (
 
 
 def test_autotype():
-    """test automatic type conversion"""
+    """Test automatic type conversion."""
     assert auto_type(1) == 1
     assert isinstance(auto_type(1), int)
     assert isinstance(auto_type(1.0), int)
@@ -37,7 +37,7 @@ def test_autotype():
 
 
 def test_parameters():
-    """test mixing Parameterized"""
+    """Test mixing Parameterized."""
 
     param = Parameter("a", 1, int, "help", extra={"b": 3})
     assert isinstance(str(param), str)
@@ -116,7 +116,7 @@ def test_parameters():
 
 
 def test_parameters_simple():
-    """test adding parameters using a simple dictionary"""
+    """Test adding parameters using a simple dictionary."""
 
     class TestSimple(Parameterized):
         parameters_default = {"a": 1}
@@ -128,7 +128,7 @@ def test_parameters_simple():
 
 
 def test_parameter_help(capsys):
-    """test how parameters are shown"""
+    """Test how parameters are shown."""
 
     class TestHelp1(Parameterized):
         parameters_default = [DeprecatedParameter("a", 1, int, "random string")]
@@ -147,7 +147,7 @@ def test_parameter_help(capsys):
 
 
 def test_parameter_required():
-    """test required parameter"""
+    """Test required parameter."""
 
     class TestRequired(Parameterized):
         parameters_default = [Parameter("a", required=True)]
@@ -158,7 +158,7 @@ def test_parameter_required():
 
 
 def test_parameter_choices():
-    """test parameter with explicit choices"""
+    """Test parameter with explicit choices."""
 
     class TestChoices(Parameterized):
         parameters_default = [Parameter("a", choices={1, 2, 3})]
@@ -188,7 +188,7 @@ def test_parameter_choices():
 
 
 def test_hidden_parameter():
-    """test how hidden parameters are handled"""
+    """Test how hidden parameters are handled."""
 
     class TestHidden1(Parameterized):
         parameters_default = [Parameter("a", 1), Parameter("b", 2)]
@@ -220,7 +220,7 @@ def test_hidden_parameter():
 
 
 def test_convert_default_values(caplog):
-    """test how default values are handled"""
+    """Test how default values are handled."""
     caplog.set_level(logging.WARNING)
 
     class TestConvert1(Parameterized):
@@ -263,7 +263,7 @@ def test_convert_default_values(caplog):
 
 
 def test_parameters_default_full():
-    """test the _parameters_default_full property"""
+    """Test the _parameters_default_full property."""
     ps = [
         Parameter("a", 1),  # 0
         Parameter("b", 2),  # 1

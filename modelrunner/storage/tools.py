@@ -1,5 +1,4 @@
-"""
-Functions that provide convenience on top of the storage classes
+"""Functions that provide convenience on top of the storage classes.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -19,7 +18,7 @@ StorageID = Union[None, str, Path, StorageGroup, StorageBase]
 
 
 class open_storage(StorageGroup):
-    """open a storage and return the root :class:`StorageGroup`
+    """Open a storage and return the root :class:`StorageGroup`
 
     Example:
         This can be either used like a function
@@ -133,7 +132,7 @@ class open_storage(StorageGroup):
         self._closed = False
 
     def close(self) -> None:
-        """close the storage (and flush all data to persistent storage if necessary)"""
+        """Close the storage (and flush all data to persistent storage if necessary)"""
         if self._close:
             self._storage.close()
         else:
@@ -147,7 +146,7 @@ class open_storage(StorageGroup):
 
     @property
     def mode(self) -> AccessMode:
-        """:class:`~modelrunner.storage.access_modes.AccessMode`: access mode"""
+        """:class:`~modelrunner.storage.access_modes.AccessMode`: access mode."""
         return self._storage.mode
 
     def __enter__(self):

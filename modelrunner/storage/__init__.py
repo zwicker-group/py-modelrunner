@@ -1,5 +1,4 @@
-"""
-Defines stroages, which contain store objects in a hierarchical format
+"""Defines stroages, which contain store objects in a hierarchical format.
 
 .. autosummary::
    :nosignatures:

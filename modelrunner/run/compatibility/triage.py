@@ -1,5 +1,4 @@
-"""
-Contains code necessary for deciding which format version was used to write a file
+"""Contains code necessary for deciding which format version was used to write a file.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -22,7 +21,7 @@ Store = Union[str, Path, "BaseStore"]
 
 
 def guess_format(path: Path) -> str:
-    """guess the format of a given store
+    """Guess the format of a given store.
 
     Args:
         path (str or :class:`~pathlib.Path`):
@@ -44,7 +43,7 @@ def guess_format(path: Path) -> str:
 
 
 def normalize_zarr_store(store: Store, mode: str = "a") -> Store | None:
-    """determine best file format for zarr storage
+    """Determine best file format for zarr storage.
 
     In particular, we use a :class:`~zarr.storage.ZipStore` when a path looking like a
     file is given.
@@ -72,7 +71,7 @@ def normalize_zarr_store(store: Store, mode: str = "a") -> Store | None:
 
 
 def _find_version(data: Mapping[str, Any], label: str) -> int | None:
-    """try finding version information in different places in `data`
+    """Try finding version information in different places in `data`
 
     Args:
         data (dict):
@@ -85,7 +84,7 @@ def _find_version(data: Mapping[str, Any], label: str) -> int | None:
     """
 
     def read_version(item) -> str | None:
-        """try reading attribute from a particular item"""
+        """Try reading attribute from a particular item."""
         if hasattr(item, "attrs"):
             return read_version(item.attrs)
         elif "__version__" in item:
@@ -114,7 +113,7 @@ def _find_version(data: Mapping[str, Any], label: str) -> int | None:
 
 
 def _get_format_version(path: Path, label: str) -> int | None:
-    """determine format version of the file in `path`
+    """Determine format version of the file in `path`
 
     Args:
         path (str or :class:`~pathlib.Path`):
@@ -162,7 +161,7 @@ def _get_format_version(path: Path, label: str) -> int | None:
 def result_check_load_old_version(
     path: Path, loc: str | None, *, model: ModelBase | None = None
 ) -> Result | None:
-    """check whether the resource can be loaded with an older version of the package
+    """Check whether the resource can be loaded with an older version of the package.
 
     Args:
         path (str or :class:`~pathlib.Path`):

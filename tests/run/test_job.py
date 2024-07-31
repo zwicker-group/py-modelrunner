@@ -15,10 +15,10 @@ assert SCRIPT_PATH.is_dir()
 
 
 def test_submit_job(tmp_path, capsys):
-    """test some basic usage of the submit_job function"""
+    """Test some basic usage of the submit_job function."""
 
     def run(**p):
-        """helper submitting job locally"""
+        """Helper submitting job locally."""
         output = tmp_path / "output.json"
         submit_job(
             SCRIPT_PATH / "function.py",
@@ -39,7 +39,7 @@ def test_submit_job(tmp_path, capsys):
 
 @pytest.mark.parametrize("method", ["foreground", "background"])
 def test_submit_job_fail(method):
-    """test some basic usage of the submit_job function"""
+    """Test some basic usage of the submit_job function."""
     outs, errs = submit_job(SCRIPT_PATH / "fail.py", method=method)
     assert outs == ""
     assert "Traceback" in errs
@@ -47,7 +47,7 @@ def test_submit_job_fail(method):
 
 @pytest.mark.parametrize("method", ["foreground", "background"])
 def test_submit_job_stdout(tmp_path, method):
-    """test logging to stdout for the submit_job function"""
+    """Test logging to stdout for the submit_job function."""
 
     output = tmp_path / "output.json"
     outs, errs = submit_job(
@@ -63,7 +63,7 @@ def test_submit_job_stdout(tmp_path, method):
 
 
 def test_submit_job_no_output():
-    """test logging to stdout for the submit_job function"""
+    """Test logging to stdout for the submit_job function."""
     outs, errs = submit_job(
         SCRIPT_PATH / "print.py",
         method="foreground",
@@ -74,10 +74,10 @@ def test_submit_job_no_output():
 
 
 def test_submit_jobs(tmp_path):
-    """test some edge cases of the submit_jobs function"""
+    """Test some edge cases of the submit_jobs function."""
 
     def run(parameters, **kwargs):
-        """helper submitting job locally"""
+        """Helper submitting job locally."""
         num_jobs = submit_jobs(
             SCRIPT_PATH / "function.py",
             tmp_path,
@@ -119,10 +119,10 @@ def test_submit_jobs(tmp_path):
 
 
 def test_submit_job_no_modelrunner(tmp_path):
-    """test some basic usage of the submit_job function"""
+    """Test some basic usage of the submit_job function."""
 
     def run(**p):
-        """helper submitting job locally"""
+        """Helper submitting job locally."""
         submit_job(
             SCRIPT_PATH / "script.py",
             parameters=p,
@@ -140,7 +140,7 @@ def test_submit_job_no_modelrunner(tmp_path):
 
 
 def test_submit_job_own_template(tmp_path):
-    """test the submit_job function with a custom template"""
+    """Test the submit_job function with a custom template."""
     outs, errs = submit_job(
         SCRIPT_PATH / "print.py",
         method="foreground",

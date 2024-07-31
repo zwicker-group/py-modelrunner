@@ -1,5 +1,4 @@
-"""
-Infrastructure for managing classes with parameters.
+"""Infrastructure for managing classes with parameters.
 
 One aim is to allow easy management of inheritance of parameters.
 
@@ -29,7 +28,7 @@ from ..utils import hybridmethod, import_class
 
 
 class NoValueType:
-    """special value to indicate no value for a parameter"""
+    """Special value to indicate no value for a parameter."""
 
     def __repr__(self):
         return "NoValue"
@@ -39,7 +38,7 @@ NoValue = NoValueType()
 
 
 def auto_type(value):
-    """convert value to float or int if reasonable"""
+    """Convert value to float or int if reasonable."""
     try:
         float_val = float(value)
     except (TypeError, ValueError):
@@ -58,7 +57,7 @@ def auto_type(value):
 
 @dataclass
 class Parameter:
-    """class representing a single parameter
+    """Class representing a single parameter.
 
     Args:
         name (str):
@@ -94,12 +93,12 @@ class Parameter:
     extra: dict[str, Any] = field(default_factory=dict)
 
     def _check_value(self, value) -> None:
-        """checks whether the value is acceptable"""
+        """Checks whether the value is acceptable."""
         if value is not None and self.choices is not None and value not in self.choices:
             raise ValueError(f"Default value `{value}` not in `{self.choices}`")
 
     def __post_init__(self):
-        """check default values and cls"""
+        """Check default values and cls."""
         if self.cls is not object and not any(
             self.default_value is v for v in {None, NoValue}
         ):
@@ -155,11 +154,11 @@ class Parameter:
 
     @property
     def short_description(self) -> str:
-        """return only the first sentence of the description"""
+        """Return only the first sentence of the description."""
         return self.description.split(". ", 1)[0]
 
     def convert(self, value=NoValue, *, strict: bool = True):
-        """converts a `value` into the correct type for this parameter. If `value` is
+        """Converts a `value` into the correct type for this parameter. If `value` is
         not given, the default value is converted.
 
         Note that this does not make a copy of the values, which could lead to
@@ -198,7 +197,7 @@ class Parameter:
         return value
 
     def _argparser_add(self, parser):
-        """add a command line option for this parameter to a parser"""
+        """Add a command line option for this parameter to a parser."""
         if not self.hidden:
             if self.description:
                 description = self.description
@@ -253,13 +252,13 @@ class Parameter:
 
 
 class DeprecatedParameter(Parameter):
-    """a parameter that can still be used normally but is deprecated"""
+    """A parameter that can still be used normally but is deprecated."""
 
     pass
 
 
 class HideParameter:
-    """a helper class that allows hiding parameters of the parent classes
+    """A helper class that allows hiding parameters of the parent classes.
 
     This parameter will still appear in the :attr:`parameters` dictionary, but it will
     typically not be visible to the user, e.g., when calling :meth:`show_parameters`.
@@ -282,7 +281,7 @@ ParameterInputType = Optional[Dict[str, Any]]
 
 
 class Parameterized:
-    """a mixin that manages the parameters of a class"""
+    """A mixin that manages the parameters of a class."""
 
     parameters_default: ParameterListType = []
     """list: parameters (with default values) of this subclass"""
@@ -292,7 +291,7 @@ class Parameterized:
     """dict: a dictionary of all classes inheriting from `Parameterized`"""
 
     def __init__(self, parameters: ParameterInputType = None, *, strict: bool = True):
-        """initialize the parameters of the object
+        """Initialize the parameters of the object.
 
         Args:
             parameters (dict):
@@ -316,7 +315,7 @@ class Parameterized:
             )
 
     def __init_subclass__(cls, **kwargs) -> None:  # @NoSelf
-        """register all subclasses to reconstruct them later"""
+        """Register all subclasses to reconstruct them later."""
         # normalize the parameters_default attribute to be a list of `Parameter`
         if hasattr(cls, "parameters_default") and isinstance(
             cls.parameters_default, dict
@@ -368,7 +367,7 @@ class Parameterized:
         include_deprecated: bool = False,
         sort: bool = True,
     ) -> dict[str, Parameter]:
-        """return a dictionary of parameters that the class supports
+        """Return a dictionary of parameters that the class supports.
 
         Args:
             include_hidden (bool):
@@ -395,7 +394,7 @@ class Parameterized:
 
         # filter parameters based on hidden and deprecated flags
         def show(p):
-            """helper function to decide whether a parameter will be shown"""
+            """Helper function to decide whether a parameter will be shown."""
             # show based on hidden flag?
             show1 = include_hidden or not p.hidden
             # show based on deprecated flag?
@@ -420,7 +419,7 @@ class Parameterized:
         allow_hidden: bool = True,
         include_deprecated: bool = False,
     ) -> dict[str, Any]:
-        """parse parameters from a given dictionary
+        """Parse parameters from a given dictionary.
 
         Args:
             parameters (dict):
@@ -472,7 +471,7 @@ class Parameterized:
 
     @classmethod
     def get_parameter_default(cls, name):  # @NoSelf
-        """return the default value for the parameter with `name`
+        """Return the default value for the parameter with `name`
 
         Args:
             name (str): The parameter name
@@ -496,7 +495,7 @@ class Parameterized:
         template: str | None = None,
         template_object: str | None = None,
     ) -> Iterator[str]:
-        """private method showing all parameters in human readable format
+        """Private method showing all parameters in human readable format.
 
         Args:
             description (bool):
@@ -559,7 +558,7 @@ class Parameterized:
         show_hidden: bool = False,
         show_deprecated: bool = False,
     ) -> None:
-        """show all parameters in human readable format
+        """Show all parameters in human readable format.
 
         Args:
             description (bool):
@@ -590,7 +589,7 @@ class Parameterized:
         show_deprecated: bool = False,
         default_value: bool = False,
     ) -> None:
-        """show all parameters in human readable format
+        """Show all parameters in human readable format.
 
         Args:
             description (bool):
@@ -618,7 +617,7 @@ class Parameterized:
 
 
 def get_all_parameters(data: str = "name") -> dict[str, Any]:
-    """get a dictionary with all parameters of all registered classes
+    """Get a dictionary with all parameters of all registered classes.
 
     Args:
         data (str):

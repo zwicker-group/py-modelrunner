@@ -1,9 +1,8 @@
-"""
-Defines a class storing data in various storages
+"""Defines a class storing data in various storages.
 
 Requires the optional :mod:`zarr` module.
 
-.. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de> 
+.. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
 from __future__ import annotations
@@ -25,7 +24,7 @@ zarrElement = Union[zarr.Group, zarr.Array]
 
 
 class ZarrStorage(StorageBase):
-    """storage that stores data in an zarr file or database"""
+    """Storage that stores data in an zarr file or database."""
 
     extensions = ["zarr", "zip", "sqldb", "lmdb"]
 
@@ -99,7 +98,7 @@ class ZarrStorage(StorageBase):
         super().close()
 
     def _get_parent(self, loc: Sequence[str]) -> tuple[zarr.Group, str]:
-        """get the parent group for a particular location
+        """Get the parent group for a particular location.
 
         Args:
             loc (list of str):

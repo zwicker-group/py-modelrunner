@@ -1,5 +1,4 @@
-"""
-Defines a class storing data in memory and writing it to a file in YAML format
+"""Defines a class storing data in memory and writing it to a file in YAML format.
 
 Requires the optional :mod:`yaml` module.
 
@@ -14,7 +13,7 @@ from .text_base import TextStorageBase
 
 
 class YAMLStorage(TextStorageBase):
-    """storage that stores data in a YAML text file
+    """Storage that stores data in a YAML text file.
 
     Note that the data is only written once the storage is closed.
     """

@@ -1,5 +1,4 @@
-"""
-Miscellaneous utility methods
+"""Miscellaneous utility methods.
 
 .. autosummary::
    :nosignatures:
@@ -16,7 +15,7 @@ import importlib
 
 
 class hybridmethod:
-    """decorator to use a method both as a classmethod and an instance method
+    """Decorator to use a method both as a classmethod and an instance method.
 
     Note:
         The decorator can be used like so:
@@ -53,7 +52,7 @@ class hybridmethod:
 
 
 def import_class(identifier: str):
-    """import a class or module given an identifier
+    """Import a class or module given an identifier.
 
     Args:
         identifier (str):
@@ -72,7 +71,8 @@ def import_class(identifier: str):
 
 
 def is_serial_or_mpi_root() -> bool:
-    """function determining whether the current program is serial or an MPI root node"""
+    """Function determining whether the current program is serial or an MPI root
+    node."""
     try:
         from mpi4py import MPI
     except ImportError:

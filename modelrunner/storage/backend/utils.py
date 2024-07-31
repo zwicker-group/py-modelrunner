@@ -8,7 +8,7 @@ import numpy as np
 
 
 def simplify_data(data):
-    """simplify data (e.g. for writing to json or yaml)
+    """Simplify data (e.g. for writing to json or yaml)
 
     This function for instance turns sets and numpy arrays into lists.
     """

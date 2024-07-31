@@ -28,61 +28,61 @@ assert SCRIPT_PATH.is_dir()
 
 
 def run(script, *args):
-    """run a script (with potential arguments) and collect stdout"""
+    """Run a script (with potential arguments) and collect stdout."""
     result = run_script(SCRIPT_PATH / script, args)
     return result.result
 
 
 def test_empty_script():
-    """test the empty.py script"""
+    """Test the empty.py script."""
     with pytest.raises(RuntimeError):
         run("empty.py")
 
 
 def test_function_script():
-    """test the function.py script"""
+    """Test the function.py script."""
     assert float(run("function.py")) == 2
     assert float(run("function.py", "--a", "3")) == 6
     assert float(run("function.py", "--a", "3", "--b", "4")) == 12
 
 
 def test_function_main_script():
-    """test the function_main.py script"""
+    """Test the function_main.py script."""
     assert float(run("function_main.py")) == 2
     assert float(run("function_main.py", "--a", "3")) == 6
     assert float(run("function_main.py", "--a", "3", "--b", "4")) == 12
 
 
 def test_function_marked_script():
-    """test the function_main.py script"""
+    """Test the function_main.py script."""
     assert float(run("function_marked.py")) == 3
     assert float(run("function_marked.py", "--a", "3")) == 5
     assert float(run("function_marked.py", "--a", "3", "--b", "4")) == 7
 
 
 def test_make_model_script():
-    """test the make_model.py script"""
+    """Test the make_model.py script."""
     assert run("make_model.py") == 2
     assert run("make_model.py", "--a", "3") == 6
     assert run("make_model.py", "--a", "3", "--b", "4") == 12
 
 
 def test_make_model_class_script():
-    """test the make_model_class.py script"""
+    """Test the make_model_class.py script."""
     assert run("make_model_class.py") == 2
     assert run("make_model_class.py", "--a", "3") == 6
     assert run("make_model_class.py", "--a", "3", "--b", "4") == 12
 
 
 def test_make_model_marked_script():
-    """test the function_main.py script"""
+    """Test the function_main.py script."""
     assert float(run("make_model_marked.py")) == 3
     assert float(run("make_model_marked.py", "--a", "3")) == 5
     assert float(run("make_model_marked.py", "--a", "3", "--b", "4")) == 7
 
 
 def test_required_arguments_model():
-    """test required arguments"""
+    """Test required arguments."""
 
     @make_model
     def req_args_1(a=1):
@@ -108,7 +108,7 @@ def test_required_arguments_model():
 
 
 def test_required_arguments_model_class_decorator():
-    """test required arguments"""
+    """Test required arguments."""
 
     @make_model_class
     def required_arg_1(a=1):
@@ -134,7 +134,7 @@ def test_required_arguments_model_class_decorator():
 
 
 def test_required_arguments_model_class():
-    """test required arguments"""
+    """Test required arguments."""
 
     class A(ModelBase):
         parameters_default = [Parameter("a", required=True), Parameter("b", 2)]
@@ -149,7 +149,7 @@ def test_required_arguments_model_class():
 
 
 def test_choices_arguments_model_class():
-    """test arguments with choices"""
+    """Test arguments with choices."""
 
     class A(ModelBase):
         parameters_default = [
@@ -170,7 +170,7 @@ def test_choices_arguments_model_class():
 
 
 def test_make_model():
-    """test the make_model decorator"""
+    """Test the make_model decorator."""
 
     @make_model
     def model1(a=2):
@@ -200,7 +200,7 @@ def test_make_model():
 
 
 def test_make_model_class():
-    """test the make_model_class function"""
+    """Test the make_model_class function."""
 
     def model_func(a=2):
         return a**2
@@ -213,7 +213,7 @@ def test_make_model_class():
 
 
 def test_make_model_class_literal_args():
-    """test the make_model_class function"""
+    """Test the make_model_class function."""
 
     def model_func(a: Literal["a", 2] = 2):
         return a * 2
@@ -232,7 +232,7 @@ def test_make_model_class_literal_args():
 
 
 def test_argparse_boolean_arguments():
-    """test boolean parameters"""
+    """Test boolean parameters."""
 
     @make_model
     def parse_bool_0(flag: bool):
@@ -259,7 +259,7 @@ def test_argparse_boolean_arguments():
 
 
 def test_argparse_list_arguments():
-    """test list parameters"""
+    """Test list parameters."""
 
     @make_model
     def parse_list_0(flag: list):
@@ -282,7 +282,7 @@ def test_argparse_list_arguments():
 
 
 def test_model_class_inheritence():
-    """test whether inheritence works as intended"""
+    """Test whether inheritence works as intended."""
 
     class A(ModelBase):
         parameters_default = [
@@ -317,7 +317,7 @@ def test_model_class_inheritence():
 
 
 def test_model_output(tmp_path):
-    """test whether model output works as intended"""
+    """Test whether model output works as intended."""
 
     class A(ModelBase):
         parameters_default = [Parameter("a", 1)]
@@ -336,7 +336,7 @@ def test_model_output(tmp_path):
 
 @pytest.mark.parametrize("kwarg", [True, False])
 def test_model_storage(kwarg, tmp_path):
-    """test storage argument in model"""
+    """Test storage argument in model."""
 
     if kwarg:
 

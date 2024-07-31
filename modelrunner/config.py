@@ -1,5 +1,4 @@
-"""
-Handles configuration variables
+"""Handles configuration variables.
 
 .. autosummary::
    :nosignatures:
@@ -20,7 +19,7 @@ from .model.parameters import DeprecatedParameter, Parameter
 
 
 class Config(collections.UserDict):
-    """class handling the package configuration"""
+    """Class handling the package configuration."""
 
     def __init__(
         self,
@@ -67,21 +66,21 @@ class Config(collections.UserDict):
         self.mode = mode
 
     def load(self, path: str | Path):
-        """load configuration from yaml file"""
+        """Load configuration from yaml file."""
         import yaml
 
         with open(path) as fp:
             self.update(yaml.safe_load(fp))
 
     def save(self, path: str | Path):
-        """save configuration to yaml file"""
+        """Save configuration to yaml file."""
         import yaml
 
         with open(path, "w") as fp:
             yaml.dump(self.to_dict(), fp)
 
     def __getitem__(self, key: str):
-        """retrieve item `key`"""
+        """Retrieve item `key`"""
         parameter = self.data[key]
         if isinstance(parameter, Parameter):
             return parameter.convert()
@@ -89,7 +88,7 @@ class Config(collections.UserDict):
             return parameter
 
     def __setitem__(self, key: str, value):
-        """update item `key` with `value`"""
+        """Update item `key` with `value`"""
         if self.mode == "insert":
             self.data[key] = value
 
@@ -107,20 +106,20 @@ class Config(collections.UserDict):
             raise ValueError(f"Unsupported configuration mode `{self.mode}`")
 
     def __delitem__(self, key: str):
-        """removes item `key`"""
+        """Removes item `key`"""
         if self.mode == "insert":
             del self.data[key]
         else:
             raise RuntimeError("Configuration is not in `insert` mode")
 
     def copy(self) -> Config:
-        """return a copy of the configuration"""
+        """Return a copy of the configuration."""
         obj = self.__class__(self._default, self.mode)
         obj.update(self)
         return obj
 
     def to_dict(self) -> dict[str, Any]:
-        """convert the configuration to a simple dictionary
+        """Convert the configuration to a simple dictionary.
 
         Returns:
             dict: A representation of the configuration in a normal :class:`dict`.
@@ -128,12 +127,12 @@ class Config(collections.UserDict):
         return {k: v for k, v in self.items()}
 
     def __repr__(self) -> str:
-        """represent the configuration as a string"""
+        """Represent the configuration as a string."""
         return f"{self.__class__.__name__}({repr(self.to_dict())})"
 
     @contextlib.contextmanager
     def __call__(self, values: dict[str, Any] | None = None, **kwargs):
-        """context manager temporarily changing the configuration
+        """Context manager temporarily changing the configuration.
 
         Args:
             values (dict): New configuration parameters

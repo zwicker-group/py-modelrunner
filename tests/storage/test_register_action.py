@@ -76,7 +76,7 @@ class B1(B): ...
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_register_class_action(ext, tmp_path):
-    """test loading custom classes"""
+    """Test loading custom classes."""
 
     a = A({"a": 1})
     assert not a.loaded
@@ -93,7 +93,7 @@ def test_register_class_action(ext, tmp_path):
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_register_class_action_nested(tmp_path, ext):
-    """test loading custom nested classes"""
+    """Test loading custom nested classes."""
 
     a = A({"a": 1})
     b = B(a, "str")
@@ -112,7 +112,7 @@ def test_register_class_action_nested(tmp_path, ext):
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_register_class_action_subclass(ext, tmp_path):
-    """test loading custom classes and subclasses"""
+    """Test loading custom classes and subclasses."""
 
     a = A({"a": 1})
     a1 = A1({"b": 2})  # has not defined hooks itself
@@ -135,7 +135,7 @@ def test_register_class_action_subclass(ext, tmp_path):
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_register_class_action_no_inhert(ext, tmp_path):
-    """test loading custom classes and subclasses"""
+    """Test loading custom classes and subclasses."""
 
     a = B(A({"a": 1}), 2)  # does not use hooks that inherit
     a1 = B1(A({"a": 2}), 4)  # has not defined hooks itself

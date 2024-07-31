@@ -17,7 +17,7 @@ from modelrunner.storage.utils import (
 @pytest.mark.parametrize("obj", [[True, 1], np.arange(5)])
 @pytest.mark.parametrize("binary", [True, False])
 def test_object_encoding(obj, binary):
-    """test encoding and decoding"""
+    """Test encoding and decoding."""
     obj2 = decode_binary(encode_binary(obj, binary=binary))
     if isinstance(obj, np.ndarray):
         np.testing.assert_array_equal(obj, obj2)
@@ -26,7 +26,7 @@ def test_object_encoding(obj, binary):
 
 
 def test_decode_class():
-    """test decode class"""
+    """Test decode class."""
     cls_name = encode_class(MemoryStorage)
     assert "MemoryStorage" in cls_name
     cls_loaded = decode_class(cls_name)

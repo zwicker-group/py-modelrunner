@@ -13,7 +13,7 @@ PACKAGE_PATH = Path(__file__).resolve().parents[1]  # base path of the package
 
 
 def test_codestyle(*, verbose: bool = True):
-    """run the codestyle tests
+    """Run the codestyle tests.
 
     Args:
         verbose (bool): Whether to do extra output
@@ -30,7 +30,7 @@ def test_codestyle(*, verbose: bool = True):
 
 
 def test_types(*, report: bool = False, verbose: bool = True):
-    """run mypy to check the types of the python code
+    """Run mypy to check the types of the python code.
 
     Args:
         report (bool): Whether to write a report
@@ -70,7 +70,7 @@ def run_unit_tests(
     pattern: str = None,
     pytest_args: list[str] = [],
 ) -> int:
-    """run the unit tests
+    """Run the unit tests.
 
     Args:
         parallel (bool): Whether to use multiple processors
@@ -140,7 +140,7 @@ def run_unit_tests(
 
 
 def main():
-    """the main program controlling the tests"""
+    """The main program controlling the tests."""
     # parse the command line arguments
     parser = argparse.ArgumentParser(
         description=f"Run tests of the `{PACKAGE}` package.",

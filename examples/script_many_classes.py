@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-This example displays a minimal script containing two model classes 
+"""This example displays a minimal script containing two model classes.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """

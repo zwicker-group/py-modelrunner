@@ -1,5 +1,4 @@
-"""
-Base class describing a model
+"""Base class describing a model.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -19,7 +18,7 @@ from .results import Result
 def run_function_with_cmd_args(
     func: Callable, args: Sequence[str] | None = None, *, name: str | None = None
 ) -> Result:
-    """create model from a function and obtain parameters from command line
+    """Create model from a function and obtain parameters from command line.
 
     Args:
         func (callable):
@@ -31,14 +30,13 @@ def run_function_with_cmd_args(
 
     Returns:
         :class:`ModelBase`: An instance of a subclass of ModelBase encompassing `func`
-
     """
     return make_model_class(func).run_from_command_line(args, name=name)
 
 
 @cleared_default_model
 def run_script(script_path: str, model_args: Sequence[str]) -> Result:
-    """helper function that runs a model script
+    """Helper function that runs a model script.
 
     The function detects models automatically by trying several methods until one yields
     a unique model to run:

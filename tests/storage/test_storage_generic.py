@@ -29,7 +29,7 @@ STORAGE_CLASSES = {
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_storage_class(ext, tmp_path):
-    """test whether open_storage uses the correct Storage class"""
+    """Test whether open_storage uses the correct Storage class."""
     storage = open_storage(tmp_path / f"file{ext}", mode="truncate")
     assert storage._storage.__class__.__name__ == STORAGE_CLASSES[ext[1:]]
 
@@ -45,7 +45,7 @@ def test_storage_class(ext, tmp_path):
 @pytest.mark.parametrize("arr", ARRAY_EXAMPLES)
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_storage_persistence(arr, ext, tmp_path):
-    """test generic properties of storages"""
+    """Test generic properties of storages."""
     # write to storage
     with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
         storage.create_group("empty")
@@ -86,7 +86,7 @@ def test_storage_persistence(arr, ext, tmp_path):
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_storage_read(ext, tmp_path):
-    """test read mode"""
+    """Test read mode."""
     # create empty file
     with open_storage(tmp_path / f"file{ext}", mode="truncate"):
         ...
@@ -110,7 +110,7 @@ def test_storage_read(ext, tmp_path):
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_storage_exclusive(ext, tmp_path):
-    """test exclusive mode"""
+    """Test exclusive mode."""
     with open_storage(tmp_path / f"file{ext}", mode="exclusive") as storage:
         storage.write_array("arr", np.arange(5))
         storage.create_dynamic_array("dyn", arr=np.arange(2, dtype=float))
@@ -135,7 +135,7 @@ def test_storage_exclusive(ext, tmp_path):
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_storage_insert(ext, tmp_path):
-    """test insert mode"""
+    """Test insert mode."""
     with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
         storage.create_group("a")
         storage.write_array("arr1", np.arange(3))
@@ -167,7 +167,7 @@ def test_storage_insert(ext, tmp_path):
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_storage_overwrite(ext, tmp_path):
-    """test overwrite mode"""
+    """Test overwrite mode."""
     with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
         storage.write_array("arr", np.arange(5))
         storage.create_dynamic_array("dyn", arr=np.arange(2, dtype=float))
@@ -204,7 +204,7 @@ def test_storage_overwrite(ext, tmp_path):
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_storage_full(ext, tmp_path):
-    """test full mode"""
+    """Test full mode."""
     with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
         storage.write_array("arr", np.arange(5))
         storage.create_dynamic_array("dyn", arr=np.arange(2, dtype=float))
@@ -235,7 +235,7 @@ def test_storage_full(ext, tmp_path):
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_storage_truncate(ext, tmp_path):
-    """test truncate mode"""
+    """Test truncate mode."""
     with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
         storage.create_group("a")
         storage.write_attrs(None, {"a": 1})
@@ -265,7 +265,7 @@ def test_storage_truncate(ext, tmp_path):
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_appending_to_fixed_array(ext, tmp_path):
-    """test appending an array to a non-dynamic array"""
+    """Test appending an array to a non-dynamic array."""
     with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
         storage.write_array("a1", np.arange(4))
         with pytest.raises(RuntimeError):
@@ -279,7 +279,7 @@ def test_appending_to_fixed_array(ext, tmp_path):
 @pytest.mark.parametrize("obj", STORAGE_OBJECTS)
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_arbitrary_objects(obj, ext, tmp_path):
-    """test appending arbitrary objects"""
+    """Test appending arbitrary objects."""
     with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
         storage["obj"] = obj
 
@@ -289,7 +289,7 @@ def test_arbitrary_objects(obj, ext, tmp_path):
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_storage_copy_array(ext, tmp_path):
-    """test whether storages make a copy, i.e., that not only a view is stored"""
+    """Test whether storages make a copy, i.e., that not only a view is stored."""
     obj = np.arange(5)
     with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
         storage["obj"] = obj
@@ -301,7 +301,7 @@ def test_storage_copy_array(ext, tmp_path):
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_storage_copy_dict(ext, tmp_path):
-    """test whether storages make a copy, i.e., that not only a view is stored"""
+    """Test whether storages make a copy, i.e., that not only a view is stored."""
     obj = {"a": 1, "b": 2}
     with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
         storage["obj"] = obj
@@ -313,7 +313,7 @@ def test_storage_copy_dict(ext, tmp_path):
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_storage_close(ext, tmp_path):
-    """test closing of storages"""
+    """Test closing of storages."""
     writer = open_storage(tmp_path / f"file{ext}", mode="truncate")
     assert not writer.closed
     writer["obj"] = 1

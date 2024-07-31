@@ -19,7 +19,7 @@ assert EXAMPLE_PATH.is_dir()
 @pytest.mark.skipif(sys.platform == "win32", reason="Assumes unix setup")
 @pytest.mark.parametrize("path", EXAMPLE_PATH.glob("*.py"))
 def test_examples(path, tmp_path):
-    """runs an example script given by path"""
+    """Runs an example script given by path."""
     # prepare environment
     env = os.environ.copy()
     env["PYTHONPATH"] = str(PACKAGEPATH) + ":" + env.get("PYTHONPATH", "")

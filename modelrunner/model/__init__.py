@@ -1,5 +1,4 @@
-"""
-Defines models that handle a simulation and its inputs
+"""Defines models that handle a simulation and its inputs.
 
 .. autosummary::
    :nosignatures:

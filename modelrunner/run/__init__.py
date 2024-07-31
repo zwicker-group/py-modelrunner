@@ -1,5 +1,5 @@
-"""
-Defines classes and function used to run models defined using :mod:`~modelrunner.model`
+"""Defines classes and function used to run models defined using
+:mod:`~modelrunner.model`
 
 .. autosummary::
    :nosignatures:

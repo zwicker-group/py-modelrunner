@@ -18,7 +18,7 @@ FileMode = Literal[
 
 @dataclass(frozen=True, repr=False)
 class AccessMode:
-    """Determines access modes for storages"""
+    """Determines access modes for storages."""
 
     name: str  # identifier of the access role; can be used instead of the object
     description: str  # human-readable description of the mode
@@ -44,7 +44,7 @@ class AccessMode:
 
     @classmethod
     def parse(cls, obj_or_name: str | AccessMode) -> AccessMode:
-        """gets access mode from various formats
+        """Gets access mode from various formats.
 
         Args:
             obj_or_name (str or :class:`AccessMode`):
@@ -143,6 +143,6 @@ ModeType = Union[str, AccessMode]
 
 
 class AccessError(RuntimeError):
-    """an error indicating that an access credential was not present"""
+    """An error indicating that an access credential was not present."""
 
     ...

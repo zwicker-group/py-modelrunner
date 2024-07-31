@@ -12,7 +12,7 @@ assert PACKAGEPATH.is_dir()
 
 
 def test_empty_main():
-    """run a script (with potential arguments) and collect stdout"""
+    """Run a script (with potential arguments) and collect stdout."""
     # prepare environment
     env = os.environ.copy()
     env["PYTHONPATH"] = str(PACKAGEPATH) + ":" + env.get("PYTHONPATH", "")
@@ -25,7 +25,7 @@ def test_empty_main():
 
 
 def test_main():
-    """test the __main__ module"""
+    """Test the __main__ module."""
     # prepare environment
     env = os.environ.copy()
     env["PYTHONPATH"] = str(PACKAGEPATH) + ":" + env.get("PYTHONPATH", "")

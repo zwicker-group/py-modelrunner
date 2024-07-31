@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-This example shows reading and writing data using HDF files.
+"""This example shows reading and writing data using HDF files.
 
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
@@ -11,7 +10,7 @@ from modelrunner import Result, run_function_with_cmd_args
 
 
 def number_range(start: float = 1, length: int = 3):
-    """create an ascending list of numbers"""
+    """Create an ascending list of numbers."""
     return start + np.arange(length)
 
 

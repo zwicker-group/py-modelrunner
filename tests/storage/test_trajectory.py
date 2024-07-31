@@ -20,7 +20,7 @@ STORAGE_OBJECTS = [
 
 
 def remove_file_or_folder(path):
-    """removes file or folder `path` with all subfiles"""
+    """Removes file or folder `path` with all subfiles."""
     if path.is_dir():
         shutil.rmtree(path, ignore_errors=True)
     else:
@@ -30,7 +30,7 @@ def remove_file_or_folder(path):
 @pytest.mark.parametrize("obj", STORAGE_OBJECTS)
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_trajectory_basic(obj, ext, tmp_path):
-    """test simple trajecotry writing"""
+    """Test simple trajecotry writing."""
     path = tmp_path / ("file" + ext)
 
     # write first batch of data
@@ -101,7 +101,7 @@ def test_trajectory_basic(obj, ext, tmp_path):
 @pytest.mark.parametrize("obj", STORAGE_OBJECTS)
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_trajectory_writer_open_storage(obj, ext, tmp_path):
-    """test simple trajecotry writing in an externally opened storage"""
+    """Test simple trajecotry writing in an externally opened storage."""
     path = tmp_path / ("file" + ext)
     storage = open_storage(path, mode="insert")
     assert not storage.closed
@@ -163,7 +163,7 @@ def test_trajectory_writer_open_storage(obj, ext, tmp_path):
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_trajectory_multiple_reads(ext, tmp_path):
-    """test simultaneous reading of trajecotries"""
+    """Test simultaneous reading of trajecotries."""
     path = tmp_path / ("file" + ext)
     obj = np.arange(5)
 
@@ -187,7 +187,7 @@ def test_trajectory_multiple_reads(ext, tmp_path):
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_trajectory_overwriting(ext, tmp_path):
-    """test whether zarr zip files can be overwritten"""
+    """Test whether zarr zip files can be overwritten."""
     path = tmp_path / ("file" + ext)
     obj = np.arange(5)
 
@@ -210,7 +210,7 @@ def test_trajectory_overwriting(ext, tmp_path):
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_trajectory_reading_while_writing(ext, tmp_path):
-    """test reading while writing trajecotries"""
+    """Test reading while writing trajecotries."""
     path = tmp_path / ("file" + ext)
     obj = np.arange(5)
 
