@@ -71,11 +71,10 @@ def import_class(identifier: str):
 
 
 def is_serial_or_mpi_root() -> bool:
-    """Function determining whether the current program is serial or an MPI root
-    node."""
+    """Function checking whether the current program is serial or an MPI root node."""
     try:
         from mpi4py import MPI
     except ImportError:
-        return True
+        return True  # assume we are in a serial run
     else:
-        return MPI.COMM_WORLD.rank == 0
+        return MPI.COMM_WORLD.rank == 0  # check whether we are the root node
