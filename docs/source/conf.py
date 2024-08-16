@@ -15,19 +15,19 @@
 import os.path
 import sys
 
-sys.path.insert(0, os.path.abspath("../.."))
+sys.path.insert(0, os.path.abspath("../.."))  # noqa: PTH100
 sys.path.insert(0, ".")
 
 from datetime import date
 
-import sphinx_simplify_typehints  # @UnresolvedImport @UnusedImport
+import sphinx_simplify_typehints
 
 # -- Project information -----------------------------------------------------
 
 project = "py-modelrunner"
 module_name = "modelrunner"
 author = "David Zwicker"
-copyright = f"{date.today().year}, {author}"  # @ReservedAssignment
+copyright = f"{date.today().year}, {author}"  # noqa: A001
 
 # The short X.Y version
 import modelrunner

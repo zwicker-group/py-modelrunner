@@ -39,9 +39,8 @@ def test_trajectory_basic(obj, ext, tmp_path):
         writer.append(obj)
 
     # check that we can't accidentally overwrite
-    with pytest.raises(RuntimeError):
-        with TrajectoryWriter(path) as writer:
-            ...
+    with pytest.raises(RuntimeError), TrajectoryWriter(path) as writer:
+        ...
 
     # check first batch of data
     traj = Trajectory(path)
@@ -113,9 +112,8 @@ def test_trajectory_writer_open_storage(obj, ext, tmp_path):
     assert not storage.closed
 
     # check that we can't accidentally overwrite
-    with pytest.raises(Exception):
-        with TrajectoryWriter(storage) as writer:
-            ...
+    with pytest.raises(RuntimeError), TrajectoryWriter(storage) as writer:
+        ...
 
     # check first batch of data
     traj = Trajectory(storage)
@@ -132,9 +130,8 @@ def test_trajectory_writer_open_storage(obj, ext, tmp_path):
     assert storage.closed
 
     # check that we can't write to a closed storage
-    with pytest.raises(Exception):
-        with TrajectoryWriter(storage) as writer:
-            ...
+    with pytest.raises(RuntimeError), TrajectoryWriter(storage) as writer:
+        ...
 
     # write second batch of data
     storage = open_storage(path, mode="append")
@@ -197,9 +194,8 @@ def test_trajectory_overwriting(ext, tmp_path):
         writer.append(obj)
 
     # try writing data without overwrite
-    with pytest.raises(RuntimeError):
-        with TrajectoryWriter(path, mode="insert") as writer:
-            writer.append(obj)
+    with pytest.raises(RuntimeError), TrajectoryWriter(path, mode="insert") as writer:
+        writer.append(obj)
 
     # try writing data with overwrite
     with TrajectoryWriter(path, mode="truncate") as writer:

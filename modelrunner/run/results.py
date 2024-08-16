@@ -280,7 +280,7 @@ class ResultCollection(List[Result]):
 
         folder = Path(folder)
         if not folder.is_dir():
-            logger.warning(f"{folder} is not a directory")
+            logger.warning("%s is not a directory", folder)
 
         # iterate over all files and load them as a Result
         results = []
@@ -293,7 +293,7 @@ class ResultCollection(List[Result]):
                         err.args = (str(err) + f"\nError reading file `{path}`",)
                         raise
                     else:
-                        logger.warning(f"Error reading file `{path}`")
+                        logger.warning("Error reading file `%s`", path)
                 else:
                     results.append(result)
 
@@ -303,7 +303,7 @@ class ResultCollection(List[Result]):
                 logger.warning("Did not find any files")
             else:
                 logger.warning(
-                    f"Did not find any files. Is pattern `{pattern}` too restrictive?"
+                    "Did not find any files. Is pattern `%s` too restrictive?", pattern
                 )
 
         return cls(results)
@@ -316,6 +316,7 @@ class ResultCollection(List[Result]):
     def __add__(self, other: ResultCollection) -> ResultCollection:  # type: ignore
         if isinstance(other, ResultCollection):
             return ResultCollection(super().__add__(other))
+        return None
 
     @property
     def same_model(self) -> bool:

@@ -272,7 +272,9 @@ def test_argparse_list_arguments():
     assert parse_list_0.run_from_command_line(["--flag", "0", "1"]).result == ["0", "1"]
 
     @make_model
-    def parse_list_1(flag: list = [0, 1]):
+    def parse_list_1(flag: list = None):
+        if flag is None:
+            flag = [0, 1]
         return flag
 
     assert parse_list_1.run_from_command_line().result == [0, 1]

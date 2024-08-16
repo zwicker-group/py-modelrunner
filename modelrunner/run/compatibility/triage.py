@@ -125,13 +125,13 @@ def _get_format_version(path: Path, label: str) -> int | None:
     # check for compatibility
     fmt = guess_format(path)
     if fmt == "json":
-        with open(path) as fp:
+        with path.open() as fp:
             format_version = _find_version(json.load(fp), label)
 
     elif fmt == "yaml":
         import yaml
 
-        with open(path) as fp:
+        with path.open() as fp:
             format_version = _find_version(yaml.safe_load(fp), label)
 
     elif fmt == "hdf":

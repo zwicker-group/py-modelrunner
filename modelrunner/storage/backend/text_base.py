@@ -53,15 +53,14 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
         self._path = Path(path)
         self._write_flags = kwargs
         self._modified = False
-        if self.mode.file_mode in {"r", "x", "a"}:
-            if self._path.exists():
-                if self.mode.file_mode == "x":
-                    raise FileExistsError(f"File `{path}` already exists")
-                # read content from file
-                with open(self._path) as fp:
-                    data = self._read_data_from_fp(fp)
-                # interprete empty files correctly
-                self._data = {} if data is None else data
+        if self.mode.file_mode in {"r", "x", "a"} and self._path.exists():
+            if self.mode.file_mode == "x":
+                raise FileExistsError(f"File `{path}` already exists")
+            # read content from file
+            with self._path.open() as fp:
+                data = self._read_data_from_fp(fp)
+            # interprete empty files correctly
+            self._data = {} if data is None else data
 
     def __repr__(self):
         return f'{self.__class__.__name__}("{self._path}", ' f'mode="{self.mode.name}")'
@@ -73,7 +72,7 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
             # self._modified flag since it might not capture all changes, e.g., when an
             # item (attribute, array, or object) was modified in place
             data = simplify_data(self._data) if self.simplify else self._data
-            with open(self._path, mode="w") as fp:
+            with self._path.open("w") as fp:
                 self._write_data_to_fp(fp, data)
             self._modified = False  # reset modifications
 

@@ -19,8 +19,8 @@ def test_config():
         assert len(c._default) == 1
 
         assert "a" in c
-        assert any("a" == k for k in c)
-        assert any("a" == k and v > 0 for k, v in c.items())
+        assert any(k == "a" for k in c)
+        assert any(k == "a" and v > 0 for k, v in c.items())
         assert "a" in c.to_dict()
         assert isinstance(repr(c), str)
 

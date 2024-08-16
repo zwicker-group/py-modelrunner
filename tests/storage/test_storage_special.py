@@ -61,7 +61,7 @@ def test_json_storage(tmp_path):
         storage["obj"] = {"info": True}
         json_txt = storage._storage.to_text()
 
-    with open(tmp_path / "test.json") as fp:
+    with (tmp_path / "test.json").open() as fp:
         assert json.load(fp) == json.loads(json_txt)
 
 
@@ -74,5 +74,5 @@ def test_yaml_storage(tmp_path):
         storage["obj"] = {"info": True}
         json_txt = storage._storage.to_text()
 
-    with open(tmp_path / "test.yaml") as fp:
+    with (tmp_path / "test.yaml").open() as fp:
         assert yaml.safe_load(fp) == yaml.safe_load(json_txt)

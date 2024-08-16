@@ -29,9 +29,7 @@ class AccessMode:
     overwrite: bool = False  # allow overwriting existing data
     dynamic_append: bool = False  # allow appending to dynamic arrays
 
-    _defined: ClassVar[dict[str, AccessMode]] = (
-        {}
-    )  # dictionary of all defined access modes
+    _defined: ClassVar[dict[str, AccessMode]] = {}  # all defined access modes
 
     def __repr__(self):
         return f"AccessMode(name={self.name})"
@@ -60,10 +58,10 @@ class AccessMode:
                 raise ValueError("Cannot use `closed` access mode.")
             try:
                 return cls._defined[obj_or_name]
-            except KeyError:
+            except KeyError as err:
                 raise ValueError(
                     f"Access mode '{obj_or_name}' not in {list(cls._defined.keys())}"
-                )
+                ) from err
         else:
             raise TypeError(f"Unsupported type '{obj_or_name}'")
 
@@ -144,5 +142,3 @@ ModeType = Union[str, AccessMode]
 
 class AccessError(RuntimeError):
     """An error indicating that an access credential was not present."""
-
-    ...

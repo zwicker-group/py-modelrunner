@@ -96,8 +96,8 @@ class HDFStorage(StorageBase):
         """
         try:
             path, name = loc[:-1], loc[-1]
-        except IndexError:
-            raise KeyError(f"Location `/{'/'.join(loc)}` has no parent")
+        except IndexError as err:
+            raise KeyError(f"Location `/{'/'.join(loc)}` has no parent") from err
 
         if create_groups:
             # creat
@@ -105,11 +105,13 @@ class HDFStorage(StorageBase):
             for part in path:
                 try:
                     parent = parent[part]
-                except KeyError:
+                except KeyError as err:
                     if self.mode.insert:
                         parent = parent.create_group(part)
                     else:
-                        raise AccessError(f"Cannot create group `/{'/'.join(loc)}`")
+                        raise AccessError(
+                            f"Cannot create group `/{'/'.join(loc)}`"
+                        ) from err
         else:
             parent = self._file[self._get_hdf_path(path)]
 
@@ -227,8 +229,8 @@ class HDFStorage(StorageBase):
                     maxshape=(None,) + shape,
                     dtype=h5py.vlen_dtype(np.uint8),
                 )
-            except ValueError:
-                raise RuntimeError(f"Array `{'/'.join(loc)}` already exists")
+            except ValueError as err:
+                raise RuntimeError(f"Array `{'/'.join(loc)}` already exists") from err
             dataset.attrs["__pickled__"] = encode_attr(True)
 
         else:
@@ -241,8 +243,8 @@ class HDFStorage(StorageBase):
                     dtype=dtype,
                     **args,
                 )
-            except ValueError:
-                raise RuntimeError(f"Array `/{'/'.join(loc)}` already exists")
+            except ValueError as err:
+                raise RuntimeError(f"Array `/{'/'.join(loc)}` already exists") from err
         self._dynamic_array_size[self._get_hdf_path(loc)] = 0
 
         if record_array:

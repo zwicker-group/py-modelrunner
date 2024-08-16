@@ -31,7 +31,7 @@ def test_reading_compatibility(path):
     """Test reading old files."""
     result = Result.from_file(path)
 
-    with open(path.with_suffix(".pkl"), "rb") as fp:
+    with path.with_suffix(".pkl").open("rb") as fp:
         try:
             data = pickle.load(fp)
         except ModuleNotFoundError:

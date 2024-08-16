@@ -15,6 +15,8 @@ PACKAGE_PATH = Path(__file__).resolve().parents[1]  # base path of the package
 assert (PACKAGE_PATH / PACKAGE).is_dir()
 sys.path.insert(0, str(PACKAGE_PATH))
 
+import contextlib
+
 from modelrunner import Result, make_model_class
 
 # locate the storage for the compatibility files
@@ -52,13 +54,11 @@ def create_result_files(name, data, extensions=EXTENSIONS):
     # write data
     for extension in extensions:
         path = STORAGE_PATH / (name + extension)
-        try:
+        with contextlib.suppress(FileExistsError):
             result.to_file(path)
-        except FileExistsError:
-            pass
 
     # write the exact data to check later
-    with open(STORAGE_PATH / (name + ".pkl"), "wb") as fp:
+    with (STORAGE_PATH / f"{name}.pkl").open("wb") as fp:
         pickle.dump(data, fp)
 
 
@@ -81,7 +81,7 @@ def create_model_result_files(name, data, extensions=EXTENSIONS):
         model.write_result()
 
     # write the exact data to check later
-    with open(STORAGE_PATH / f"model_{name}.pkl", "wb") as fp:
+    with (STORAGE_PATH / f"model_{name}.pkl").open("wb") as fp:
         pickle.dump(data, fp)
 
 

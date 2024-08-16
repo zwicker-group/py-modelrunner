@@ -68,7 +68,7 @@ def run_unit_tests(
     coverage: bool = False,
     no_numba: bool = False,
     pattern: str = None,
-    pytest_args: list[str] = [],
+    pytest_args: list[str] = None,
 ) -> int:
     """Run the unit tests.
 
@@ -85,6 +85,8 @@ def run_unit_tests(
         int: The return code indicating success or failure
     """
     # modify current environment
+    if pytest_args is None:
+        pytest_args = []
     env = os.environ.copy()
     env["MPLBACKEND"] = "agg"
     if no_numba:

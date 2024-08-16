@@ -69,14 +69,14 @@ class Config(collections.UserDict):
         """Load configuration from yaml file."""
         import yaml
 
-        with open(path) as fp:
+        with Path(path).open() as fp:
             self.update(yaml.safe_load(fp))
 
     def save(self, path: str | Path):
         """Save configuration to yaml file."""
         import yaml
 
-        with open(path, "w") as fp:
+        with Path(path).open("w") as fp:
             yaml.dump(self.to_dict(), fp)
 
     def __getitem__(self, key: str):
@@ -124,7 +124,7 @@ class Config(collections.UserDict):
         Returns:
             dict: A representation of the configuration in a normal :class:`dict`.
         """
-        return {k: v for k, v in self.items()}
+        return dict(self.items())
 
     def __repr__(self) -> str:
         """Represent the configuration as a string."""

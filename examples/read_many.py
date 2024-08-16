@@ -4,7 +4,7 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-import os
+from pathlib import Path
 
 from modelrunner import ResultCollection, make_model_class
 
@@ -19,7 +19,7 @@ if __name__ == "__main__":
     model = make_model_class(multiply)
 
     # write data
-    os.makedirs("data")
+    Path("data").mkdir(parents=True)
     for n, a in enumerate(range(5, 10)):
         result = model({"a": a}).get_result()
         result.to_file(f"data/test_{n}.json")
