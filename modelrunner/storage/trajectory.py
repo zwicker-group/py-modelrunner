@@ -16,12 +16,10 @@ from typing import Any, Iterator, Literal
 
 import numpy as np
 
-from modelrunner.storage.access_modes import ModeType
-
-from .access_modes import AccessError
+from .access_modes import AccessError, ModeType
 from .base import StorageBase
 from .group import StorageGroup
-from .tools import open_storage
+from .tools import StorageID, open_storage
 from .utils import Location, storage_actions
 
 
@@ -54,7 +52,7 @@ class TrajectoryWriter:
 
     def __init__(
         self,
-        storage: str | Path | StorageGroup | StorageBase,
+        storage: StorageID,
         loc: Location = "trajectory",
         *,
         attrs: dict[str, Any] | None = None,
