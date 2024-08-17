@@ -6,7 +6,7 @@ import os
 import subprocess as sp
 import sys
 from pathlib import Path
-from typing import List  # @UnusedImport
+from typing import List
 
 import pytest
 

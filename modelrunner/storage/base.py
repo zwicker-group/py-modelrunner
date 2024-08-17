@@ -156,7 +156,7 @@ class StorageBase(metaclass=ABCMeta):
         Returns:
             :class:`StorageGroup`: The reference of the new group
         """
-        from .group import StorageGroup  # @Reimport to avoid circular import
+        from .group import StorageGroup
 
         if loc in self:
             # group already exists

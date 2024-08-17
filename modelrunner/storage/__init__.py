@@ -13,7 +13,7 @@
 from .access_modes import AccessError, ModeType
 from .attributes import Attrs
 from .backend import *
-from .base import StorageBase  # @Reimport
+from .base import StorageBase
 from .group import StorageGroup
 from .tools import StorageID, open_storage
 from .trajectory import Trajectory, TrajectoryWriter

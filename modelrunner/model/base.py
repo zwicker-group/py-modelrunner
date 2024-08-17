@@ -17,7 +17,7 @@ from ..utils import is_serial_or_mpi_root
 from .parameters import DeprecatedParameter, HideParameter, Parameterized
 
 if TYPE_CHECKING:
-    from ..run.results import Result  # @UnusedImport
+    from ..run.results import Result
 
 
 class ModelBase(Parameterized, metaclass=ABCMeta):
@@ -97,7 +97,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         Returns:
             :class:`Result`: The result after the model is run
         """
-        from ..run.results import Result  # @Reimport
+        from ..run.results import Result
 
         if data is None:
             data = self()
@@ -112,7 +112,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
             result:
                 The result data. If omitted, the model is run to obtain results
         """
-        from ..run.results import Result  # @Reimport
+        from ..run.results import Result
 
         if self.output is None:
             raise RuntimeError("Output file needs to be specified")

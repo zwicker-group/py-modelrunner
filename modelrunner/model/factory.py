@@ -14,7 +14,7 @@ from .base import ModelBase
 from .parameters import NoValue, Parameter
 
 if TYPE_CHECKING:
-    from ..run.results import Result  # @UnusedImport
+    from ..run.results import Result
 
 _DEFAULT_MODEL: Callable | ModelBase | None = None
 """Stores the default model that will be used automatically."""

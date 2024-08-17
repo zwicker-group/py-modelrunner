@@ -234,7 +234,7 @@ def result_from_file_v1(store: Path, *, label: str = "data", **kwargs) -> Result
         return _Result_from_simple_objects(content, **kwargs)
 
     elif fmt == "zarr":
-        import zarr  # @Reimport
+        import zarr
 
         zarr_store = normalize_zarr_store(store, mode="r")
         root = zarr.open_group(zarr_store, mode="r")
