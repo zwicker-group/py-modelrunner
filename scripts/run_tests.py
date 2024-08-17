@@ -23,10 +23,8 @@ def test_codestyle(*, verbose: bool = True):
             print(f"Checking codestyle in folder {folder}...")
         path = PACKAGE_PATH / folder
 
-        # format imports
-        sp.check_call(["isort", "--diff", path])
-        # format rest
-        sp.check_call(["black", "--check", path])
+        # check format
+        sp.check_call(["ruff", "check", path])
 
 
 def test_types(*, report: bool = False, verbose: bool = True):
