@@ -138,8 +138,10 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
                 arr = unstructured_to_structured(
                     np.asarray(arr), dtype=dtype, copy=copy
                 )
+            elif copy:
+                arr = np.array(arr, dtype=dtype, copy=True)
             else:
-                arr = np.array(arr, dtype=dtype, copy=copy)
+                arr = np.asarray(arr, dtype=dtype)
             if self[loc].get("record_array", False):
                 arr = arr.view(np.recarray)
             return arr  # type: ignore
