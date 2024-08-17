@@ -7,8 +7,6 @@
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/py-modelrunner.svg)](https://anaconda.org/conda-forge/py-modelrunner)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![codecov](https://codecov.io/gh/zwicker-group/py-modelrunner/branch/main/graph/badge.svg)](https://codecov.io/gh/zwicker-group/py-modelrunner)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-
 
 
 This package provides python classes for handling and running physical simulations.
