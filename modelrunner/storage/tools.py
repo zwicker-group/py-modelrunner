@@ -117,7 +117,7 @@ class open_storage(StorageGroup):
             # looks like an opened zarr group
             import zarr
 
-            from .backend.zarr import ZarrStorage  # @Reimport
+            from .backend.zarr import ZarrStorage
 
             if isinstance(storage, zarr.Group):
                 self._close = False

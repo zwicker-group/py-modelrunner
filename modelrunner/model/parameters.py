@@ -314,7 +314,7 @@ class Parameterized:
                 parameters, include_deprecated=True, check_validity=strict
             )
 
-    def __init_subclass__(cls, **kwargs) -> None:  # @NoSelf
+    def __init_subclass__(cls, **kwargs) -> None:
         """Register all subclasses to reconstruct them later."""
         # normalize the parameters_default attribute to be a list of `Parameter`
         if hasattr(cls, "parameters_default") and isinstance(
@@ -470,7 +470,7 @@ class Parameterized:
         return result
 
     @classmethod
-    def get_parameter_default(cls, name):  # @NoSelf
+    def get_parameter_default(cls, name):
         """Return the default value for the parameter with `name`
 
         Args:
@@ -551,7 +551,7 @@ class Parameterized:
                 yield template.format(**data)
 
     @hybridmethod
-    def show_parameters(  # @NoSelf
+    def show_parameters(
         cls,
         description: bool = False,
         sort: bool = False,
