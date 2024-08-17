@@ -153,5 +153,5 @@ def test_collection_groupby():
         else:
             raise AssertionError
 
-    groups = list(r for p, r in rc.groupby("a", "b"))
+    groups = [r for p, r in rc.groupby("a", "b")]
     assert len(groups) == 3

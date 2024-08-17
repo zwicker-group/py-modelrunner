@@ -131,8 +131,8 @@ def test_submit_job_no_modelrunner(tmp_path):
             use_modelrunner=False,
             overwrite_strategy="silent_overwrite",
         )
-        out = open(tmp_path / "job.out.txt").read()
-        err = open(tmp_path / "job.err.txt").read()
+        out = (tmp_path / "job.out.txt").open().read()
+        err = (tmp_path / "job.err.txt").open().read()
         return out, err
 
     assert run() == ("", "")

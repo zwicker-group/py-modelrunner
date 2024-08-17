@@ -79,14 +79,14 @@ def result_from_file_v0(path: Path, **kwargs) -> Result:
     """
     fmt = guess_format(path)
     if fmt == "json":
-        with open(path) as fp:
+        with path.open() as fp:
             content = json.load(fp)
         return _Result_from_simple_objects(content, **kwargs)
 
     elif fmt == "yaml":
         import yaml
 
-        with open(path) as fp:
+        with path.open() as fp:
             content = yaml.safe_load(fp)
         return _Result_from_simple_objects(content, **kwargs)
 

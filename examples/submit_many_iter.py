@@ -8,7 +8,6 @@ argument by something more suitable; see the documentation.
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
-
 from modelrunner import make_model, submit_job
 
 

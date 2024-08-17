@@ -130,7 +130,9 @@ class Parameter:
 
             if not valid_default:
                 logging.warning(
-                    f"Default value `{self.name}` is not of type `{self.cls.__name__}`"
+                    "Default value `%s` is not of type `%s`",
+                    self.name,
+                    self.cls.__name__,
                 )
 
     def __getstate__(self):
@@ -253,8 +255,6 @@ class Parameter:
 
 class DeprecatedParameter(Parameter):
     """A parameter that can still be used normally but is deprecated."""
-
-    pass
 
 
 class HideParameter:

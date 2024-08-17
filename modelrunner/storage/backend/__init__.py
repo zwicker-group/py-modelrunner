@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import importlib
 from typing import List, Type
 
@@ -5,7 +7,7 @@ from ..base import StorageBase
 from .json import JSONStorage
 from .memory import MemoryStorage
 
-AVAILABLE_STORAGE: List[Type[StorageBase]] = [MemoryStorage, JSONStorage]
+AVAILABLE_STORAGE: list[type[StorageBase]] = [MemoryStorage, JSONStorage]
 
 POTENTIAL_STORAGE = {
     "hdf": "HDFStorage",

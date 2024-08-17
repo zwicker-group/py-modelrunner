@@ -26,13 +26,11 @@ if TYPE_CHECKING:
 class NoData:
     """Helper class that marks data omission."""
 
-    ...
-
 
 TState = TypeVar("TState", bound="StateBase")
 
 
-class StateBase(metaclass=ABCMeta):
+class StateBase:
     """Base class for specifying the state of a simulation.
 
     A state contains values of all degrees of freedom of a physical system (called the
@@ -224,14 +222,14 @@ def result_from_file_v1(store: Path, *, label: str = "data", **kwargs) -> Result
     """
     fmt = guess_format(store)
     if fmt == "json":
-        with open(store) as fp:
+        with store.open() as fp:
             content = json.load(fp)
         return _Result_from_simple_objects(content, **kwargs)
 
     elif fmt == "yaml":
         import yaml
 
-        with open(store) as fp:
+        with store.open() as fp:
             content = yaml.safe_load(fp)
         return _Result_from_simple_objects(content, **kwargs)
 

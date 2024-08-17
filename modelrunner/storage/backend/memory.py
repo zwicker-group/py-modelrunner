@@ -62,19 +62,19 @@ class MemoryStorage(StorageBase):
         for part in loc[:-1]:
             try:
                 parent = parent[part]
-            except KeyError:
+            except KeyError as err:
                 if isinstance(parent, dict):
                     parent[part] = {}
                     parent = parent[part]
                 else:
-                    raise TypeError(f"Cannot add item to `/{'/'.join(loc)}`")
+                    raise TypeError(f"Cannot add item to `/{'/'.join(loc)}`") from err
         if not isinstance(parent, dict):
             raise TypeError(f"Cannot add item to `/{'/'.join(loc)}`")
 
         try:
             name = loc[-1]
-        except IndexError:
-            raise KeyError(f"Location `/{'/'.join(loc)}` has no parent")
+        except IndexError as err:
+            raise KeyError(f"Location `/{'/'.join(loc)}` has no parent") from err
 
         if check_write and not self.mode.overwrite and name in parent:
             raise AccessError(f"Overwriting `/{'/'.join(loc)}` disabled")

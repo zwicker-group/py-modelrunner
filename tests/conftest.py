@@ -1,4 +1,4 @@
-import os
 import sys
+from pathlib import Path
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "helpers"))
+sys.path.append(str(Path(__file__).parent / "helpers"))

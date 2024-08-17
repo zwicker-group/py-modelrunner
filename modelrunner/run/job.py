@@ -28,12 +28,12 @@ def escape_string(obj) -> str:
     return shlex.quote(str(obj))
 
 
-def ensure_directory_exists(folder):
+def ensure_directory_exists(folder: str | Path) -> None:
     """Creates a folder if it not already exists."""
     if folder == "":
         return
     try:
-        os.makedirs(folder)
+        Path(folder).mkdir(parents=True)
     except OSError as err:
         if err.errno != errno.EEXIST:
             raise
@@ -199,7 +199,7 @@ def submit_job(
     else:
         template_path = Path(template)
     logger.info("Load template `%s`", template_path)
-    with open(template_path) as fp:
+    with template_path.open() as fp:
         script_template = fp.read()
 
     # prepare submission script

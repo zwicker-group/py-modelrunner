@@ -75,5 +75,5 @@ def test_run_main_with_log(tmp_path):
     outs, errs = proc.communicate(timeout=30)
 
     assert outs.strip() == errs.strip() == b""
-    assert open(tmp_path / "job.out.txt").read().strip() == "5.0"
-    assert open(tmp_path / "job.err.txt").read().strip() == ""
+    assert (tmp_path / "job.out.txt").open().read().strip() == "5.0"
+    assert (tmp_path / "job.err.txt").open().read().strip() == ""

@@ -108,12 +108,12 @@ def decode_class(class_path: str | None, *, guess: type | None = None) -> type |
     # import class from a package
     try:
         module_path, class_name = class_path.rsplit(".", 1)
-    except (AttributeError, ValueError):
-        raise ImportError(f"Cannot import class {class_path}")
+    except (AttributeError, ValueError) as err:
+        raise ImportError(f"Cannot import class {class_path}") from err
 
     try:
         module = import_module(module_path)
-    except ModuleNotFoundError:
+    except ModuleNotFoundError as err:
         # see whether the class is already defined ...
         if guess is not None and guess.__name__ == class_name:
             # ... as the `guess`
@@ -122,14 +122,16 @@ def decode_class(class_path: str | None, *, guess: type | None = None) -> type |
             # ... in the global context
             return globals()[class_name]  # type: ignore
         else:
-            raise ModuleNotFoundError(f"Cannot load `{class_path}`")
+            raise ModuleNotFoundError(f"Cannot load `{class_path}`") from err
 
     else:
         # load the class from the module
         try:
             return getattr(module, class_name)  # type: ignore
-        except AttributeError:
-            raise ImportError(f"Module {module_path} does not define {class_name}")
+        except AttributeError as err:
+            raise ImportError(
+                f"Module {module_path} does not define {class_name}"
+            ) from err
 
 
 class Array(np.ndarray):

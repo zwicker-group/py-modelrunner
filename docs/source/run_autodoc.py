@@ -4,13 +4,14 @@ import glob
 import logging
 import os
 import subprocess as sp
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 
 OUTPUT_PATH = "packages"
 
 
-def replace_in_file(infile, replacements, outfile=None):
+def replace_in_file(infile: Path, replacements, outfile=None):
     """Reads in a file, replaces the given data using python formatting and writes back
     the result to a file.
 
@@ -26,21 +27,21 @@ def replace_in_file(infile, replacements, outfile=None):
     if outfile is None:
         outfile = infile
 
-    with open(infile) as fp:
+    with infile.open() as fp:
         content = fp.read()
 
     for key, value in replacements.items():
         content = content.replace(key, value)
 
-    with open(outfile, "w") as fp:
+    with outfile.open("w") as fp:
         fp.write(content)
 
 
 def main(package="modelrunner"):
     # remove old files
-    for path in glob.glob(f"{OUTPUT_PATH}/*.rst"):
+    for path in Path(OUTPUT_PATH).glob("*.rst"):
         logging.info("Remove file `%s`", path)
-        os.remove(path)
+        path.unlink()
 
     # run sphinx-apidoc
     sp.check_call(
@@ -66,7 +67,7 @@ def main(package="modelrunner"):
     }
 
     # replace unwanted information
-    for path in glob.glob(f"{OUTPUT_PATH}/*.rst"):
+    for path in Path(OUTPUT_PATH).glob("*.rst"):
         logging.info("Patch file `%s`", path)
         replace_in_file(path, REPLACEMENTS)
 

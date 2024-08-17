@@ -50,26 +50,25 @@ class ZarrStorage(StorageBase):
             if path.suffix in {"", ".zarr"}:
                 # path seems to be a directory or a zarr direction => DirectoryStore
                 if path.is_dir() and self.mode.file_mode == "w":
-                    self._logger.info(f"Delete directory `{path}`")
+                    self._logger.info("Delete directory `{%s}`", path)
                     shutil.rmtree(path)  # remove the directory to reinstate it
                 if self.mode.file_mode == "r":
-                    self._logger.info(f"DirectoryStore is always opened writable")
+                    self._logger.info("DirectoryStore is always opened writable")
 
                 self._store = zarr.DirectoryStore(path)
 
             elif path.suffix == ".zip":
                 # create a ZipStore
                 file_mode = self.mode.file_mode
-                if path.exists():
-                    if file_mode == "w":
-                        self._logger.info(f"Delete file `{path}`")
-                        path.unlink()
+                if path.exists() and file_mode == "w":
+                    self._logger.info("Delete file `%s`", path)
+                    path.unlink()
                 self._store = zarr.storage.ZipStore(path, mode=file_mode)
 
             elif path.suffix == ".sqldb":
                 # create a SQLiteStore
                 if self.mode.file_mode == "w" and path.exists():
-                    self._logger.info(f"Delete file `{path}`")
+                    self._logger.info("Delete file `%s`", path)
                     path.unlink()
                 self._store = zarr.SQLiteStore(path)
 
@@ -110,8 +109,8 @@ class ZarrStorage(StorageBase):
         """
         try:
             path, name = loc[:-1], loc[-1]
-        except IndexError:
-            raise KeyError(f"Location `/{'/'.join(loc)}` has no parent")
+        except IndexError as err:
+            raise KeyError(f"Location `/{'/'.join(loc)}` has no parent") from err
 
         parent = self._root
         for part in path:
@@ -210,8 +209,8 @@ class ZarrStorage(StorageBase):
                 element = parent.zeros(
                     name, shape=(0,) + shape, chunks=(1,) + shape, dtype=dtype
                 )
-        except zarr.errors.ContainsArrayError:
-            raise RuntimeError(f"Array `/{'/'.join(loc)}` already exists")
+        except zarr.errors.ContainsArrayError as err:
+            raise RuntimeError(f"Array `/{'/'.join(loc)}` already exists") from err
         else:
             if record_array:
                 element.attrs["__recarray__"] = True

@@ -3,6 +3,8 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
+from __future__ import annotations
+
 import importlib
 from typing import Any, Callable, List, Optional, TypeVar
 
@@ -30,7 +32,7 @@ def module_available(module_name: str) -> bool:
 
 
 def storage_extensions(
-    incl_folder: bool = True, dot: bool = False, *, exclude: Optional[List] = None
+    incl_folder: bool = True, dot: bool = False, *, exclude: list | None = None
 ):
     """Determine the extensions for storage objects.
 

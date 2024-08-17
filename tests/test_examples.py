@@ -30,7 +30,7 @@ def test_examples(path, tmp_path):
     )
     outs, errs = proc.communicate(timeout=30)
 
-    msg = "Script `%s` failed with following output:" % path
+    msg = f"Script `{path}` failed with following output:"
     if outs:
         msg = f"{msg}\nSTDOUT:\n{outs}"
     if errs:

@@ -60,7 +60,8 @@ def test_storage_persistence(arr, ext, tmp_path):
 
     # read from storage
     with open_storage(tmp_path / f"file{ext}", mode="read") as storage:
-        assert storage.is_group("empty") and len(storage["empty"].keys()) == 0
+        assert storage.is_group("empty")
+        assert len(storage["empty"].keys()) == 0
 
         arr_read = storage.read_array("group/test/arr")
         assert arr.__class__ is arr_read.__class__

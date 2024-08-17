@@ -9,6 +9,7 @@ import importlib.util
 import inspect
 import logging
 import os.path
+from pathlib import Path
 from typing import Callable, Sequence
 
 from ..model import ModelBase, cleared_default_model, factory, make_model_class
@@ -35,7 +36,7 @@ def run_function_with_cmd_args(
 
 
 @cleared_default_model
-def run_script(script_path: str, model_args: Sequence[str]) -> Result:
+def run_script(script_path: str | Path, model_args: Sequence[str]) -> Result:
     """Helper function that runs a model script.
 
     The function detects models automatically by trying several methods until one yields
@@ -59,7 +60,7 @@ def run_script(script_path: str, model_args: Sequence[str]) -> Result:
     logger = logging.getLogger("modelrunner")
 
     # load the script as a module
-    filename = os.path.basename(script_path)
+    filename = Path(script_path).name
     spec = importlib.util.spec_from_file_location("model_code", script_path)
     if spec is None:
         raise OSError(f"Could not find job script `{script_path}`")

@@ -119,14 +119,14 @@ class StorageGroup:
             elif isinstance(loc_data, str):
                 return loc_data.strip("/").split("/")
             else:
-                return sum((parse_loc(k) for k in loc_data), start=list())
+                return sum((parse_loc(k) for k in loc_data), start=[])
 
         return self.loc + parse_loc(loc)
 
     def __getitem__(self, loc: Location) -> Any:
         """Read state or trajectory from storage."""
         loc_list = self._get_loc(loc)
-        if self._storage.is_group(loc_list):  # storage points to a group
+        if self._storage.is_group(loc_list):  # storage is a group  # noqa: SIM102
             if "__class__" not in self._storage._read_attrs(loc_list):
                 # group does not contain class information => just return a subgroup
                 return StorageGroup(self._storage, loc_list)
