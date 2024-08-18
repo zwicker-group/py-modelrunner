@@ -130,6 +130,18 @@ def test_result_collections():
     rc1.as_dataframe()
 
 
+def test_result_collections_dataframes():
+    """Test whether result collections can be represented as dataframes."""
+    r1 = Result.from_data({"name": "1", "parameters": {"a": 1}}, {"b": 1, "c": 1})
+    r2 = Result.from_data({"name": "2", "parameters": {"a": 2}}, {"b": 2, "c": 2})
+    rc = ResultCollection([r1, r2])
+    assert len(rc) == 2
+
+    df = rc.as_dataframe(drop_keys=["b"])
+    assert "b" not in df.columns
+    assert "c" in df.columns
+
+
 def test_collection_groupby():
     """Test grouping of result collections."""
     p1 = {"a": 1, "b": (0, 1), "c": "c"}
