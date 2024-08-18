@@ -11,7 +11,7 @@ import itertools
 import logging
 import warnings
 from pathlib import Path
-from typing import Any, Iterator, List
+from typing import Any, Collection, Iterator, List
 
 import numpy as np
 from tqdm.auto import tqdm
@@ -449,14 +449,20 @@ class ResultCollection(List[Result]):
         warnings.warn("Property `dataframe` deprecated; use method `as_dataframe`")
         return self.as_dataframe()
 
-    def as_dataframe(self, *, enforce_same_model: bool = True):
+    def as_dataframe(
+        self, *, enforce_same_model: bool = True, drop_keys: Collection | None = None
+    ):
         """Create a pandas dataframe summarizing the data.
 
         Args:
             enforce_same_model (bool):
                 If True, forces all model results to derive from the same model
+            drop_keys (sequence):
+                A list of items that will not be included in the final data frame
         """
         import pandas as pd
+
+        drop_keys = set() if drop_keys is None else set(drop_keys)
 
         if enforce_same_model and not self.same_model:
             raise RuntimeError("Results are not from the same model")
@@ -477,10 +483,14 @@ class ResultCollection(List[Result]):
                 df_data["result"] = data
             elif isinstance(data, dict):
                 for key, value in data.items():
+                    if key in drop_keys:
+                        continue
                     if np.isscalar(value):
                         df_data[key] = value
                     elif isinstance(value, (list, tuple, np.ndarray)):
                         df_data[key] = np.asarray(value)
+                    else:
+                        df_data[key] = value
             else:
                 raise RuntimeError("Do not know how to interpret result")
             return df_data
