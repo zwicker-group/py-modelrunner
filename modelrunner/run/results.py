@@ -442,13 +442,6 @@ class ResultCollection(List[Result]):
                 seen.append(result.parameters)
         return self.__class__(unique_results)
 
-    @property
-    def dataframe(self):
-        """Create a pandas dataframe summarizing the data."""
-        # deprecated on 2023-10-19
-        warnings.warn("Property `dataframe` deprecated; use method `as_dataframe`")
-        return self.as_dataframe()
-
     def as_dataframe(
         self, *, enforce_same_model: bool = True, drop_keys: Collection | None = None
     ):

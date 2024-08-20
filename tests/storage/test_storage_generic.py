@@ -38,8 +38,10 @@ def test_storage_class(ext, tmp_path):
     assert storage.is_group("a/b")
     assert storage["a/b"]["c"] == 2
 
-    with pytest.raises(Exception):
+    with pytest.raises(TypeError):
         storage["item/test"] = 1  # cannot make group when there is an item
+    with pytest.raises(TypeError):
+        storage.create_group("item/test")  # cannot make group when there is an item
 
 
 @pytest.mark.parametrize("arr", ARRAY_EXAMPLES)
@@ -321,8 +323,10 @@ def test_storage_close(ext, tmp_path):
     writer.close()
     assert writer.closed
 
-    with pytest.raises(Exception):
+    with pytest.raises(RuntimeError):
         writer["obj"]
+    with pytest.raises(RuntimeError):
+        assert "obj" in writer
 
     reader = open_storage(tmp_path / f"file{ext}", mode="read")
     assert not reader.closed

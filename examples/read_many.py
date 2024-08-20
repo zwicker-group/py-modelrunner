@@ -26,4 +26,4 @@ if __name__ == "__main__":
 
     # read data
     rc = ResultCollection.from_folder("data")
-    print(rc.dataframe)
+    print(rc.as_dataframe())
