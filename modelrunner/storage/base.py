@@ -113,6 +113,8 @@ class StorageBase(metaclass=ABCMeta):
             return loc[-1] in self.keys(loc[:-1])
         except KeyError:
             return False
+        except (TypeError, AttributeError) as err:
+            raise TypeError(f"`/{'/'.join(loc)}` is not a group") from err
 
     @abstractmethod
     def is_group(self, loc: Sequence[str]) -> bool:
@@ -123,7 +125,7 @@ class StorageBase(metaclass=ABCMeta):
                 A list of strings determining the location in the storage
 
         Returns:
-            bool: `True` if the loation is a group
+            bool: `True` if the location is a group
         """
 
     @abstractmethod
@@ -159,11 +161,15 @@ class StorageBase(metaclass=ABCMeta):
         from .group import StorageGroup
 
         if loc in self:
-            # group already exists
-            if self.mode.overwrite:
-                pass  # group already exists, but we can overwrite things
+            # item already exists
+            if not self.is_group(loc):
+                # item is not a group
+                raise RuntimeError(f"`/{'/'.join(loc)}` is not a group")
+            elif self.mode.overwrite:
+                # item is a group that already exists, but we can overwrite things
+                pass
             else:
-                # we cannot overwrite anything
+                # we cannot overwrite anything, so we throw an error
                 raise AccessError(f"Group `/{'/'.join(loc)}` already exists")
 
         else:
@@ -173,7 +179,13 @@ class StorageBase(metaclass=ABCMeta):
 
             # create all parent groups
             for i in range(len(loc)):
-                if loc[: i + 1] not in self:
+                sub_loc = loc[: i + 1]
+                if loc[: i + 1] in self:
+                    if not self.is_group(sub_loc):
+                        # the parent item exists, but is not a group
+                        raise TypeError(f"`/{'/'.join(sub_loc)}` is not a group")
+                else:
+                    # create the non-existing group
                     self._create_group(loc[: i + 1])
 
         self._write_item_attrs(loc, attrs, cls=cls)
@@ -297,7 +309,8 @@ class StorageBase(metaclass=ABCMeta):
         """
         if not loc:
             raise RuntimeError(f"Cannot write {name} to the storage root")
-        elif loc in self:
+        # ensure parent is a group
+        if loc in self:
             # check whether we can overwrite the existing array
             if not self.can_update:
                 raise RuntimeError("Storage does not support updating items")

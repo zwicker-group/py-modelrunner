@@ -13,9 +13,6 @@ from .attributes import Attrs
 from .base import StorageBase
 from .utils import Array, Location, decode_class, encode_class, storage_actions
 
-# TODO: Provide .attrs attribute with a descriptor protocol (implemented by the backend)
-# TODO: Provide a simple viewer of the tree structure (e.g. a `tree` method)
-
 
 class StorageGroup:
     """Refers to a group within a storage."""
@@ -31,21 +28,21 @@ class StorageGroup:
                 Denotes the location (path) of the group within the storage
         """
         self.loc = []  # initialize empty location, since `loc` is relative to root
-        self.loc = self._get_loc(loc)
 
+        # set the underlying storage and the relative location
         if isinstance(storage, StorageBase):
             self._storage = storage
+            self.loc = self._get_loc(loc)
         elif isinstance(storage, StorageGroup):
-            self.loc = storage.loc + self.loc
             self._storage = storage._storage
+            self.loc = self._get_loc([storage.loc, loc])
         else:
-            raise TypeError(
-                f"Cannot interprete `storage` of type `{storage.__class__}`"
-            )
+            raise TypeError(f"Cannot interpret `storage` of type `{storage.__class__}`")
 
+        # do some sanity checks
         assert isinstance(self._storage, StorageBase)
         if self._storage.closed:
-            raise RuntimeError("Cannot access group in closed storage")
+            raise RuntimeError("Storage is closed")
         if self.loc not in self._storage:
             raise RuntimeError(
                 f'"/{"/".join(self.loc)}" is not in storage. Available root items are: '
@@ -111,6 +108,8 @@ class StorageGroup:
         Returns:
             list of str: A list of the individual location items
         """
+        if self._storage.closed:
+            raise RuntimeError("Storage is closed")
 
         # TODO: use regex to check whether loc is only alphanumerical and has no "/"
         def parse_loc(loc_data) -> list[str]:
