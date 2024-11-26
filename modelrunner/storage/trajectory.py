@@ -90,7 +90,7 @@ class TrajectoryWriter:
         elif self._storage.mode.dynamic_append:
             self._trajectory = StorageGroup(self._storage, loc)
         else:
-            raise AccessError(f"Cannot insert data. Open storage with write access")
+            raise AccessError("Cannot insert data. Open storage with write access")
 
         # make sure we don't overwrite data
         if "times" in self._trajectory or "data" in self._trajectory:
