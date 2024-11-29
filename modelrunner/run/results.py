@@ -276,7 +276,7 @@ class ResultCollection(List[Result]):
             progress (bool):
                 Flag indicating whether a progress bar is shown
         """
-        logger = logging.getLogger(cls.__name__)
+        logger = logging.getLogger("modelrunner." + cls.__name__)
 
         folder = Path(folder)
         if not folder.is_dir():

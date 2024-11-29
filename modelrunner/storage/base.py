@@ -37,6 +37,9 @@ from .utils import encode_class
 if TYPE_CHECKING:
     from .group import StorageGroup
 
+_base_logger = logging.getLogger(__name__.rsplit(".", 1)[0])
+""":class:`logging.Logger`: Base logger for fields."""
+
 
 class StorageBase(metaclass=ABCMeta):
     """Base class for storing data."""
@@ -50,6 +53,7 @@ class StorageBase(metaclass=ABCMeta):
 
     _codec: numcodecs.abc.Codec
     """:class:`numcodecs.Codec`: the specific codec used for encoding binary data."""
+    _logger: logging.Logger  # logger instance to output information
 
     def __init__(self, *, mode: ModeType = "read"):
         """
@@ -59,7 +63,12 @@ class StorageBase(metaclass=ABCMeta):
                 operations.
         """
         self.mode = AccessMode.parse(mode)
-        self._logger = logging.getLogger(self.__class__.__name__)
+
+    def __init_subclass__(cls, **kwargs):
+        """Initialize class-level attributes of subclasses."""
+        super().__init_subclass__(**kwargs)
+        # create logger for this specific storage class
+        cls._logger = _base_logger.getChild(cls.__qualname__)
 
     def close(self) -> None:
         """Closes the storage, potentially writing data to a persistent place."""

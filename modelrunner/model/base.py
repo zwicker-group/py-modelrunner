@@ -19,6 +19,9 @@ from .parameters import DeprecatedParameter, HideParameter, Parameterized
 if TYPE_CHECKING:
     from ..run.results import Result
 
+_base_logger = logging.getLogger(__name__.rsplit(".", 1)[0])
+""":class:`logging.Logger`: Base logger for models."""
+
 
 class ModelBase(Parameterized, metaclass=ABCMeta):
     """Base class for describing models."""
@@ -27,6 +30,7 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
     """str: the name of the model"""
     description: str | None = None
     """str: a longer description of the model"""
+    _logger: logging.Logger  # logger instance to output information
 
     def __init__(
         self,
@@ -63,7 +67,12 @@ class ModelBase(Parameterized, metaclass=ABCMeta):
         self.output = output  # TODO: also allow already opened storages
         self.mode = mode
         self._storage: open_storage | None = None
-        self._logger = logging.getLogger(self.__class__.__name__)
+
+    def __init_subclass__(cls, **kwargs):
+        """Initialize class-level attributes of subclasses."""
+        super().__init_subclass__(**kwargs)
+        # create logger for this specific field class
+        cls._logger = _base_logger.getChild(cls.__qualname__)
 
     @property
     def storage(self) -> StorageGroup:
