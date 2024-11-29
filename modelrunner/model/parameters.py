@@ -26,6 +26,9 @@ import numpy as np
 
 from ..utils import hybridmethod, import_class
 
+_logger = logging.getLogger(__name__)
+""":class:`logging.Logger`: Logger instance."""
+
 
 class NoValueType:
     """Special value to indicate no value for a parameter."""
@@ -129,7 +132,7 @@ class Parameter:
                 )
 
             if not valid_default:
-                logging.warning(
+                _logger.warning(
                     "Default value `%s` is not of type `%s`",
                     self.name,
                     self.cls.__name__,
