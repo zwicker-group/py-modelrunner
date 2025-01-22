@@ -63,7 +63,7 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
             self._data = {} if data is None else data
 
     def __repr__(self):
-        return f'{self.__class__.__name__}("{self._path}", ' f'mode="{self.mode.name}")'
+        return f'{self.__class__.__name__}("{self._path}", mode="{self.mode.name}")'
 
     def flush(self) -> None:
         """Write (cached) data to storage."""
