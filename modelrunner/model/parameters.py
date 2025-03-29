@@ -19,8 +19,9 @@ from __future__ import annotations
 import copy
 import logging
 import warnings
+from collections.abc import Container, Iterator
 from dataclasses import dataclass, field
-from typing import Any, Callable, Container, Dict, Iterator, List, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import numpy as np
 
@@ -279,8 +280,8 @@ class HideParameter:
         pass
 
 
-ParameterListType = List[Union[Parameter, HideParameter]]
-ParameterInputType = Optional[Dict[str, Any]]
+ParameterListType = list[Union[Parameter, HideParameter]]
+ParameterInputType = Optional[dict[str, Any]]
 
 
 class Parameterized:

@@ -5,11 +5,12 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from .utils import decode_binary, encode_binary
 
-Attrs = Dict[str, Any]
+Attrs = dict[str, Any]
 AttrsLike = Mapping[str, Any]
 
 

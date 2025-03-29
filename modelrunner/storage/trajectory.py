@@ -11,8 +11,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Iterator, Literal
+from typing import Any, Literal
 
 import numpy as np
 

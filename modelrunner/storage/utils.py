@@ -9,8 +9,9 @@ import codecs
 import inspect
 import pickle
 from collections import defaultdict
+from collections.abc import Sequence
 from importlib import import_module
-from typing import TYPE_CHECKING, Any, Callable, Literal, Sequence, Union, overload
+from typing import TYPE_CHECKING, Any, Callable, Literal, Union, overload
 
 import numpy as np
 

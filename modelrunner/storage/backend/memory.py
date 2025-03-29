@@ -6,7 +6,8 @@
 from __future__ import annotations
 
 import copy
-from typing import Any, Collection, Sequence
+from collections.abc import Collection, Sequence
+from typing import Any
 
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike

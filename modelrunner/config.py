@@ -12,8 +12,9 @@ from __future__ import annotations
 
 import collections
 import contextlib
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 from .model.parameters import DeprecatedParameter, Parameter
 

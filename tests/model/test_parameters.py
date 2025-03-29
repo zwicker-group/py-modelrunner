@@ -6,7 +6,6 @@ import itertools
 import logging
 import math
 import pickle
-from typing import List
 
 import numpy as np
 import pytest
