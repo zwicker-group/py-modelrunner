@@ -8,8 +8,9 @@ Requires the optional :mod:`zarr` module.
 from __future__ import annotations
 
 import shutil
+from collections.abc import Collection, Sequence
 from pathlib import Path
-from typing import Any, Collection, Sequence, Union
+from typing import Any, Union
 
 import numpy as np
 import zarr
@@ -60,9 +61,15 @@ class ZarrStorage(StorageBase):
             elif path.suffix == ".zip":
                 # create a ZipStore
                 file_mode = self.mode.file_mode
-                if path.exists() and file_mode == "w":
+                if file_mode == "x":
+                    if path.exists():
+                        raise OSError("File `{path}` already exists")
+                    else:
+                        file_mode = "w"
+                elif file_mode == "w" and path.exists():
                     self._logger.info("Delete file `%s`", path)
                     path.unlink()
+
                 self._store = zarr.storage.ZipStore(path, mode=file_mode)
 
             elif path.suffix == ".sqldb":

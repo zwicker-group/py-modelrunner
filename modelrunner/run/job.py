@@ -14,8 +14,9 @@ import shlex
 import subprocess as sp
 import sys
 import warnings
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable, Literal
+from typing import Any, Literal
 
 from tqdm.auto import tqdm
 
