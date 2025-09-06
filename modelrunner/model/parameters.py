@@ -645,3 +645,33 @@ def get_all_parameters(data: str = "name") -> dict[str, Any]:
 
         result[cls_name] = parameters
     return result
+
+
+def sphinx_display_parameters(app, what, name, obj, options, lines):
+    """Helper function to display parameters in sphinx documentation.
+
+    Example:
+        This function should be connected to the 'autodoc-process-docstring'
+        event like so:
+
+            app.connect('autodoc-process-docstring', sphinx_display_parameters)
+    """
+    if (
+        what == "class"
+        and issubclass(obj, Parameterized)
+        and any(":param parameters:" in line for line in lines)
+    ):
+        # parse parameters
+        parameters = obj.get_parameters(sort=False)
+        if parameters:
+            lines.append(".. admonition::")
+            lines.append(f"   Parameters of {obj.__name__}:")
+            lines.append("   ")
+            for p in parameters.values():
+                lines.append(f"   {p.name}")
+                text = p.description.splitlines()
+                text.append(f"(Default value: :code:`{p.default_value!r}`)")
+                text = ["     " + t for t in text]
+                lines.extend(text)
+                lines.append("")
+            lines.append("")
