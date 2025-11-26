@@ -15,7 +15,24 @@ from typing import Any, Union
 import numpy as np
 import zarr
 from numpy.typing import ArrayLike, DTypeLike
-from zarr._storage.store import Store
+
+zarr_version = int(zarr.__version__.split(".", 1)[0])
+
+if zarr_version == 2:
+    # import classes from paths of zarr version 2
+    from zarr import DirectoryStore as LocalStore
+    from zarr import SQLiteStore, ZipStore
+    from zarr._storage.store import Store
+
+elif zarr_version == 3:
+    # import classes from paths of zarr version 3
+    from zarr.abc.store import Store
+    from zarr.storage import LocalStore, ZipStore
+
+    SQLiteStore = None
+
+else:
+    raise NotImplementedError(f"No support for zarr version {zarr_version}")
 
 from ..access_modes import ModeType
 from ..attributes import AttrsLike
@@ -56,7 +73,7 @@ class ZarrStorage(StorageBase):
                 if self.mode.file_mode == "r":
                     self._logger.info("DirectoryStore is always opened writable")
 
-                self._store = zarr.DirectoryStore(path)
+                self._store = LocalStore(path)
 
             elif path.suffix == ".zip":
                 # create a ZipStore
@@ -70,14 +87,14 @@ class ZarrStorage(StorageBase):
                     self._logger.info("Delete file `%s`", path)
                     path.unlink()
 
-                self._store = zarr.storage.ZipStore(path, mode=file_mode)
+                self._store = ZipStore(path, mode=file_mode)
 
-            elif path.suffix == ".sqldb":
+            elif path.suffix == ".sqldb" and SQLiteStore is not None:
                 # create a SQLiteStore
                 if self.mode.file_mode == "w" and path.exists():
                     self._logger.info("Delete file `%s`", path)
                     path.unlink()
-                self._store = zarr.SQLiteStore(path)
+                self._store = SQLiteStore(path)
 
         elif isinstance(store_or_path, Store):
             # use already opened zarr storage
@@ -142,7 +159,7 @@ class ZarrStorage(StorageBase):
             return self._root.keys()  # type: ignore
 
     def is_group(self, loc: Sequence[str], *, ignore_cls: bool = False) -> bool:
-        return isinstance(self[loc], zarr.hierarchy.Group)
+        return isinstance(self[loc], zarr.Group)
 
     def _create_group(self, loc: Sequence[str]) -> None:
         parent, name = self._get_parent(loc)
@@ -186,7 +203,14 @@ class ZarrStorage(StorageBase):
         else:
             # create a new array element
             if arr.dtype == object:
-                el = parent.array(name, arr, object_codec=self.codec, overwrite=True)
+                if zarr_version == 2:
+                    el = parent.array(
+                        name, arr, object_codec=self.codec, overwrite=True
+                    )
+                else:
+                    el = parent.array(
+                        name, arr, object_codec_id=self.codec, overwrite=True
+                    )
             else:
                 el = parent.array(name, arr, overwrite=True)
 
@@ -233,4 +257,7 @@ class ZarrStorage(StorageBase):
         arr: np.ndarray = np.empty(1, dtype=object)  # encode object in an array
         arr[0] = obj
         parent, name = self._get_parent(loc)
-        parent.array(name, arr, object_codec=self.codec, overwrite=True)
+        if zarr_version == 2:
+            parent.array(name, arr, object_codec=self.codec, overwrite=True)
+        else:
+            parent.array(name, arr, object_codec_id=self.codec, overwrite=True)
