@@ -58,7 +58,7 @@ def storage_extensions(
     if module_available("zarr"):
         exts.append("zip")
         if incl_folder:
-            exts.extend(["", "zarr"])
+            exts.append("zarr")
         if module_available("sqlite3") and zarr_version == 2:
             exts.append("sqldb")
 
