@@ -7,7 +7,8 @@ from __future__ import annotations
 
 import functools
 import inspect
-from typing import TYPE_CHECKING, Any, Callable, Literal, TypeVar, get_args, get_origin
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, get_args, get_origin
 
 from ..storage import ModeType
 from .base import ModelBase

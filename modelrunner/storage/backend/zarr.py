@@ -10,7 +10,7 @@ from __future__ import annotations
 import shutil
 from collections.abc import Collection, Sequence
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 import numpy as np
 import zarr
@@ -38,7 +38,7 @@ from ..access_modes import ModeType
 from ..attributes import AttrsLike
 from ..base import StorageBase
 
-zarrElement = Union[zarr.Group, zarr.Array]
+zarrElement = zarr.Group | zarr.Array
 
 
 class ZarrStorage(StorageBase):

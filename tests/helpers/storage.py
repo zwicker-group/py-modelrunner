@@ -6,9 +6,12 @@
 from __future__ import annotations
 
 import importlib
-from typing import Any, Callable, Optional, TypeVar
+from collections.abc import Callable
+from typing import Any, Optional, TypeVar
 
 import numpy as np
+
+from modelrunner.storage.backend.zarr import zarr_version
 
 TFunc = TypeVar("TFunc", bound=Callable[..., Any])
 
@@ -56,7 +59,7 @@ def storage_extensions(
         exts.append("zip")
         if incl_folder:
             exts.extend(["", "zarr"])
-        if module_available("sqlite3"):
+        if module_available("sqlite3") and zarr_version == 2:
             exts.append("sqldb")
 
     if dot:

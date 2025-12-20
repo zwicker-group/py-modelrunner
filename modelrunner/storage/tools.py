@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Union
 
 from .access_modes import AccessMode
 from .backend import AVAILABLE_STORAGE, MemoryStorage
@@ -14,7 +13,7 @@ from .base import StorageBase
 from .group import StorageGroup
 from .utils import Location
 
-StorageID = Union[None, str, Path, StorageGroup, StorageBase]
+StorageID = str | Path | StorageGroup | StorageBase | None
 
 
 class open_storage(StorageGroup):

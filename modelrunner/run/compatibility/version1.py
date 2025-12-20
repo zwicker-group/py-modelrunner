@@ -7,9 +7,8 @@ from __future__ import annotations
 
 import json
 import warnings
-from abc import ABCMeta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import numpy as np
 
@@ -20,7 +19,7 @@ from .triage import guess_format, normalize_zarr_store
 if TYPE_CHECKING:
     import zarr
 
-    zarrElement = Union[zarr.Group, zarr.Array]
+    zarrElement = zarr.Group | zarr.Array
 
 
 class NoData:

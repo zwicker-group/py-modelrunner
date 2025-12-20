@@ -7,6 +7,7 @@ import pytest
 
 from helpers import STORAGE_EXT, STORAGE_OBJECTS, assert_data_equals
 from modelrunner.storage import AccessError, open_storage
+from modelrunner.storage.backend.zarr import zarr_version
 
 OBJ = {"a": 1, "b": np.arange(5)}
 ARRAY_EXAMPLES = [
@@ -23,8 +24,9 @@ STORAGE_CLASSES = {
     "zarr": "ZarrStorage",
     "zip": "ZarrStorage",
     "": "ZarrStorage",
-    "sqldb": "ZarrStorage",
 }
+if zarr_version == 2:
+    STORAGE_CLASSES["sqldb"] = "ZarrStorage"
 
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)

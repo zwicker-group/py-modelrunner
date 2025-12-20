@@ -411,7 +411,7 @@ class ResultCollection(list[Result]):
         group_values = [self.parameters[name] for name in args]
 
         for group_value in itertools.product(*group_values):
-            group_parameters = dict(zip(args, group_value))
+            group_parameters = dict(zip(args, group_value, strict=False))
             subset = self.filtered(**group_parameters)
             if len(subset) > 0:
                 yield group_parameters, subset
