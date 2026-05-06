@@ -9,9 +9,9 @@ import codecs
 import inspect
 import pickle
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from importlib import import_module
-from typing import TYPE_CHECKING, Any, Callable, Literal, Union, overload
+from typing import TYPE_CHECKING, Any, Literal, overload
 
 import numpy as np
 
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 PICKLE_PROTOCOL = pickle.HIGHEST_PROTOCOL
 
 
-Location = Union[None, str, Sequence["Location"]]
+Location = str | Sequence["Location"] | None
 
 
 @overload

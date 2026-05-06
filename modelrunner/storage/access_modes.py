@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass
-from typing import ClassVar, Literal, Union
+from typing import ClassVar, Literal
 
 FileMode = Literal[
     "r",  # open as readable
@@ -137,7 +137,7 @@ access_truncate = AccessMode(
     dynamic_append=True,
 )
 
-ModeType = Union[str, AccessMode]
+ModeType = str | AccessMode
 
 
 class AccessError(RuntimeError):

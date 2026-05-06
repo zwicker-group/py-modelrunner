@@ -366,7 +366,7 @@ def submit_jobs(
 
     # build the list of all varying arguments
     p_vary_list = [
-        dict(zip(p_vary.keys(), values))
+        dict(zip(p_vary.keys(), values, strict=False))
         for values in itertools.product(*p_vary.values())
     ]
 

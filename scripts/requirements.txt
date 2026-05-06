@@ -1,0 +1,4 @@
+-r ../requirements_full.txt
+docformatter>=1.7
+mypy>=0.770
+ruff>=0.6

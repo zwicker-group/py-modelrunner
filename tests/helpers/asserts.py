@@ -49,7 +49,7 @@ def assert_data_equals(left: Any, right: Any, *, fuzzy: bool = False) -> bool:
 
         elif hasattr(left, "__iter__"):
             assert len(left) == len(right)
-            for l, r in zip(left, right):
+            for l, r in zip(left, right, strict=False):
                 assert_data_equals(l, r, fuzzy=fuzzy)
 
         else:
@@ -62,7 +62,7 @@ def assert_data_equals(left: Any, right: Any, *, fuzzy: bool = False) -> bool:
                 assert np.array_equal(np.asarray(left), np.asarray(right))
             else:
                 assert len(left) == len(right)
-                for l, r in zip(left, right):
+                for l, r in zip(left, right, strict=False):
                     assert_data_equals(l, r, fuzzy=fuzzy)
 
         elif isinstance(left, np.number) or isinstance(right, np.number):
