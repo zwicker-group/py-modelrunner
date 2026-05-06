@@ -7,6 +7,9 @@ Requires the optional :mod:`zarr` module.
 
 from __future__ import annotations
 
+import base64
+import json
+import pickle
 import shutil
 from collections.abc import Collection, Sequence
 from pathlib import Path
@@ -14,9 +17,6 @@ from typing import Any, Union
 
 import numpy as np
 import zarr
-import json
-import pickle
-import base64
 from numpy.typing import ArrayLike, DTypeLike
 
 zarr_version = int(zarr.__version__.split(".", 1)[0])
