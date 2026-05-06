@@ -144,13 +144,9 @@ warn_unused_ignores = true
 [[tool.mypy.overrides]]
 module = [
     "h5py.*",
-    "IPython.*",
-    "ipywidgets.*",
-    "mpl_toolkits.*",
     "numcodecs.*",
     "numpy.*",
     "pandas.*",
-    "pytest.*",
     "zarr.*",
 ]
 ignore_missing_imports = true
