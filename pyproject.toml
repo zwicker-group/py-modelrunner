@@ -29,7 +29,7 @@ dependencies = [
     "jinja2>=3",
     "numpy>=1.18.0",
     "tqdm>=4.45",
-    "numcodecs>=0.10",
+    "numcodecs>=0.16",
 ]
 
 [project.optional-dependencies]
