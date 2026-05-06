@@ -73,7 +73,7 @@ class ZarrStorage(StorageBase):
                 if self.mode.file_mode == "r":
                     self._logger.info("DirectoryStore is always opened writable")
 
-                if is_zarr2:
+                if zarr_version == 2:
                     self._store = zarr.DirectoryStore(path)
                 else:
                     self._store = zarr.LocalStore(path)
@@ -90,7 +90,7 @@ class ZarrStorage(StorageBase):
                     self._logger.info("Delete file `%s`", path)
                     path.unlink()
 
-            elif is_zarr2 and path.suffix == ".sqldb":
+            elif zarr_version == 2 and path.suffix == ".sqldb":
                 # create a SQLiteStore
                 if self.mode.file_mode == "w" and path.exists():
                     self._logger.info("Delete file `%s`", path)

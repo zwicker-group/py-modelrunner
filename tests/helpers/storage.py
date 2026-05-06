@@ -53,12 +53,12 @@ def storage_extensions(
     if module_available("h5py"):
         exts.append("hdf")
     if module_available("zarr"):
-        from modelrunner.storage.backend.zarr import is_zarr2
+        from modelrunner.storage.backend.zarr import zarr_version
 
         exts.append("zip")
         if incl_folder:
             exts.extend(["", "zarr"])
-        if is_zarr2 and module_available("sqlite3"):
+        if zarr_version == 2 and module_available("sqlite3"):
             exts.append("sqldb")
 
     if dot:
