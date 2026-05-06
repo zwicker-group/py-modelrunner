@@ -17,4 +17,4 @@ if zarr_version == 2:
 
 elif zarr_version == 3:
     # import classes from paths of zarr version 3
-    from ._zarr3 import ZarrStorage
+    from ._zarr3 import ZarrStorage  # type: ignore

@@ -25,7 +25,7 @@ from ..access_modes import ModeType
 from ..attributes import AttrsLike
 from ..base import StorageBase
 
-zarrElement = Union[zarr.Group, zarr.Array]
+zarrElement = zarr.Group | zarr.Array
 
 
 class ZarrStorage(StorageBase):

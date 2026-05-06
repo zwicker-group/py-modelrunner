@@ -118,7 +118,7 @@ class StateBase:
             raise TypeError(f"Do not know how to load `{cls_name}`")
 
     @classmethod
-    def _from_zarr(cls, zarr_element: zarrElement, *, index=...) -> StateBase:
+    def _from_zarr(cls, zarr_element: zarrElement, *, index=...) -> StateBase:  # type: ignore
         """Create instance of correct subclass from data stored in zarr."""
         # determine the class that knows how to read this data
         cls_name = zarr_element.attrs["__class__"]
