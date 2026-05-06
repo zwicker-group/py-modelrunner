@@ -15,6 +15,8 @@ from typing import Any, Union
 import numpy as np
 import zarr
 import json
+import pickle
+import base64
 from numpy.typing import ArrayLike, DTypeLike
 
 zarr_version = int(zarr.__version__.split(".", 1)[0])
@@ -201,20 +203,9 @@ class ZarrStorage(StorageBase):
     ) -> None:
         parent, name = self._get_parent(loc)
         try:
-            if dtype == object:
-                element = parent.zeros(
-                    name=name,
-                    shape=(0,) + shape,
-                    chunks=(1,) + shape,
-                    dtype=dtype,
-                    object_codec=self.codec,
-                    overwrite=True,
-                )
-
-            else:
-                element = parent.zeros(
-                    name=name, shape=(0,) + shape, chunks=(1,) + shape, dtype=dtype
-                )
+            element = parent.zeros(
+                name=name, shape=(0,) + shape, chunks=(1,) + shape, dtype=dtype
+            )
         except zarr.errors.ContainsArrayError as err:
             raise RuntimeError(f"Array `/{'/'.join(loc)}` already exists") from err
         else:
@@ -226,11 +217,24 @@ class ZarrStorage(StorageBase):
         arr_obj.append([data])
 
     def _read_object(self, loc: Sequence[str]) -> Any:
-        return json.loads(self[loc][0].item())
+        stored = self[loc][0].item()
+        # Check if the object was pickled (starts with pickle marker)
+        if stored.startswith("__pickle__:"):
+            obj_data = stored[11:]  # Remove the marker
+            return pickle.loads(base64.b64decode(obj_data))
+        else:
+            # Otherwise it's JSON
+            return json.loads(stored)
 
     def _write_object(self, loc: Sequence[str], obj: Any) -> None:
-        obj_enc = json.dumps(obj)
+        # Try JSON serialization first
+        try:
+            obj_enc = json.dumps(obj)
+        except (TypeError, ValueError):
+            # Fall back to pickle for non-JSON-serializable objects
+            pickled = pickle.dumps(obj)
+            obj_enc = "__pickle__:" + base64.b64encode(pickled).decode("ascii")
+
         data = np.array([obj_enc])
-        # arr: np.ndarray = np.array([obj], dtype=dtype)  # encode object in an array
         parent, name = self._get_parent(loc)
         parent.create_array(name, data=data, overwrite=True)

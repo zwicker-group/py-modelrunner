@@ -20,8 +20,8 @@ def get_compatibility_files(version=None):
     """Find all files that need to be checked for compatibility."""
     for path in CWD.glob("**/*.*"):
         if path.suffix in POSSIBLE_EXTENSIONS:
-            if path.parts[-2].startswith("_"):
-                pytest.skip("Skip compatibility files starting with underscore")
+            if path.parts[-2].startswith("_") or path.parts[-1].startswith("_"):
+                continue  # skip directories or files starting with underscore
             if version is None or path.parts[-2] == str(version):
                 yield path
 
