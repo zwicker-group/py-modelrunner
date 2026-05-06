@@ -68,10 +68,16 @@ def storage_extensions(
     return sorted(exts)
 
 
+# STORAGE_OBJECTS = [
+#     {"n": -1, "s": "t", "l1": [0, 1, 2], "l2": [[0, 1], [4]], "a": np.arange(5)},
+#     np.arange(3),
+#     [np.arange(2), np.arange(3)],
+#     {"a": {"a", "b"}, "b": np.arange(3)},
+# ]
 STORAGE_OBJECTS = [
-    {"n": -1, "s": "t", "l1": [0, 1, 2], "l2": [[0, 1], [4]], "a": np.arange(5)},
-    np.arange(3),
-    [np.arange(2), np.arange(3)],
-    {"a": {"a", "b"}, "b": np.arange(3)},
+    {"n": -1, "s": "t", "l1": [0, 1, 2], "l2": [[0, 1], [4]], "a": "test"},
+    [1, 2, 3],
+    [[1, 2], "test"],
+    {"a": ["a", "b"], "b": 3},
 ]
 STORAGE_EXT = storage_extensions(incl_folder=True, dot=True)

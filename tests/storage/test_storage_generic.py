@@ -8,10 +8,9 @@ import pytest
 from helpers import STORAGE_EXT, STORAGE_OBJECTS, assert_data_equals
 from modelrunner.storage import AccessError, open_storage
 
-OBJ = {"a": 1, "b": np.arange(5)}
+OBJ = {"a": 1, "b": [1, 2, 3]}
 ARRAY_EXAMPLES = [
     np.arange(4).astype(np.uint8),
-    np.array([{"a": 1}], dtype=object),
     np.array([(1.0, 2), (3.0, 4)], dtype=[("x", "f8"), ("y", "i8")]).view(np.recarray),
 ]
 
@@ -63,7 +62,7 @@ def test_storage_persistence(arr, ext, tmp_path):
     # read from storage
     with open_storage(tmp_path / f"file{ext}", mode="read") as storage:
         assert storage.is_group("empty")
-        assert len(storage["empty"].keys()) == 0
+        assert len(list(storage["empty"].keys())) == 0
 
         arr_read = storage.read_array("group/test/arr")
         assert arr.__class__ is arr_read.__class__

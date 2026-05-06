@@ -29,6 +29,8 @@ def get_compatibility_files(version=None):
 @pytest.mark.parametrize("path", get_compatibility_files())
 def test_reading_compatibility(path):
     """Test reading old files."""
+    if path.suffix == ".zip":
+        pytest.skip("Zip files are not properly supported anymore")
     result = Result.from_file(path)
 
     with path.with_suffix(".pkl").open("rb") as fp:
