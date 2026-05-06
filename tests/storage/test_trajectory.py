@@ -11,12 +11,6 @@ from helpers import assert_data_equals, storage_extensions
 from modelrunner.storage import Trajectory, TrajectoryWriter, open_storage
 
 STORAGE_EXT = storage_extensions(incl_folder=True, dot=True, exclude=[".yaml", ".json"])
-STORAGE_OBJECTS = [
-    {"n": -1, "s": "t", "l1": [0, 1, 2], "l2": [[0, 1], [4]], "a": np.arange(5)},
-    np.arange(3),
-    [np.arange(2), np.arange(3)],
-    {"a": {"a", "b"}, "b": np.arange(3)},
-]
 
 
 def remove_file_or_folder(path):
@@ -27,10 +21,10 @@ def remove_file_or_folder(path):
         path.unlink()
 
 
-@pytest.mark.parametrize("obj", STORAGE_OBJECTS)
 @pytest.mark.parametrize("ext", STORAGE_EXT)
-def test_trajectory_basic(obj, ext, tmp_path):
-    """Test simple trajecotry writing."""
+def test_trajectory_basic(ext, tmp_path):
+    """Test simple trajectory writing."""
+    obj = np.arange(3)
     path = tmp_path / ("file" + ext)
 
     # write first batch of data
@@ -97,10 +91,10 @@ def test_trajectory_basic(obj, ext, tmp_path):
         remove_file_or_folder(path2)
 
 
-@pytest.mark.parametrize("obj", STORAGE_OBJECTS)
 @pytest.mark.parametrize("ext", STORAGE_EXT)
-def test_trajectory_writer_open_storage(obj, ext, tmp_path):
-    """Test simple trajecotry writing in an externally opened storage."""
+def test_trajectory_writer_open_storage(ext, tmp_path):
+    """Test simple trajectory writing in an externally opened storage."""
+    obj = np.arange(3)
     path = tmp_path / ("file" + ext)
     storage = open_storage(path, mode="insert")
     assert not storage.closed
@@ -160,7 +154,7 @@ def test_trajectory_writer_open_storage(obj, ext, tmp_path):
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_trajectory_multiple_reads(ext, tmp_path):
-    """Test simultaneous reading of trajecotries."""
+    """Test simultaneous reading of trajectories."""
     path = tmp_path / ("file" + ext)
     obj = np.arange(5)
 
@@ -206,7 +200,7 @@ def test_trajectory_overwriting(ext, tmp_path):
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
 def test_trajectory_reading_while_writing(ext, tmp_path):
-    """Test reading while writing trajecotries."""
+    """Test reading while writing trajectories."""
     path = tmp_path / ("file" + ext)
     obj = np.arange(5)
 

@@ -147,12 +147,12 @@ def _get_format_version(path: Path, label: str) -> int | None:
         store = normalize_zarr_store(path, mode="r")
         if store is None:
             raise RuntimeError
-        with zarr.open_group(store, mode="r") as root:
-            format_version = _find_version(root, label)
-            if format_version is None and label != "data":
-                format_version = _find_version(root, "data")
-                if format_version is not None:
-                    label = "data"
+        root = zarr.open_group(store, mode="r")
+        format_version = _find_version(root, label)
+        if format_version is None and label != "data":
+            format_version = _find_version(root, "data")
+            if format_version is not None:
+                label = "data"
 
     else:
         raise RuntimeError

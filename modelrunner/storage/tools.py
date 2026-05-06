@@ -120,7 +120,7 @@ class open_storage(StorageGroup):
 
             if isinstance(storage, zarr.Group):
                 self._close = False
-                store_obj = ZarrStorage(storage._store, **kwargs)
+                store_obj = ZarrStorage(storage.store, **kwargs)
                 loc = [storage.path] + [loc]
 
         if store_obj is None:

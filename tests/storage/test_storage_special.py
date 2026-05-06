@@ -44,15 +44,27 @@ def test_zarr_storage(tmp_path):
     """Test ZarrStorage."""
     import zarr
 
-    with zarr.open(tmp_path / "storage.zarr", "w") as root:
-        with open_storage(root, mode="insert") as storage:
-            storage["obj"] = {"info": True}
-        root.attrs["test"] = 5
+    if hasattr(zarr, "open_group"):
+        open_group = zarr.open_group
+    else:  # pragma: no cover
+        import zarr.convenience
 
-    with zarr.open(tmp_path / "storage.zarr", "r") as root:
-        with open_storage(root, mode="read") as storage:
-            assert storage["obj"] == {"info": True}
-        assert root.attrs["test"] == 5
+        open_group = zarr.convenience.open_group
+
+    if hasattr(zarr.storage, "LocalStore"):
+        store = zarr.storage.LocalStore(tmp_path / "storage.zarr")
+    else:
+        store = zarr.storage.DirectoryStore(str(tmp_path / "storage.zarr"))
+
+    root = open_group(store=store, mode="w")
+    with open_storage(root, mode="insert") as storage:
+        storage["obj"] = {"info": True}
+    root.attrs["test"] = 5
+
+    root = open_group(store=store, mode="r")
+    with open_storage(root, mode="read") as storage:
+        assert storage["obj"] == {"info": True}
+    assert root.attrs["test"] == 5
 
 
 def test_json_storage(tmp_path):
