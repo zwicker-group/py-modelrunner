@@ -9,8 +9,9 @@ import argparse
 import json
 import logging
 from abc import ABCMeta, abstractmethod
+from collections.abc import Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any
 
 from ..storage import ModeType, StorageGroup, open_storage
 from ..utils import is_serial_or_mpi_root

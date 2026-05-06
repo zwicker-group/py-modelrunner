@@ -24,7 +24,8 @@ from __future__ import annotations
 
 import logging
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Any, Collection, Literal, Sequence
+from collections.abc import Collection, Sequence
+from typing import TYPE_CHECKING, Any, Literal
 
 import numcodecs
 import numpy as np

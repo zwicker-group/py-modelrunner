@@ -241,7 +241,7 @@ intersphinx_mapping = {
     "h5py": ("https://docs.h5py.org/en/latest", None),
     "matplotlib": ("https://matplotlib.org/stable", None),
     "napari": ("https://napari.org/", None),
-    "numba": ("https://numba.pydata.org/numba-doc/latest/", None),
+    "numba": ("https://numba.readthedocs.io/en/stable/", None),
     "numpy": ("https://numpy.org/doc/stable", None),
     "pde": ("https://py-pde.readthedocs.io/en/latest", None),
     "python": ("https://docs.python.org/3/", None),

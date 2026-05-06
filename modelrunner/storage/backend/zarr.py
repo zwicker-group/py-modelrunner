@@ -8,24 +8,31 @@ Requires the optional :mod:`zarr` module.
 from __future__ import annotations
 
 import shutil
+from collections.abc import Collection, Sequence
 from pathlib import Path
-from typing import Any, Collection, Sequence, Union
+from typing import Any, Union
 
 import numpy as np
 import zarr
 from numpy.typing import ArrayLike, DTypeLike
 
-try:
-    # try import path from zarr version 3
-    from zarr.abc.store import Store
+zarr_version = int(zarr.__version__.split(".", 1)[0])
 
-    is_zarr2 = False
-
-except ImportError:
-    # try import path from zarr version 2
+if zarr_version == 2:
+    # import classes from paths of zarr version 2
+    from zarr import DirectoryStore as LocalStore
+    from zarr import SQLiteStore, ZipStore
     from zarr._storage.store import Store
 
-    is_zarr2 = True
+elif zarr_version == 3:
+    # import classes from paths of zarr version 3
+    from zarr.abc.store import Store
+    from zarr.storage import LocalStore, ZipStore
+
+    SQLiteStore = None
+
+else:
+    raise NotImplementedError(f"No support for zarr version {zarr_version}")
 
 from ..access_modes import ModeType
 from ..attributes import AttrsLike
@@ -74,17 +81,21 @@ class ZarrStorage(StorageBase):
             elif path.suffix == ".zip":
                 # create a ZipStore
                 file_mode = self.mode.file_mode
-                if path.exists() and file_mode == "w":
+                if file_mode == "x":
+                    if path.exists():
+                        raise OSError("File `{path}` already exists")
+                    else:
+                        file_mode = "w"
+                elif file_mode == "w" and path.exists():
                     self._logger.info("Delete file `%s`", path)
                     path.unlink()
-                self._store = zarr.storage.ZipStore(path, mode=file_mode)
 
             elif is_zarr2 and path.suffix == ".sqldb":
                 # create a SQLiteStore
                 if self.mode.file_mode == "w" and path.exists():
                     self._logger.info("Delete file `%s`", path)
                     path.unlink()
-                self._store = zarr.SQLiteStore(path)
+                self._store = SQLiteStore(path)
 
         elif isinstance(store_or_path, Store):
             # use already opened zarr storage
@@ -193,7 +204,14 @@ class ZarrStorage(StorageBase):
         else:
             # create a new array element
             if arr.dtype == object:
-                el = parent.array(name, arr, object_codec=self.codec, overwrite=True)
+                if zarr_version == 2:
+                    el = parent.array(
+                        name, arr, object_codec=self.codec, overwrite=True
+                    )
+                else:
+                    el = parent.array(
+                        name, arr, object_codec_id=self.codec, overwrite=True
+                    )
             else:
                 el = parent.array(name, arr, overwrite=True)
 
@@ -240,4 +258,7 @@ class ZarrStorage(StorageBase):
         arr: np.ndarray = np.empty(1, dtype=object)  # encode object in an array
         arr[0] = obj
         parent, name = self._get_parent(loc)
-        parent.array(name, arr, object_codec=self.codec, overwrite=True)
+        if zarr_version == 2:
+            parent.array(name, arr, object_codec=self.codec, overwrite=True)
+        else:
+            parent.array(name, arr, object_codec_id=self.codec, overwrite=True)

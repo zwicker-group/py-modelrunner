@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import importlib
-from typing import Any, Callable, List, Optional, TypeVar
+from typing import Any, Callable, Optional, TypeVar
 
 import numpy as np
 

@@ -10,8 +10,9 @@ import inspect
 import itertools
 import logging
 import warnings
+from collections.abc import Collection, Iterator
 from pathlib import Path
-from typing import Any, Collection, Iterator, List
+from typing import Any
 
 import numpy as np
 from tqdm.auto import tqdm
@@ -248,7 +249,7 @@ storage_actions.register(
 )
 
 
-class ResultCollection(List[Result]):
+class ResultCollection(list[Result]):
     """Represents a collection of results."""
 
     @classmethod

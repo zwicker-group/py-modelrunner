@@ -8,8 +8,9 @@ Requires the optional :mod:`h5py` module.
 
 from __future__ import annotations
 
+from collections.abc import Collection, Sequence
 from pathlib import Path
-from typing import Any, Collection, Sequence
+from typing import Any
 
 import h5py
 import numpy as np

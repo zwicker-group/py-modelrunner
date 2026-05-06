@@ -9,8 +9,9 @@ import importlib.util
 import inspect
 import logging
 import os.path
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Callable, Sequence
+from typing import Callable
 
 from ..model import ModelBase, cleared_default_model, factory, make_model_class
 from .results import Result
