@@ -156,7 +156,7 @@ def test_register_class_action_no_inhert(ext, tmp_path):
         b1 = store["b1"]
 
     assert b.loaded  # B uses the hook class
-    assert not b1.loaded  # B2 does not yse the hook classes
+    assert not b1.loaded  # B2 does not use the hook classes
     assert b.a.value == {"a": 1}
     assert b.b == 2
     assert b1.a.value == {"a": 2}

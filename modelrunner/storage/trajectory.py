@@ -124,9 +124,7 @@ class TrajectoryWriter:
                 shape: tuple[int, ...] = data.shape
                 self._item_type = "array"
             else:
-                dtype = object
-                shape = ()
-                self._item_type = "object"
+                raise NotImplementedError("Trajectories must be arrays for zarr3")
             self._trajectory.create_dynamic_array("data", shape=shape, dtype=dtype)
             self._trajectory.create_dynamic_array("time", shape=(), dtype=float)
             self._trajectory.write_attrs(None, {"item_type": self._item_type})
@@ -138,10 +136,10 @@ class TrajectoryWriter:
 
         if self._item_type == "array":
             self._trajectory.extend_dynamic_array("data", data)
-        elif self._item_type == "object":
-            arr: np.ndarray = np.empty((), dtype=object)
-            arr[...] = data
-            self._trajectory.extend_dynamic_array("data", arr)
+        # elif self._item_type == "object":
+        #     arr: np.ndarray = np.empty((), dtype=object)
+        #     arr[...] = data
+        #     self._trajectory.extend_dynamic_array("data", arr)
         else:
             raise NotImplementedError
         self._trajectory.extend_dynamic_array("time", time)

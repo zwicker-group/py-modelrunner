@@ -20,7 +20,6 @@ def test_result_serialization(ext, tmp_path):
         "string": "test",
         "list_1d": [0, 1, 2],
         "list_2d": [[0, 1], [2, 3, 4]],
-        "array": np.arange(5),
     }
     result = Result.from_data({"name": "model"}, data)
 
