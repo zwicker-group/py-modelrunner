@@ -76,7 +76,7 @@ class ZarrStorage(StorageBase):
                 if zarr_version == 2:
                     self._store = zarr.DirectoryStore(path)
                 else:
-                    self._store = zarr.LocalStore(path)
+                    self._store = zarr.storage.LocalStore(path, codec=self.codec)
 
             elif path.suffix == ".zip":
                 # create a ZipStore
@@ -89,6 +89,8 @@ class ZarrStorage(StorageBase):
                 elif file_mode == "w" and path.exists():
                     self._logger.info("Delete file `%s`", path)
                     path.unlink()
+
+                self._store = ZipStore(path, mode=file_mode)
 
             elif zarr_version == 2 and path.suffix == ".sqldb":
                 # create a SQLiteStore
@@ -109,7 +111,7 @@ class ZarrStorage(StorageBase):
 
     @property
     def can_update(self) -> bool:
-        """bool: indicates whether the storage supports updating items"""
+        """Bool: indicates whether the storage supports updating items."""
         return not isinstance(self._store, zarr.storage.ZipStore)
 
     def __repr__(self):
@@ -209,11 +211,9 @@ class ZarrStorage(StorageBase):
                         name, arr, object_codec=self.codec, overwrite=True
                     )
                 else:
-                    el = parent.array(
-                        name, arr, object_codec_id=self.codec, overwrite=True
-                    )
+                    el = parent.create_array(name, data=arr, overwrite=True)
             else:
-                el = parent.array(name, arr, overwrite=True)
+                el = parent.create_array(name, data=arr, overwrite=True)
 
             if isinstance(arr, np.recarray):
                 el.attrs["__recarray__"] = True
