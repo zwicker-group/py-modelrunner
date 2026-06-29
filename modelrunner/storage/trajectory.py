@@ -124,7 +124,9 @@ class TrajectoryWriter:
                 shape: tuple[int, ...] = data.shape
                 self._item_type = "array"
             else:
-                raise NotImplementedError("Trajectories must be arrays for zarr3")
+                raise NotImplementedError(
+                    f"Trajectories must be arrays for zarr3, not {data.__class__}"
+                )
             self._trajectory.create_dynamic_array("data", shape=shape, dtype=dtype)
             self._trajectory.create_dynamic_array("time", shape=(), dtype=float)
             self._trajectory.write_attrs(None, {"item_type": self._item_type})
