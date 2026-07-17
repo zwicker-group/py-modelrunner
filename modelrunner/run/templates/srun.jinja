@@ -10,7 +10,7 @@
 #SBATCH --job-name={{ JOB_NAME }}
 # Queue (Partition):
 {% if CONFIG['partition'] is defined %}
-#SBATCH -p {{ CONFIG['partition'] }}
+#SBATCH --partition {{ CONFIG['partition'] }}
 {% endif %}
 # Set max. runtime
 {% if CONFIG['time'] is defined %}
