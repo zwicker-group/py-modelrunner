@@ -54,7 +54,7 @@ DEFAULT_CONFIG = [
         "qsub",
         str,
         "The job submission method.",
-        choices=["background", "foreground", "qsub", "srun"],
+        choices=["background", "foreground", "qsub", "sbatch", "srun"],
     ),
     Parameter(
         "partition", "", str, "The partition to which the job will be submitted."
@@ -159,8 +159,8 @@ def submit_job(
             working directory for remote jobs.
         method (str):
             Specifies the submission method. Currently `background`, `foreground`,
-            'srun', and `qsub` are supported. The special value `auto` reads the method
-            from the `config` argument.
+            'sbatch', and `qsub` are supported. The special value `auto` reads the
+            method from the `config` argument.
         use_modelrunner (bool):
             If True, `script` is envoked with the modelrunner library, e.g. by calling
             `python -m modelrunner {script}`.
@@ -267,7 +267,7 @@ def submit_job(
     script_content = Template(script_template).render(script_args)
     logger.debug("Script: `%s`", script_content)
 
-    if method in {"qsub", "srun"}:
+    if method in {"qsub", "srun", "sbatch"}:
         # submit job to queue
         proc = sp.Popen(
             [method],
