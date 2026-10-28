@@ -38,6 +38,10 @@ from .utils import encode_class
 if TYPE_CHECKING:
     from .group import StorageGroup
 
+
+# we allow unpickling since we otherwise cannot store arbitrary Python objects
+numcodecs.pickles.ALLOW_UNSAFE_PICKLE_DECODE = True
+
 _base_logger = logging.getLogger(__name__.rsplit(".", 1)[0])
 """:class:`logging.Logger`: Base logger for fields."""
 

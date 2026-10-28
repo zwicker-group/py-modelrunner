@@ -36,9 +36,9 @@ function with several arguments, like so
 
 ```python
 def main(a: float = 1, b: int = 2, negate: bool = False):
-    res = a ** b
+    res = a**b
     if negate:
-    	res *= -1
+        res *= -1
     return res
 ```
 
@@ -91,8 +91,8 @@ parameters:
 ```python
 from modelrunner import ModelBase
 
-class MyModel(ModelBase):  # define custom model
 
+class MyModel(ModelBase):  # define custom model
     # defines supported parameters with default values
     parameters_default = {"a": 1, "b": 2}
 
@@ -101,7 +101,7 @@ class MyModel(ModelBase):  # define custom model
         return self.parameters["a"] * self.parameters["b"]
 
 
-model = MyModel({"a" : 3})
+model = MyModel({"a": 3})
 ```
 
 The last line actually creates an instance of the model with custom parameters.
@@ -111,9 +111,11 @@ Alternatively, a model can also be defined from a simple function:
 ```python
 from modelrunner import make_model
 
+
 @make_model
 def multiply(a=1, b=2):
     return a * b
+
 
 model = multiply(a=3)
 ```
@@ -177,9 +179,11 @@ A simple full script displaying this reads
 ```python
 from modelrunner import make_model, submit_job
 
+
 @make_model
 def multiply(a=1, b=2):
     return a * b
+
 
 if __name__ == "__main__":
     submit_job(__file__, parameters={"a": 2}, output="data.hdf5", method="foreground")
@@ -193,13 +197,17 @@ parameters to conduct a parameter study:
 ```python
 from modelrunner import make_model, submit_job
 
+
 @make_model
 def multiply(a=1, b=2):
     return a * b
 
+
 if __name__ == "__main__":
     for a in range(5):
-        submit_job(__file__, parameters={"a": a}, output=f"data_{a}.hdf5", method="foreground")
+        submit_job(
+            __file__, parameters={"a": a}, output=f"data_{a}.hdf5", method="foreground"
+        )
 ```
 
 Note that the safe-guard `if __name__ == "__main__"` is absolutely crucial to ensure that
@@ -212,12 +220,16 @@ We also support submitting multiple jobs of a parameter study:
 ```python
 from modelrunner import make_model, submit_jobs
 
+
 @make_model
 def multiply(a=1, b=2):
     return a * b
 
+
 if __name__ == "__main__":
-    submit_jobs(__file__, parameters={"a": range(5)}, output_folder="data", method="foreground")
+    submit_jobs(
+        __file__, parameters={"a": range(5)}, output_folder="data", method="foreground"
+    )
 ```
 
 Finally, the packages also offers a method to submit a model script to the cluster using
