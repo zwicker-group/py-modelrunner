@@ -7,11 +7,7 @@ from __future__ import annotations
 
 import importlib
 from collections.abc import Callable
-from typing import Any, Optional, TypeVar
-
-import numpy as np
-
-from modelrunner.storage.backend.zarr import zarr_version
+from typing import Any, TypeVar
 
 TFunc = TypeVar("TFunc", bound=Callable[..., Any])
 
