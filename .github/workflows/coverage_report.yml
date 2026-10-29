@@ -12,6 +12,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v7
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v7
       with:
@@ -29,13 +30,14 @@ jobs:
         pip install -r tests/requirements.txt
 
     - name: Generate coverage report
+      env:
+        MPLBACKEND: agg
       run: |
-        export MPLBACKEND="agg"
         export PYTHONPATH="${PYTHONPATH}:`pwd`"
         pytest --cov-config=pyproject.toml --cov-report xml:report_coverage.xml --cov=modelrunner tests/
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./report_coverage.xml
