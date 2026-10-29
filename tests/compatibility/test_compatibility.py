@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from helpers import assert_data_equals
+from helpers import assert_data_equals, module_available
 from modelrunner import Result
 
 CWD = Path(__file__).parent.resolve()
@@ -31,6 +31,8 @@ def test_reading_compatibility(path):
     """Test reading old files."""
     if path.suffix == ".zip":
         pytest.skip("Zip files are not properly supported anymore")
+    if not module_available("zarr") and path.suffix == ".zarr":
+        pytest.skip("zarr is not available, so we skip the test")
     result = Result.from_file(path)
 
     with path.with_suffix(".pkl").open("rb") as fp:

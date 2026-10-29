@@ -7,7 +7,6 @@ import pytest
 
 from helpers import STORAGE_EXT, STORAGE_OBJECTS, assert_data_equals
 from modelrunner.storage import AccessError, open_storage
-from modelrunner.storage.backend.zarr import zarr_version
 
 OBJ = {"a": 1, "b": [1, 2, 3]}
 ARRAY_EXAMPLES = [
@@ -16,16 +15,20 @@ ARRAY_EXAMPLES = [
 ]
 
 
-STORAGE_CLASSES = {
-    "json": "JSONStorage",
-    "yaml": "YAMLStorage",
-    "hdf": "HDFStorage",
-    "zarr": "ZarrStorage",
-    "zip": "ZarrStorage",
-    "": "ZarrStorage",
-}
-if zarr_version == 2:
-    STORAGE_CLASSES["sqldb"] = "ZarrStorage"
+STORAGE_CLASSES = {"json": "JSONStorage", "yaml": "YAMLStorage", "hdf": "HDFStorage"}
+
+try:
+    import zarr
+except ImportError:
+    pass  # zarr is not available
+else:
+    # add the zarr storage classes
+    from modelrunner.storage.backend.zarr import zarr_version
+
+    STORAGE_CLASSES |= {"zarr": "ZarrStorage", "zip": "ZarrStorage", "": "ZarrStorage"}
+
+    if zarr_version == 2:
+        STORAGE_CLASSES["sqldb"] = "ZarrStorage"
 
 
 @pytest.mark.parametrize("ext", STORAGE_EXT)
