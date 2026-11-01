@@ -14,7 +14,6 @@ EXAMPLE_PATH = PACKAGEPATH / "examples"
 assert EXAMPLE_PATH.is_dir()
 
 
-@pytest.mark.no_cover
 @pytest.mark.skipif(sys.platform == "win32", reason="Assumes unix setup")
 @pytest.mark.parametrize("path", EXAMPLE_PATH.glob("*.py"))
 def test_examples(path, tmp_path):
