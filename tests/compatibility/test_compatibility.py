@@ -26,7 +26,7 @@ def get_compatibility_files(version=None):
                 yield path
 
 
-@pytest.mark.parametrize("path", get_compatibility_files())
+@pytest.mark.parametrize("path", list(get_compatibility_files()))
 def test_reading_compatibility(path):
     """Test reading old files."""
     if path.suffix == ".zip":
