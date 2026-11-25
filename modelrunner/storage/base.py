@@ -27,7 +27,6 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Collection, Sequence
 from typing import TYPE_CHECKING, Any, Literal
 
-import numcodecs
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 
@@ -39,9 +38,6 @@ if TYPE_CHECKING:
     from .group import StorageGroup
 
 
-# we allow unpickling since we otherwise cannot store arbitrary Python objects
-numcodecs.pickles.ALLOW_UNSAFE_PICKLE_DECODE = True
-
 _base_logger = logging.getLogger(__name__.rsplit(".", 1)[0])
 """:class:`logging.Logger`: Base logger for fields."""
 
@@ -51,13 +47,9 @@ class StorageBase(metaclass=ABCMeta):
 
     extensions: list[str] = []
     """list of str: all file extensions supported by this storage"""
-    default_codec = numcodecs.Pickle()
-    """:class:`numcodecs.Codec`: the default codec used for encoding binary data."""
     mode: AccessMode
     """:class:`~modelrunner.storage.access_modes.AccessMode`: access mode."""
 
-    _codec: numcodecs.abc.Codec
-    """:class:`numcodecs.Codec`: the specific codec used for encoding binary data."""
     _logger: logging.Logger  # logger instance to output information
 
     def __init__(self, *, mode: ModeType = "read"):
@@ -92,21 +84,6 @@ class StorageBase(metaclass=ABCMeta):
 
     def flush(self) -> None:
         """Write (cached) data to storage."""
-
-    @property
-    def codec(self) -> numcodecs.abc.Codec:
-        """:class:`~numcodecs.abc.Codec`: A codec used to encode binary data."""
-        try:
-            return self._codec
-        except AttributeError:
-            attrs = self._read_attrs([])
-            if "__codec__" in attrs:
-                self._codec = numcodecs.get_codec(attrs["__codec__"])
-            else:
-                self._codec = self.default_codec
-                if self.mode.set_attrs:
-                    self._write_attr([], "__codec__", self._codec.get_config())
-        return self._codec
 
     @abstractmethod
     def keys(self, loc: Sequence[str]) -> Collection[str]:
