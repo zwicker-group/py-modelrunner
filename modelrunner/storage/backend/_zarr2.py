@@ -10,8 +10,9 @@ from __future__ import annotations
 import shutil
 from collections.abc import Collection, Sequence
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
+import numcodecs
 import numpy as np
 import zarr
 from numpy.typing import ArrayLike, DTypeLike
@@ -25,6 +26,10 @@ from ..access_modes import ModeType
 from ..attributes import AttrsLike
 from ..base import StorageBase
 
+# we allow unpickling since we otherwise cannot store arbitrary Python objects
+numcodecs.pickles.ALLOW_UNSAFE_PICKLE_DECODE = True
+
+
 zarrElement = zarr.Group | zarr.Array
 
 
@@ -32,6 +37,11 @@ class ZarrStorage(StorageBase):
     """Storage that stores data in an zarr file or database."""
 
     extensions = ["zarr", "zip", "sqldb", "lmdb"]
+
+    default_codec = numcodecs.Pickle()
+    """:class:`numcodecs.Codec`: the default codec used for encoding binary data."""
+    _codec: numcodecs.abc.Codec
+    """:class:`numcodecs.Codec`: the specific codec used for encoding binary data."""
 
     def __init__(self, store_or_path: str | Path | Store, *, mode: ModeType = "read"):
         """
@@ -92,6 +102,21 @@ class ZarrStorage(StorageBase):
             raise TypeError(f"Unknown store `{store_or_path}`")
 
         self._root = zarr.group(store=self._store, overwrite=False)
+
+    @property
+    def codec(self) -> numcodecs.abc.Codec:
+        """:class:`~numcodecs.abc.Codec`: A codec used to encode binary data."""
+        try:
+            return self._codec
+        except AttributeError:
+            attrs = self._read_attrs([])
+            if "__codec__" in attrs:
+                self._codec = numcodecs.get_codec(attrs["__codec__"])
+            else:
+                self._codec = self.default_codec
+                if self.mode.set_attrs:
+                    self._write_attr([], "__codec__", self._codec.get_config())
+        return self._codec
 
     @property
     def can_update(self) -> bool:
