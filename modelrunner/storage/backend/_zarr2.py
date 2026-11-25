@@ -60,7 +60,7 @@ class ZarrStorage(StorageBase):
                 if self.mode.file_mode == "r":
                     self._logger.info("DirectoryStore is always opened writable")
 
-                self._store = zarr.storage.LocalStore(path)
+                self._store = zarr.storage.DirectoryStore(path)
 
             elif path.suffix == ".zip":
                 # create a ZipStore
