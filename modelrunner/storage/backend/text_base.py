@@ -4,7 +4,9 @@
 
 from __future__ import annotations
 
+import base64
 import io
+import pickle
 from abc import ABCMeta, abstractmethod
 from collections.abc import Sequence
 from io import StringIO
@@ -210,9 +212,11 @@ class TextStorageBase(MemoryStorage, metaclass=ABCMeta):
         self._modified = True
 
     def _read_object(self, loc: Sequence[str]) -> Any:
-        return self.codec.decode(self[loc]["data"])
+        data = self[loc]["data"]
+        return pickle.loads(data)
 
     def _write_object(self, loc: Sequence[str], obj: Any) -> None:
         parent, name = self._get_parent(loc, check_write=True)
-        parent[name] = {"data": self.codec.encode(obj)}
+        data = pickle.dumps(obj, protocol=pickle.HIGHEST_PROTOCOL)
+        parent[name] = {"data": data}
         self._modified = True

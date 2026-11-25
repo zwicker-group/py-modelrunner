@@ -18,7 +18,6 @@ from typing import Any, Literal
 import numpy as np
 
 from .access_modes import AccessError, ModeType
-from .base import StorageBase
 from .group import StorageGroup
 from .tools import StorageID, open_storage
 from .utils import Location, storage_actions
