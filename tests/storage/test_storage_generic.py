@@ -16,20 +16,15 @@ ARRAY_EXAMPLES = [
 
 
 STORAGE_CLASSES = {"json": "JSONStorage", "yaml": "YAMLStorage", "hdf": "HDFStorage"}
-zarr_version = 0
 
 try:
     import zarr
 except ImportError:
-    pass  # zarr is not available
+    zarr_version = 0  # zarr is not available
 else:
     # add the zarr storage classes
-    from modelrunner.storage.backend.zarr import zarr_version
-
+    zarr_version = int(zarr.__version__.split(".", 1)[0])
     STORAGE_CLASSES |= {"zarr": "ZarrStorage", "zip": "ZarrStorage", "": "ZarrStorage"}
-
-    if zarr_version == 2:
-        STORAGE_CLASSES["sqldb"] = "ZarrStorage"
 
 STORAGE_FORMAT_CASES = [
     pytest.param(
