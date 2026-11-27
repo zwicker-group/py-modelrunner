@@ -36,7 +36,13 @@ class ZarrStorage(StorageBase):
 
     extensions = ["zarr", "zip", "sqldb", "lmdb"]
 
-    def __init__(self, store_or_path: str | Path | Store, *, mode: ModeType = "read"):
+    def __init__(
+        self,
+        store_or_path: str | Path | Store,
+        *,
+        mode: ModeType = "read",
+        zarr_format: int = 2,
+    ):
         """
         Args:
             store_or_path (str or :class:`~pathlib.Path` or :class:`~zarr._storage.store.Store`):
@@ -44,6 +50,10 @@ class ZarrStorage(StorageBase):
             mode (str or :class:`~modelrunner.storage.access_modes.AccessMode`):
                 The file mode with which the storage is accessed. Determines allowed
                 operations.
+            zarr_format (int):
+                The format to use when storing zarr files. The legacy format `2`
+                supports structured dtypes, whereas the newer format `3` will likely be
+                more robust in the future.
         """
         super().__init__(mode=mode)
 
@@ -88,7 +98,9 @@ class ZarrStorage(StorageBase):
             raise TypeError(f"Unknown store `{store_or_path}`")
 
         zarr_mode = "r" if self.mode.file_mode == "r" else "a"
-        self._root = zarr.open_group(store=self._store, mode=zarr_mode)
+        self._root = zarr.open_group(
+            store=self._store, mode=zarr_mode, zarr_format=zarr_format
+        )
 
     @property
     def can_update(self) -> bool:
@@ -203,8 +215,12 @@ class ZarrStorage(StorageBase):
     ) -> None:
         parent, name = self._get_parent(loc)
         try:
-            element = parent.zeros(
-                name=name, shape=(0,) + shape, chunks=(1,) + shape, dtype=dtype
+            element = parent.create_array(
+                name=name,
+                shape=(0,) + shape,
+                chunks=(1,) + shape,
+                dtype=dtype,
+                fill_value=0,
             )
         except zarr.errors.ContainsArrayError as err:
             raise RuntimeError(f"Array `/{'/'.join(loc)}` already exists") from err

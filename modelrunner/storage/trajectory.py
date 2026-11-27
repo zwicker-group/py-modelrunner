@@ -123,9 +123,9 @@ class TrajectoryWriter:
                 shape: tuple[int, ...] = data.shape
                 self._item_type = "array"
             else:
-                raise NotImplementedError(
-                    f"Trajectories must be arrays for zarr3, not {data.__class__}"
-                )
+                dtype = object
+                shape = ()
+                self._item_type = "object"
             self._trajectory.create_dynamic_array("data", shape=shape, dtype=dtype)
             self._trajectory.create_dynamic_array("time", shape=(), dtype=float)
             self._trajectory.write_attrs(None, {"item_type": self._item_type})
@@ -137,10 +137,10 @@ class TrajectoryWriter:
 
         if self._item_type == "array":
             self._trajectory.extend_dynamic_array("data", data)
-        # elif self._item_type == "object":
-        #     arr: np.ndarray = np.empty((), dtype=object)
-        #     arr[...] = data
-        #     self._trajectory.extend_dynamic_array("data", arr)
+        elif self._item_type == "object":
+            arr: np.ndarray = np.empty((), dtype=object)
+            arr[...] = data
+            self._trajectory.extend_dynamic_array("data", arr)
         else:
             raise NotImplementedError
         self._trajectory.extend_dynamic_array("time", time)
@@ -158,7 +158,7 @@ class TrajectoryWriter:
 class Trajectory:
     """Reads trajectories written with :class:`TrajectoryWriter`
 
-    The class permits direct access to indivdual items in the trajcetory using the
+    The class permits direct access to individual items in the trajectory using the
     square bracket notation. It is also possible to iterate over all items.
 
     Attributes:
@@ -190,7 +190,7 @@ class Trajectory:
             raise ValueError(f"Times are not monotonously increasing: {self.times}")
 
     def close(self) -> None:
-        """Close the openend storage."""
+        """Close the opened storage."""
         self._storage.close()
 
     def __len__(self) -> int:

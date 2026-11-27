@@ -40,9 +40,15 @@ def test_hdf_storage(tmp_path):
 
 
 @pytest.mark.skipif(not module_available("zarr"), reason="requires `zarr` module")
-def test_zarr_storage(tmp_path):
+@pytest.mark.parametrize("zarr_format", [2, 3])
+def test_zarr_storage(tmp_path, zarr_format):
     """Test ZarrStorage."""
     import zarr
+
+    zarr_version = int(zarr.__version__.split(".", 1)[0])
+    if zarr_version == 2 and zarr_format == 3:
+        pytest.skip("Zarr 2 does not support format 3")
+    kwargs = {"zarr_format": zarr_format} if zarr_version == 3 else {}
 
     if hasattr(zarr, "open_group"):
         open_group = zarr.open_group
@@ -56,13 +62,15 @@ def test_zarr_storage(tmp_path):
     else:
         store = zarr.storage.DirectoryStore(str(tmp_path / "storage.zarr"))
 
-    root = open_group(store=store, mode="w")
-    with open_storage(root, mode="insert") as storage:
+    root = open_group(store=store, mode="w", **kwargs)
+    with open_storage(root, mode="insert", **kwargs) as storage:
+        if zarr_version == 3:
+            assert storage._storage._root.metadata.zarr_format == zarr_format
         storage["obj"] = {"info": True}
     root.attrs["test"] = 5
 
     root = open_group(store=store, mode="r")
-    with open_storage(root, mode="read") as storage:
+    with open_storage(root, mode="read", **kwargs) as storage:
         assert storage["obj"] == {"info": True}
     assert root.attrs["test"] == 5
 
