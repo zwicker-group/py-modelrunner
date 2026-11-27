@@ -20,7 +20,7 @@ STORAGE_CLASSES = {"json": "JSONStorage", "yaml": "YAMLStorage", "hdf": "HDFStor
 try:
     import zarr
 except ImportError:
-    pass  # zarr is not available
+    zarr_version = 0  # zarr is not available
 else:
     # add the zarr storage classes
     zarr_version = int(zarr.__version__.split(".", 1)[0])
