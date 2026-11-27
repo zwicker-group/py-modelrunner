@@ -35,13 +35,14 @@ class ZarrStorage(StorageBase):
     """Storage that stores data in an zarr file or database."""
 
     extensions = ["zarr", "zip", "sqldb", "lmdb"]
+    default_zarr_format: int = 3
 
     def __init__(
         self,
         store_or_path: str | Path | Store,
         *,
         mode: ModeType = "read",
-        zarr_format: int = 2,
+        zarr_format: int | None = None,
     ):
         """
         Args:
@@ -53,7 +54,8 @@ class ZarrStorage(StorageBase):
             zarr_format (int):
                 The format to use when storing zarr files. The legacy format `2`
                 supports structured dtypes, whereas the newer format `3` will likely be
-                more robust in the future.
+                more robust in the future. The default value `None` indicates that the
+                default will be read from the `default_zarr_format` class attribute.
         """
         super().__init__(mode=mode)
 
@@ -98,6 +100,8 @@ class ZarrStorage(StorageBase):
             raise TypeError(f"Unknown store `{store_or_path}`")
 
         zarr_mode = "r" if self.mode.file_mode == "r" else "a"
+        if zarr_format is None:
+            zarr_format = self.default_zarr_format
         self._root = zarr.open_group(
             store=self._store, mode=zarr_mode, zarr_format=zarr_format
         )
