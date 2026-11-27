@@ -16,6 +16,7 @@ ARRAY_EXAMPLES = [
 
 
 STORAGE_CLASSES = {"json": "JSONStorage", "yaml": "YAMLStorage", "hdf": "HDFStorage"}
+zarr_version = 0
 
 try:
     import zarr
@@ -30,11 +31,22 @@ else:
     if zarr_version == 2:
         STORAGE_CLASSES["sqldb"] = "ZarrStorage"
 
+STORAGE_FORMAT_CASES = [
+    pytest.param(
+        ext, zarr_format, id=f"{ext}-zarr{zarr_format}" if zarr_format else ext
+    )
+    for ext in STORAGE_EXT
+    for zarr_format in (
+        (2, 3) if zarr_version == 3 and ext in {".", ".zarr", ".zip"} else (None,)
+    )
+]
 
-@pytest.mark.parametrize("ext", STORAGE_EXT)
-def test_storage_class(ext, tmp_path):
+
+@pytest.mark.parametrize(("ext", "zarr_format"), STORAGE_FORMAT_CASES)
+def test_storage_class(ext, zarr_format, tmp_path):
     """Test whether open_storage uses the correct Storage class."""
-    storage = open_storage(tmp_path / f"file{ext}", mode="truncate")
+    kwargs = {} if zarr_format is None else {"zarr_format": zarr_format}
+    storage = open_storage(tmp_path / f"file{ext}", mode="truncate", **kwargs)
     assert storage._storage.__class__.__name__ == STORAGE_CLASSES[ext[1:]]
 
     storage["item"] = 1
@@ -49,14 +61,22 @@ def test_storage_class(ext, tmp_path):
 
 
 @pytest.mark.parametrize("arr", ARRAY_EXAMPLES)
-@pytest.mark.parametrize("ext", STORAGE_EXT)
-def test_storage_persistence(arr, ext, tmp_path):
+@pytest.mark.parametrize(("ext", "zarr_format"), STORAGE_FORMAT_CASES)
+def test_storage_persistence(arr, ext, zarr_format, tmp_path):
     """Test generic properties of storages."""
+    kwargs = {} if zarr_format is None else {"zarr_format": zarr_format}
     # write to storage
-    with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
+    with open_storage(tmp_path / f"file{ext}", mode="truncate", **kwargs) as storage:
+        if zarr_format is not None:
+            assert storage._storage._root.metadata.zarr_format == zarr_format
         storage.create_group("empty")
         storage.write_array("group/test/arr", arr, attrs={"array": True})
+        if zarr_format is not None:
+            array_format = storage._storage._root["group/test/arr"].metadata.zarr_format
+            assert array_format == zarr_format
         storage.create_dynamic_array("dyn", arr=arr)
+        if zarr_format is not None:
+            assert storage._storage._root["dyn"].metadata.zarr_format == zarr_format
         storage.extend_dynamic_array("dyn", arr)
         storage.extend_dynamic_array("dyn", arr)
         storage.write_object("obj", OBJ)
@@ -65,7 +85,10 @@ def test_storage_persistence(arr, ext, tmp_path):
         assert not storage.closed
 
     # read from storage
-    with open_storage(tmp_path / f"file{ext}", mode="read") as storage:
+    with open_storage(tmp_path / f"file{ext}", mode="read", **kwargs) as storage:
+        if zarr_format is not None:
+            detected_root = zarr.open_group(store=storage._storage._store, mode="r")
+            assert detected_root.metadata.zarr_format == zarr_format
         assert storage.is_group("empty")
         assert len(list(storage["empty"].keys())) == 0
 
@@ -91,14 +114,15 @@ def test_storage_persistence(arr, ext, tmp_path):
         assert not storage.closed
 
 
-@pytest.mark.parametrize("ext", STORAGE_EXT)
-def test_storage_read(ext, tmp_path):
+@pytest.mark.parametrize(("ext", "zarr_format"), STORAGE_FORMAT_CASES)
+def test_storage_read(ext, zarr_format, tmp_path):
     """Test read mode."""
+    kwargs = {} if zarr_format is None else {"zarr_format": zarr_format}
     # create empty file
-    with open_storage(tmp_path / f"file{ext}", mode="truncate"):
+    with open_storage(tmp_path / f"file{ext}", mode="truncate", **kwargs):
         ...
 
-    with open_storage(tmp_path / f"file{ext}", mode="read") as storage:
+    with open_storage(tmp_path / f"file{ext}", mode="read", **kwargs) as storage:
         with pytest.raises(AccessError):
             storage.write_attrs(None, {"a": 1})
         with pytest.raises(AccessError):
@@ -115,10 +139,11 @@ def test_storage_read(ext, tmp_path):
             storage.write_object("obj", OBJ)
 
 
-@pytest.mark.parametrize("ext", STORAGE_EXT)
-def test_storage_exclusive(ext, tmp_path):
+@pytest.mark.parametrize(("ext", "zarr_format"), STORAGE_FORMAT_CASES)
+def test_storage_exclusive(ext, zarr_format, tmp_path):
     """Test exclusive mode."""
-    with open_storage(tmp_path / f"file{ext}", mode="exclusive") as storage:
+    kwargs = {} if zarr_format is None else {"zarr_format": zarr_format}
+    with open_storage(tmp_path / f"file{ext}", mode="exclusive", **kwargs) as storage:
         storage.write_array("arr", np.arange(5))
         storage.create_dynamic_array("dyn", arr=np.arange(2, dtype=float))
         storage.extend_dynamic_array("dyn", np.full(2, 1.0))
@@ -131,25 +156,26 @@ def test_storage_exclusive(ext, tmp_path):
 
         np.testing.assert_array_equal(storage.read_array("arr"), np.arange(5))
 
-    with open_storage(tmp_path / f"file{ext}", mode="read") as storage:
+    with open_storage(tmp_path / f"file{ext}", mode="read", **kwargs) as storage:
         np.testing.assert_array_equal(storage.read_array("arr"), np.arange(5))
         np.testing.assert_array_equal(storage.read_array("dyn", index=0), np.ones(2))
         assert_data_equals(storage.read_object("obj"), OBJ)
 
     with pytest.raises(FileExistsError):
-        open_storage(tmp_path / f"file{ext}", mode="exclusive")
+        open_storage(tmp_path / f"file{ext}", mode="exclusive", **kwargs)
 
 
-@pytest.mark.parametrize("ext", STORAGE_EXT)
-def test_storage_insert(ext, tmp_path):
+@pytest.mark.parametrize(("ext", "zarr_format"), STORAGE_FORMAT_CASES)
+def test_storage_insert(ext, zarr_format, tmp_path):
     """Test insert mode."""
-    with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
+    kwargs = {} if zarr_format is None else {"zarr_format": zarr_format}
+    with open_storage(tmp_path / f"file{ext}", mode="truncate", **kwargs) as storage:
         storage.create_group("a")
         storage.write_array("arr1", np.arange(3))
         storage.create_dynamic_array("dyn", arr=np.arange(2))
         storage.write_object("obj", OBJ)
 
-    with open_storage(tmp_path / f"file{ext}", mode="insert") as storage:
+    with open_storage(tmp_path / f"file{ext}", mode="insert", **kwargs) as storage:
         storage.write_attrs(None, {"a": 1})
         storage.create_group("b")
         storage.write_array("arr2", np.arange(5))
@@ -163,7 +189,7 @@ def test_storage_insert(ext, tmp_path):
         assert storage.is_group("a")
         np.testing.assert_array_equal(storage.read_array("arr1"), np.arange(3))
 
-    with open_storage(tmp_path / f"file{ext}", mode="read") as storage:
+    with open_storage(tmp_path / f"file{ext}", mode="read", **kwargs) as storage:
         assert storage.is_group("a")
         assert storage.is_group("b")
         np.testing.assert_array_equal(storage.read_array("arr1"), np.arange(3))
@@ -172,16 +198,17 @@ def test_storage_insert(ext, tmp_path):
         assert_data_equals(storage.read_object("obj"), OBJ)
 
 
-@pytest.mark.parametrize("ext", STORAGE_EXT)
-def test_storage_overwrite(ext, tmp_path):
+@pytest.mark.parametrize(("ext", "zarr_format"), STORAGE_FORMAT_CASES)
+def test_storage_overwrite(ext, zarr_format, tmp_path):
     """Test overwrite mode."""
-    with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
+    kwargs = {} if zarr_format is None else {"zarr_format": zarr_format}
+    with open_storage(tmp_path / f"file{ext}", mode="truncate", **kwargs) as storage:
         storage.write_array("arr", np.arange(5))
         storage.create_dynamic_array("dyn", arr=np.arange(2, dtype=float))
         storage.extend_dynamic_array("dyn", np.arange(2, dtype=float))
         storage.write_object("obj", {})
 
-    with open_storage(tmp_path / f"file{ext}", mode="overwrite") as storage:
+    with open_storage(tmp_path / f"file{ext}", mode="overwrite", **kwargs) as storage:
         storage.write_attrs(None, {"a": 1})
         with pytest.raises(AccessError):
             storage.create_group("a")
@@ -199,7 +226,7 @@ def test_storage_overwrite(ext, tmp_path):
         if storage._storage.can_update:
             storage.write_object("obj", OBJ)
 
-    with open_storage(tmp_path / f"file{ext}", mode="read") as storage:
+    with open_storage(tmp_path / f"file{ext}", mode="read", **kwargs) as storage:
         if storage._storage.can_update:
             np.testing.assert_array_equal(storage.read_array("arr"), np.zeros(5))
             assert_data_equals(storage.read_object("obj"), OBJ)
@@ -209,16 +236,17 @@ def test_storage_overwrite(ext, tmp_path):
         np.testing.assert_array_equal(storage.read_array("dyn", index=1), np.ones(2))
 
 
-@pytest.mark.parametrize("ext", STORAGE_EXT)
-def test_storage_full(ext, tmp_path):
+@pytest.mark.parametrize(("ext", "zarr_format"), STORAGE_FORMAT_CASES)
+def test_storage_full(ext, zarr_format, tmp_path):
     """Test full mode."""
-    with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
+    kwargs = {} if zarr_format is None else {"zarr_format": zarr_format}
+    with open_storage(tmp_path / f"file{ext}", mode="truncate", **kwargs) as storage:
         storage.write_array("arr", np.arange(5))
         storage.create_dynamic_array("dyn", arr=np.arange(2, dtype=float))
         storage.extend_dynamic_array("dyn", np.full(2, 1.0))
         storage.write_object("obj", {})
 
-    with open_storage(tmp_path / f"file{ext}", mode="full") as storage:
+    with open_storage(tmp_path / f"file{ext}", mode="full", **kwargs) as storage:
         storage.write_attrs(None, {"a": 1})
         storage.create_group("a")
 
@@ -230,7 +258,7 @@ def test_storage_full(ext, tmp_path):
         if storage._storage.can_update:
             storage.write_object("obj", OBJ)
 
-    with open_storage(tmp_path / f"file{ext}", mode="read") as storage:
+    with open_storage(tmp_path / f"file{ext}", mode="read", **kwargs) as storage:
         if storage._storage.can_update:
             np.testing.assert_array_equal(storage.read_array("arr"), np.zeros(5))
             assert_data_equals(storage.read_object("obj"), OBJ)
@@ -240,10 +268,11 @@ def test_storage_full(ext, tmp_path):
         np.testing.assert_array_equal(storage.read_array("dyn", index=0), np.ones(2))
 
 
-@pytest.mark.parametrize("ext", STORAGE_EXT)
-def test_storage_truncate(ext, tmp_path):
+@pytest.mark.parametrize(("ext", "zarr_format"), STORAGE_FORMAT_CASES)
+def test_storage_truncate(ext, zarr_format, tmp_path):
     """Test truncate mode."""
-    with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
+    kwargs = {} if zarr_format is None else {"zarr_format": zarr_format}
+    with open_storage(tmp_path / f"file{ext}", mode="truncate", **kwargs) as storage:
         storage.create_group("a")
         storage.write_attrs(None, {"a": 1})
         storage.write_array("arr", np.arange(5))
@@ -251,7 +280,7 @@ def test_storage_truncate(ext, tmp_path):
         storage.extend_dynamic_array("dyn", np.full(2, 2.0))
         storage.write_object("obj", {})
 
-    with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
+    with open_storage(tmp_path / f"file{ext}", mode="truncate", **kwargs) as storage:
         storage.create_group("c/b/a")
         storage.write_attrs(None, {"test": 1})
         storage.write_array("arr2", np.arange(5))
@@ -259,7 +288,7 @@ def test_storage_truncate(ext, tmp_path):
         storage.extend_dynamic_array("dyn", np.full(2, 1.0))
         storage.write_object("obj", OBJ)
 
-    with open_storage(tmp_path / f"file{ext}", mode="read") as storage:
+    with open_storage(tmp_path / f"file{ext}", mode="read", **kwargs) as storage:
         assert "a" not in storage
         assert storage.read_attrs() == {"test": 1}
         assert "arr" not in storage
@@ -270,10 +299,11 @@ def test_storage_truncate(ext, tmp_path):
         assert_data_equals(storage.read_object("obj"), OBJ)
 
 
-@pytest.mark.parametrize("ext", STORAGE_EXT)
-def test_appending_to_fixed_array(ext, tmp_path):
+@pytest.mark.parametrize(("ext", "zarr_format"), STORAGE_FORMAT_CASES)
+def test_appending_to_fixed_array(ext, zarr_format, tmp_path):
     """Test appending an array to a non-dynamic array."""
-    with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
+    kwargs = {} if zarr_format is None else {"zarr_format": zarr_format}
+    with open_storage(tmp_path / f"file{ext}", mode="truncate", **kwargs) as storage:
         storage.write_array("a1", np.arange(4))
         with pytest.raises(RuntimeError):
             storage.extend_dynamic_array("a1", np.zeros(4))
@@ -284,21 +314,23 @@ def test_appending_to_fixed_array(ext, tmp_path):
 
 
 @pytest.mark.parametrize("obj", STORAGE_OBJECTS)
-@pytest.mark.parametrize("ext", STORAGE_EXT)
-def test_arbitrary_objects(obj, ext, tmp_path):
+@pytest.mark.parametrize(("ext", "zarr_format"), STORAGE_FORMAT_CASES)
+def test_arbitrary_objects(obj, ext, zarr_format, tmp_path):
     """Test appending arbitrary objects."""
-    with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
+    kwargs = {} if zarr_format is None else {"zarr_format": zarr_format}
+    with open_storage(tmp_path / f"file{ext}", mode="truncate", **kwargs) as storage:
         storage["obj"] = obj
 
-    with open_storage(tmp_path / f"file{ext}", mode="read") as storage:
+    with open_storage(tmp_path / f"file{ext}", mode="read", **kwargs) as storage:
         assert_data_equals(storage["obj"], obj)
 
 
-@pytest.mark.parametrize("ext", STORAGE_EXT)
-def test_storage_copy_array(ext, tmp_path):
+@pytest.mark.parametrize(("ext", "zarr_format"), STORAGE_FORMAT_CASES)
+def test_storage_copy_array(ext, zarr_format, tmp_path):
     """Test whether storages make a copy, i.e., that not only a view is stored."""
+    kwargs = {} if zarr_format is None else {"zarr_format": zarr_format}
     obj = np.arange(5)
-    with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
+    with open_storage(tmp_path / f"file{ext}", mode="truncate", **kwargs) as storage:
         storage["obj"] = obj
         assert storage["obj"] is not obj
         np.testing.assert_array_equal(storage["obj"], obj)
@@ -306,11 +338,12 @@ def test_storage_copy_array(ext, tmp_path):
         assert not np.array_equal(storage["obj"], obj)
 
 
-@pytest.mark.parametrize("ext", STORAGE_EXT)
-def test_storage_copy_dict(ext, tmp_path):
+@pytest.mark.parametrize(("ext", "zarr_format"), STORAGE_FORMAT_CASES)
+def test_storage_copy_dict(ext, zarr_format, tmp_path):
     """Test whether storages make a copy, i.e., that not only a view is stored."""
+    kwargs = {} if zarr_format is None else {"zarr_format": zarr_format}
     obj = {"a": 1, "b": 2}
-    with open_storage(tmp_path / f"file{ext}", mode="truncate") as storage:
+    with open_storage(tmp_path / f"file{ext}", mode="truncate", **kwargs) as storage:
         storage["obj"] = obj
         assert storage["obj"] is not obj
         assert storage["obj"] == obj
@@ -318,10 +351,11 @@ def test_storage_copy_dict(ext, tmp_path):
         assert storage["obj"] != obj
 
 
-@pytest.mark.parametrize("ext", STORAGE_EXT)
-def test_storage_close(ext, tmp_path):
+@pytest.mark.parametrize(("ext", "zarr_format"), STORAGE_FORMAT_CASES)
+def test_storage_close(ext, zarr_format, tmp_path):
     """Test closing of storages."""
-    writer = open_storage(tmp_path / f"file{ext}", mode="truncate")
+    kwargs = {} if zarr_format is None else {"zarr_format": zarr_format}
+    writer = open_storage(tmp_path / f"file{ext}", mode="truncate", **kwargs)
     assert not writer.closed
     writer["obj"] = 1
     writer.close()
@@ -332,7 +366,7 @@ def test_storage_close(ext, tmp_path):
     with pytest.raises(RuntimeError):
         assert "obj" in writer
 
-    reader = open_storage(tmp_path / f"file{ext}", mode="read")
+    reader = open_storage(tmp_path / f"file{ext}", mode="read", **kwargs)
     assert not reader.closed
     assert reader["obj"] == 1
     reader.close()
